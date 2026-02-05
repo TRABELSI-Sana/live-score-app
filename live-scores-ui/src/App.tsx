@@ -87,6 +87,50 @@ function parseMinute(t: unknown): number {
     return Number.isFinite(base) ? base + added / 10 : 999;
 }
 
+function parseScore(score?: string): {home?: number; away?: number} {
+    if (!score) return {};
+    const m = score.match(/\d+/g);
+    if (!m || m.length < 2) return {};
+    const home = Number(m[0]);
+    const away = Number(m[1]);
+    return {
+        home: Number.isFinite(home) ? home : undefined,
+        away: Number.isFinite(away) ? away : undefined,
+    };
+}
+
+function filterGoalsByScore<T extends {event?: string; home_away?: string}>(
+    events: T[],
+    score?: string
+): T[] {
+    const {home, away} = parseScore(score);
+    if (home === undefined && away === undefined) return events;
+
+    let homeGoals = 0;
+    let awayGoals = 0;
+
+    return events.filter((event) => {
+        const ev = normEvent(event.event);
+        if (!ev.includes("GOAL")) return true;
+        const side = sideFromEvent(event.home_away);
+        if (side === "home") {
+            if (home === undefined || homeGoals < home) {
+                homeGoals += 1;
+                return true;
+            }
+            return false;
+        }
+        if (side === "away") {
+            if (away === undefined || awayGoals < away) {
+                awayGoals += 1;
+                return true;
+            }
+            return false;
+        }
+        return true;
+    });
+}
+
 function sideFromEvent(side?: unknown) {
     const normalized = norm(side);
     if (["home", "h", "local", "team1"].includes(normalized)) return "home";
@@ -394,9 +438,14 @@ export default function App() {
                                         )
                                             .slice()
                                             .sort((a, b) => parseMinute(b.time) - parseMinute(a.time));
-                                        const homeEvents = events.filter((e) => sideFromEvent(e.home_away) === "home");
-                                        const awayEvents = events.filter((e) => sideFromEvent(e.home_away) === "away");
-                                        const unknownEvents = events.filter(
+                                        const limitedEvents = filterGoalsByScore(events, m.scores?.score);
+                                        const homeEvents = limitedEvents.filter(
+                                            (e) => sideFromEvent(e.home_away) === "home"
+                                        );
+                                        const awayEvents = limitedEvents.filter(
+                                            (e) => sideFromEvent(e.home_away) === "away"
+                                        );
+                                        const unknownEvents = limitedEvents.filter(
                                             (e) => sideFromEvent(e.home_away) === "unknown"
                                         );
 
