@@ -1,13 +1,13 @@
 :root {
-    color: #1d1b2f;
+    color: #2f3726;
     font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-    background-color: #f5f6ff;
-    --teal: #6366f1;
-    --teal-dark: #312e81;
-    --coral: #8b5cf6;
-    --border: #d9ddf6;
-    --soft: #f1f3ff;
-    --muted: #6b6f8c;
+    background-color: #f6f8ef;
+    --teal: #7a9a2b;
+    --teal-dark: #4f6a17;
+    --coral: #93b83e;
+    --border: #dfe6d3;
+    --soft: #eef5e6;
+    --muted: #6f7b62;
 }
 
 *,
@@ -18,7 +18,7 @@
 
 body {
     margin: 0;
-    background: #f5f6ff;
+    background: #f6f8ef;
     min-height: 100vh;
 }
 
@@ -37,7 +37,7 @@ body {
     border-radius: 18px;
     border: 1px solid var(--border);
     background: #ffffff;
-    box-shadow: 0 16px 30px rgba(41, 45, 86, 0.12);
+    box-shadow: 0 16px 30px rgba(79, 106, 23, 0.12);
 }
 
 .legal-header h1 {
@@ -64,7 +64,7 @@ body {
     letter-spacing: 0.6px;
     text-transform: uppercase;
     color: var(--teal-dark);
-    background: rgba(99, 102, 241, 0.16);
+    background: rgba(122, 154, 43, 0.18);
     margin-bottom: 10px;
 }
 
@@ -80,13 +80,13 @@ body {
     border: 1px solid var(--border);
     background: var(--soft);
     font-size: 12px;
-    color: #2b2e4a;
+    color: #2f3726;
     text-decoration: none;
 }
 
 .legal-nav a:hover {
     background: #ffffff;
-    border-color: rgba(99, 102, 241, 0.35);
+    border-color: rgba(122, 154, 43, 0.35);
     color: var(--teal-dark);
 }
 
@@ -96,7 +96,7 @@ body {
     border-radius: 18px;
     border: 1px solid var(--border);
     background: #ffffff;
-    box-shadow: 0 16px 30px rgba(41, 45, 86, 0.1);
+    box-shadow: 0 16px 30px rgba(79, 106, 23, 0.1);
 }
 
 .legal-main h2 {
@@ -125,8 +125,8 @@ body {
 .legal-highlight {
     padding: 14px 16px;
     border-radius: 12px;
-    border: 1px solid rgba(99, 102, 241, 0.35);
-    background: rgba(99, 102, 241, 0.12);
+    border: 1px solid rgba(122, 154, 43, 0.35);
+    background: rgba(122, 154, 43, 0.12);
     font-size: 13px;
     color: var(--teal-dark);
 }
