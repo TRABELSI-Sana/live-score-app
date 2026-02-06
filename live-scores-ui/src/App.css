@@ -1,13 +1,13 @@
 :root {
-  --lavender: #f3f2ff;
-  --lavender-deep: #e4e3f8;
-  --ink: #2b2e4a;
-  --muted: #6d6f8e;
-  --primary: #5d5fef;
-  --primary-deep: #3c3dbb;
+  --lavender: #f6f8ef;
+  --lavender-deep: #e9efd9;
+  --ink: #2f3726;
+  --muted: #6f7b62;
+  --primary: #7a9a2b;
+  --primary-deep: #4f6a17;
   --card: #ffffff;
-  --border: #e1e2f5;
-  --shadow: 0 18px 40px rgba(51, 54, 104, 0.12);
+  --border: #dfe6d3;
+  --shadow: 0 18px 40px rgba(79, 106, 23, 0.12);
 }
 
 *,
@@ -20,7 +20,7 @@ body {
   margin: 0;
   font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
   color: var(--ink);
-  background: radial-gradient(circle at top, #ffffff 0%, var(--lavender) 45%, #ecebfa 100%);
+  background: #ffffff;
 }
 
 .page {
@@ -49,7 +49,7 @@ body {
   width: 34px;
   height: 34px;
   border-radius: 10px;
-  background: linear-gradient(135deg, #4c4fe9, #7f81ff);
+  background: linear-gradient(135deg, #6f8f20, #93b83e);
   color: #fff;
   display: grid;
   place-items: center;
@@ -67,10 +67,10 @@ body {
   align-items: center;
   gap: 10px;
   padding: 10px 16px;
-  background: #eef0ff;
+  background: #eef5e6;
   border-radius: 14px;
   min-width: 320px;
-  box-shadow: inset 0 0 0 1px rgba(93, 95, 239, 0.08);
+  box-shadow: inset 0 0 0 1px rgba(122, 154, 43, 0.14);
 }
 
 .searchBar input {
@@ -117,7 +117,7 @@ body {
 
 .contactButton {
   border: none;
-  background: #eef0ff;
+  background: #eef5e6;
   color: var(--primary-deep);
   border-radius: 999px;
   padding: 8px 16px;
@@ -216,23 +216,28 @@ body {
 }
 
 .statusLive {
-  background: rgba(93, 95, 239, 0.15);
+  background: rgba(122, 154, 43, 0.18);
   color: var(--primary-deep);
 }
 
 .statusUpcoming {
-  background: rgba(135, 139, 168, 0.15);
+  background: rgba(154, 176, 120, 0.22);
   color: var(--muted);
 }
 
 .statusFinished {
-  background: rgba(92, 193, 149, 0.2);
-  color: #2f7b5a;
+  background: rgba(122, 154, 43, 0.22);
+  color: #3f5f16;
 }
 
 .matchTeams {
   display: grid;
   gap: 8px;
+}
+
+.teamBlock {
+  display: grid;
+  gap: 6px;
 }
 
 .teamRow {
@@ -241,6 +246,27 @@ body {
   gap: 8px;
   font-size: 14px;
   color: var(--ink);
+}
+
+.teamEventsList {
+  list-style: none;
+  margin: 0;
+  padding: 0 0 0 32px;
+  display: grid;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--ink);
+}
+
+.teamEventItem {
+  display: grid;
+  grid-template-columns: auto 1fr auto auto;
+  gap: 6px;
+  align-items: center;
+}
+
+.eventIcon {
+  font-size: 12px;
 }
 
 .teamLogo,
@@ -263,22 +289,22 @@ body {
   color: var(--primary-deep);
   text-align: center;
   padding: 8px 0;
-  background: #f1f2ff;
+  background: #eef5e6;
   border-radius: 10px;
 }
 
 .matchScoreUpcoming {
   color: var(--muted);
-  background: #f6f6ff;
+  background: #f2f7ee;
 }
 
 .matchEvents {
   display: grid;
   gap: 8px;
-  background: #f9f9ff;
+  background: #f5f8f1;
   border-radius: 12px;
   padding: 10px 12px;
-  border: 1px solid rgba(93, 95, 239, 0.1);
+  border: 1px solid rgba(122, 154, 43, 0.14);
 }
 
 .matchEventsHeader {
@@ -294,34 +320,8 @@ body {
   font-weight: 500;
 }
 
-.eventsList {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: grid;
-  gap: 6px;
-  font-size: 12px;
-  color: var(--ink);
-}
-
-.eventsList li {
-  display: grid;
-  grid-template-columns: auto auto auto 1fr;
-  gap: 6px;
-  align-items: center;
-}
-
 .eventMinute {
   font-weight: 700;
-  color: var(--primary-deep);
-}
-
-.eventSide {
-  padding: 2px 6px;
-  border-radius: 999px;
-  font-size: 10px;
-  text-transform: uppercase;
-  background: #eef0ff;
   color: var(--primary-deep);
 }
 
@@ -371,7 +371,7 @@ body {
   align-items: center;
   gap: 6px;
   padding: 4px 8px;
-  background: #eef0ff;
+  background: #eef5e6;
   border-radius: 999px;
 }
 
@@ -383,7 +383,7 @@ body {
 
 .rankingButton {
   border: none;
-  background: #eef0ff;
+  background: #eef5e6;
   color: var(--primary-deep);
   border-radius: 999px;
   padding: 6px 12px;
@@ -394,7 +394,7 @@ body {
 
 .rankingButton:hover,
 .rankingButton:focus-visible {
-  background: #e1e4ff;
+  background: #e4efd7;
 }
 
 .focusCard h3 {
