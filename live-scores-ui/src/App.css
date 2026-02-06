@@ -115,22 +115,6 @@ body {
   margin: 0 0 12px;
 }
 
-.infoTags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin: 16px 0 18px;
-}
-
-.infoTags span {
-  padding: 6px 12px;
-  background: #f1f2ff;
-  border-radius: 999px;
-  font-size: 12px;
-  color: var(--primary-deep);
-  border: 1px solid var(--lavender-deep);
-}
-
 .contactButton {
   border: none;
   background: #eef0ff;

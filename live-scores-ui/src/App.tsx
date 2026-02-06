@@ -480,11 +480,6 @@ export default function App() {
                         Les compétitions sont classées par ligue pour une lecture simple et rapide. Aujourd&apos;hui,
                         la Premier League, la Bundesliga et les compétitions africaines sont à l&apos;honneur.
                     </p>
-                    <div className="infoTags">
-                        <span>À propos</span>
-                        <span>Politique confidentialité</span>
-                        <span>Conditions</span>
-                    </div>
                     <button type="button" className="contactButton">
                         Contact
                     </button>
