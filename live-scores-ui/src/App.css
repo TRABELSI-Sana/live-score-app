@@ -136,6 +136,28 @@ body {
   gap: 12px;
 }
 
+.editorialBlock {
+  padding: 16px;
+  border-radius: 16px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  box-shadow: 0 12px 24px rgba(45, 48, 100, 0.08);
+}
+
+.editorialContent {
+  display: grid;
+  gap: 10px;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.editorialContent ul {
+  margin: 0;
+  padding-left: 18px;
+  color: var(--muted);
+}
+
 .sectionHeader {
   display: flex;
   align-items: center;

@@ -480,6 +480,10 @@ export default function App() {
                         Les compétitions sont classées par ligue pour une lecture simple et rapide. Aujourd&apos;hui,
                         la Premier League, la Bundesliga et les compétitions africaines sont à l&apos;honneur.
                     </p>
+                    <p>
+                        LiveFoot propose également un résumé des tendances : clubs en forme, scores serrés et
+                        moments clés à surveiller. Revenez régulièrement pour suivre l&apos;évolution des résultats.
+                    </p>
                     <button type="button" className="contactButton">
                         Contact
                     </button>
@@ -495,7 +499,10 @@ export default function App() {
                             {liveMatches.length === 0 ? (
                                 <div className="empty">
                                     <h2>Aucun match en cours</h2>
-                                    <p>Revenez plus tard pour suivre les prochaines rencontres en direct.</p>
+                                    <p>
+                                        Revenez plus tard pour suivre les prochaines rencontres en direct. Vous pouvez
+                                        déjà parcourir les matchs à venir et les compétitions à l&apos;affiche.
+                                    </p>
                                 </div>
                             ) : (
                                 liveMatches.map((match) => renderMatchCard(match, "EN COURS"))
@@ -511,7 +518,10 @@ export default function App() {
                             {upcomingMatches.length === 0 ? (
                                 <div className="empty">
                                     <h2>Aucun match à venir</h2>
-                                    <p>Les prochains matchs seront affichés ici.</p>
+                                    <p>
+                                        Les prochains matchs seront affichés ici avec leurs horaires et informations
+                                        de diffusion.
+                                    </p>
                                 </div>
                             ) : (
                                 upcomingMatches.map((match) => renderMatchCard(match, "À VENIR"))
@@ -527,11 +537,35 @@ export default function App() {
                             {finishedMatches.length === 0 ? (
                                 <div className="empty">
                                     <h2>Aucun match terminé</h2>
-                                    <p>Les résultats finaux apparaîtront ici.</p>
+                                    <p>
+                                        Les résultats finaux apparaîtront ici avec les scores et les événements
+                                        marquants.
+                                    </p>
                                 </div>
                             ) : (
                                 finishedMatches.map((match) => renderMatchCard(match, "TERMINÉ"))
                             )}
+                        </div>
+                    </div>
+                    <div className="sectionBlock editorialBlock">
+                        <div className="sectionHeader">
+                            <h2>Guide LiveFoot</h2>
+                            <span>Infos pratiques</span>
+                        </div>
+                        <div className="editorialContent">
+                            <p>
+                                LiveFoot centralise les scores en direct, les horaires et les principaux événements des
+                                matchs pour vous faire gagner du temps.
+                            </p>
+                            <p>
+                                Les données sont regroupées par ligue afin d&apos;identifier rapidement les rencontres
+                                importantes et les équipes en forme.
+                            </p>
+                            <ul>
+                                <li>Ajoutez vos compétitions favorites pour un suivi plus simple.</li>
+                                <li>Vérifiez régulièrement les matchs en cours pour les changements de score.</li>
+                                <li>Consultez les résultats terminés pour les résumés clés.</li>
+                            </ul>
                         </div>
                     </div>
                 </section>

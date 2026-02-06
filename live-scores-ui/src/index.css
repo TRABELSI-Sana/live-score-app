@@ -56,6 +56,12 @@ body {
   font-size: 22px;
 }
 
+.static-shell h2 {
+  margin: 16px 0 6px;
+  font-size: 16px;
+  color: var(--text);
+}
+
 .static-shell p {
   margin: 8px 0;
   line-height: 1.5;
