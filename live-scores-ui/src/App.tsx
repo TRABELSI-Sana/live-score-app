@@ -1,8 +1,45 @@
 import "./App.css";
 import {useEffect, useState} from "react";
-import {useLiveBoard} from "./hooks/useLiveBoard";
+import type {MatchEvent} from "./hooks/useLiveBoard.ts";
+import {useLiveBoard} from "./hooks/useLiveBoard.ts";
 
 const UPCOMING_STATUSES = new Set(["NOT STARTED", "SCHEDULED"]);
+function normalizeEventType(value?: string): string {
+    return (value ?? "").replace(/[\s_-]/g, "").toUpperCase();
+}
+
+function isGoalEvent(event?: string): boolean {
+    const normalized = normalizeEventType(event);
+    return normalized === "GOAL" || normalized === "GOALPENALTY" || normalized === "PENALTY" || normalized === "OWNGOAL" || normalized === "GOALP";
+}
+
+function formatEventLabel(event?: MatchEvent): string {
+    if (!event) return "Événement";
+    const type = normalizeEventType(event.event);
+    if (type === "GOAL" || type === "GOALPENALTY" || type === "PENALTY" || type === "GOALP") return "But";
+    if (type === "OWNGOAL") return "C.S.C.";
+    if (type === "YELLOWCARD") return "Carton jaune";
+    if (type === "REDCARD") return "Carton rouge";
+    if (type === "SECONDYELLOW") return "Deuxième jaune";
+    return event.event ? event.event.replace(/_/g, " ").toLowerCase() : "Événement";
+}
+
+function formatEventMinute(time?: string): string {
+    if (!time) return "--";
+    const trimmed = time.trim();
+    if (!trimmed) return "--";
+    return trimmed.endsWith("'") ? trimmed : `${trimmed}'`;
+}
+
+function eventSortKey(event: MatchEvent): number {
+    const time = (event.time ?? "").trim();
+    const match = time.match(/(\d+)(?:\+(\d+))?/);
+    if (!match) return Number.MAX_SAFE_INTEGER;
+    const base = Number(match[1]);
+    const added = match[2] ? Number(match[2]) : 0;
+    if (!Number.isFinite(base)) return Number.MAX_SAFE_INTEGER;
+    return base * 100 + (Number.isFinite(added) ? added : 0);
+}
 
 function statusLabel(status?: string, time?: string, scheduled?: string) {
     if (!status) return scheduled ?? "--:--";
@@ -376,6 +413,9 @@ export default function App() {
         const teamIds = [match.home?.id, match.away?.id]
             .map((id) => (id === null || id === undefined ? undefined : String(id)))
             .filter((id): id is string => Boolean(id));
+        const sortedEvents = [...(match.lastEvents ?? [])].sort((a, b) => eventSortKey(a) - eventSortKey(b));
+        const recentEvents = sortedEvents.slice(-4);
+        const goalEvents = sortedEvents.filter((event) => isGoalEvent(event.event));
 
         return (
             <article key={match.id ?? `${match.home?.name}-${match.away?.name}`} className="matchCard">
@@ -424,6 +464,40 @@ export default function App() {
                     </div>
                 </div>
                 <div className={`matchScore ${isUpcoming ? "matchScoreUpcoming" : ""}`}>{scoreText}</div>
+                <div className="matchEvents">
+                    <div className="matchEventsHeader">
+                        <span>Événements</span>
+                        {goalEvents.length > 0 ? (
+                            <span className="goalCount">{goalEvents.length} but{goalEvents.length > 1 ? "s" : ""}</span>
+                        ) : null}
+                    </div>
+                    {recentEvents.length > 0 ? (
+                        <ul className="eventsList">
+                            {recentEvents.map((event, index) => (
+                                <li key={`${event.id ?? event.ts ?? event.time ?? index}`}>
+                                    <span className="eventMinute">{formatEventMinute(event.time)}</span>
+                                    <span className="eventSide">
+                                        {event.home_away?.toLowerCase().startsWith("h") ? "DOM" : event.home_away?.toLowerCase().startsWith("a") ? "EXT" : "--"}
+                                    </span>
+                                    <span className="eventLabel">{formatEventLabel(event)}</span>
+                                    <span className="eventPlayer">{event.player ?? "Joueur"}</span>
+                                </li>
+                            ))}
+                        </ul>
+                    ) : (
+                        <div className="eventEmpty">Aucun événement signalé.</div>
+                    )}
+                    {goalEvents.length > 0 ? (
+                        <div className="scorersRow">
+                            <span className="scorersLabel">Buteurs :</span>
+                            <span className="scorersList">
+                                {goalEvents
+                                    .map((event) => `${event.player ?? "Joueur"} ${formatEventMinute(event.time)}`)
+                                    .join(" · ")}
+                            </span>
+                        </div>
+                    ) : null}
+                </div>
                 <div className="matchMetaRow">
                     <span className="matchCompetition">{match.competition?.name ?? "LiveFoot"}</span>
                     <span className="matchTag">{variant}</span>
@@ -480,9 +554,10 @@ export default function App() {
                         Les compétitions sont classées par ligue pour une lecture simple et rapide. Aujourd&apos;hui,
                         la Premier League, la Bundesliga et les compétitions africaines sont à l&apos;honneur.
                     </p>
-                    <button type="button" className="contactButton">
-                        Contact
-                    </button>
+                    <p>
+                        LiveFoot propose également un résumé des tendances : clubs en forme, scores serrés et
+                        moments clés à surveiller. Revenez régulièrement pour suivre l&apos;évolution des résultats.
+                    </p>
                 </aside>
 
                 <section className="centerColumn">
@@ -495,7 +570,10 @@ export default function App() {
                             {liveMatches.length === 0 ? (
                                 <div className="empty">
                                     <h2>Aucun match en cours</h2>
-                                    <p>Revenez plus tard pour suivre les prochaines rencontres en direct.</p>
+                                    <p>
+                                        Revenez plus tard pour suivre les prochaines rencontres en direct. Vous pouvez
+                                        déjà parcourir les matchs à venir et les compétitions à l&apos;affiche.
+                                    </p>
                                 </div>
                             ) : (
                                 liveMatches.map((match) => renderMatchCard(match, "EN COURS"))
@@ -511,7 +589,10 @@ export default function App() {
                             {upcomingMatches.length === 0 ? (
                                 <div className="empty">
                                     <h2>Aucun match à venir</h2>
-                                    <p>Les prochains matchs seront affichés ici.</p>
+                                    <p>
+                                        Les prochains matchs seront affichés ici avec leurs horaires et informations
+                                        de diffusion.
+                                    </p>
                                 </div>
                             ) : (
                                 upcomingMatches.map((match) => renderMatchCard(match, "À VENIR"))
@@ -527,11 +608,35 @@ export default function App() {
                             {finishedMatches.length === 0 ? (
                                 <div className="empty">
                                     <h2>Aucun match terminé</h2>
-                                    <p>Les résultats finaux apparaîtront ici.</p>
+                                    <p>
+                                        Les résultats finaux apparaîtront ici avec les scores et les événements
+                                        marquants.
+                                    </p>
                                 </div>
                             ) : (
                                 finishedMatches.map((match) => renderMatchCard(match, "TERMINÉ"))
                             )}
+                        </div>
+                    </div>
+                    <div className="sectionBlock editorialBlock">
+                        <div className="sectionHeader">
+                            <h2>Guide LiveFoot</h2>
+                            <span>Infos pratiques</span>
+                        </div>
+                        <div className="editorialContent">
+                            <p>
+                                LiveFoot centralise les scores en direct, les horaires et les principaux événements des
+                                matchs pour vous faire gagner du temps.
+                            </p>
+                            <p>
+                                Les données sont regroupées par ligue afin d&apos;identifier rapidement les rencontres
+                                importantes et les équipes en forme.
+                            </p>
+                            <ul>
+                                <li>Ajoutez vos compétitions favorites pour un suivi plus simple.</li>
+                                <li>Vérifiez régulièrement les matchs en cours pour les changements de score.</li>
+                                <li>Consultez les résultats terminés pour les résumés clés.</li>
+                            </ul>
                         </div>
                     </div>
                 </section>

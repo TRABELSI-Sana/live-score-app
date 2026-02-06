@@ -136,6 +136,28 @@ body {
   gap: 12px;
 }
 
+.editorialBlock {
+  padding: 16px;
+  border-radius: 16px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  box-shadow: 0 12px 24px rgba(45, 48, 100, 0.08);
+}
+
+.editorialContent {
+  display: grid;
+  gap: 10px;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.editorialContent ul {
+  margin: 0;
+  padding-left: 18px;
+  color: var(--muted);
+}
+
 .sectionHeader {
   display: flex;
   align-items: center;
@@ -248,6 +270,92 @@ body {
 .matchScoreUpcoming {
   color: var(--muted);
   background: #f6f6ff;
+}
+
+.matchEvents {
+  display: grid;
+  gap: 8px;
+  background: #f9f9ff;
+  border-radius: 12px;
+  padding: 10px 12px;
+  border: 1px solid rgba(93, 95, 239, 0.1);
+}
+
+.matchEventsHeader {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--primary-deep);
+}
+
+.goalCount {
+  color: var(--muted);
+  font-weight: 500;
+}
+
+.eventsList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--ink);
+}
+
+.eventsList li {
+  display: grid;
+  grid-template-columns: auto auto auto 1fr;
+  gap: 6px;
+  align-items: center;
+}
+
+.eventMinute {
+  font-weight: 700;
+  color: var(--primary-deep);
+}
+
+.eventSide {
+  padding: 2px 6px;
+  border-radius: 999px;
+  font-size: 10px;
+  text-transform: uppercase;
+  background: #eef0ff;
+  color: var(--primary-deep);
+}
+
+.eventLabel {
+  color: var(--muted);
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+.eventPlayer {
+  color: var(--ink);
+  font-weight: 500;
+}
+
+.eventEmpty {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.scorersRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--ink);
+}
+
+.scorersLabel {
+  font-weight: 600;
+  color: var(--primary-deep);
+}
+
+.scorersList {
+  color: var(--muted);
 }
 
 .matchMetaRow {
