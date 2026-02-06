@@ -210,6 +210,21 @@ export default function App() {
     });
     const upcomingMatches = filteredMatches.filter((match) => UPCOMING_STATUSES.has(match.status ?? ""));
     const finishedMatches = filteredMatches.filter((match) => String(match.status ?? "") === "FINISHED");
+    const focusItems = [
+        liveMatches[0]
+            ? `${liveMatches[0].home?.name ?? "Équipe A"} - ${liveMatches[0].away?.name ?? "Équipe B"} en direct.`
+            : null,
+        upcomingMatches[0]
+            ? `À suivre : ${upcomingMatches[0].home?.name ?? "Équipe A"} vs ${
+                  upcomingMatches[0].away?.name ?? "Équipe B"
+              }.`
+            : null,
+        finishedMatches[0]
+            ? `Dernier résultat : ${finishedMatches[0].home?.name ?? "Équipe A"} ${
+                  finishedMatches[0].scores?.score ?? ""
+              } ${finishedMatches[0].away?.name ?? "Équipe B"}.`
+            : null,
+    ].filter((item): item is string => Boolean(item));
 
     useEffect(() => {
         if (!rankingCompetition) {
@@ -431,11 +446,15 @@ export default function App() {
 
                 <aside className="focusCard">
                     <h3>Focus du jour</h3>
-                    <ul>
-                        <li>Al Hilal impressionne avec une large victoire.</li>
-                        <li>La Premier League propose plusieurs affiches attendues.</li>
-                        <li>Les compétitions africaines attirent de plus en plus de spectateurs.</li>
-                    </ul>
+                    {focusItems.length > 0 ? (
+                        <ul>
+                            {focusItems.map((item, index) => (
+                                <li key={`${item}-${index}`}>{item}</li>
+                            ))}
+                        </ul>
+                    ) : (
+                        <p className="focusFallback">Les moments forts apparaîtront ici dès que les matchs démarrent.</p>
+                    )}
                 </aside>
             </main>
             <footer className="siteFooter">

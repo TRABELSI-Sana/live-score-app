@@ -320,6 +320,13 @@ body {
   line-height: 1.5;
 }
 
+.focusFallback {
+  margin: 0;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
 .empty {
   border: 1px dashed var(--border);
   padding: 18px;
@@ -371,6 +378,81 @@ body {
 .footerLinks a:focus-visible {
   border-color: var(--primary);
   color: var(--primary-deep);
+}
+
+.modalBackdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(35, 36, 69, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  z-index: 20;
+}
+
+.rankingModal {
+  width: min(620px, 100%);
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 24px 60px rgba(35, 36, 69, 0.3);
+  padding: 24px 24px 28px;
+  position: relative;
+}
+
+.modalClose {
+  position: absolute;
+  top: -16px;
+  right: -16px;
+  width: 36px;
+  height: 36px;
+  border-radius: 12px;
+  border: none;
+  background: var(--primary-deep);
+  color: #fff;
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+  box-shadow: 0 8px 20px rgba(67, 56, 202, 0.35);
+}
+
+.rankingTitle {
+  font-size: 16px;
+  font-weight: 700;
+  margin-bottom: 12px;
+  color: var(--primary-deep);
+}
+
+.rankingStatus {
+  font-size: 13px;
+  color: var(--muted);
+  padding: 10px 0;
+}
+
+.rankingError {
+  color: #b00020;
+}
+
+.rankingTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.rankingTable th,
+.rankingTable td {
+  text-align: left;
+  padding: 8px 6px;
+}
+
+.rankingTable thead th {
+  font-weight: 700;
+  color: var(--ink);
+  border-bottom: 1px solid var(--border);
+}
+
+.rankingTable tbody tr:not(:last-child) td {
+  border-bottom: 1px solid #f0f0f0;
 }
 
 @media (max-width: 1100px) {
