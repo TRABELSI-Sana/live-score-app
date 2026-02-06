@@ -41,11 +41,30 @@ function formatLocalTime(value?: string): string | undefined {
     });
 }
 
+function extractGroupName(match: {
+    group?: { name?: string } | string;
+    groupName?: string;
+    stage?: { name?: string; group?: string };
+    round?: { name?: string; group?: string };
+}): string | undefined {
+    const direct =
+        (typeof match.group === "string" ? match.group : match.group?.name) ??
+        match.groupName ??
+        match.stage?.group ??
+        match.round?.group;
+    if (direct) return String(direct).trim();
+    const roundName = match.round?.name ?? match.stage?.name;
+    if (!roundName) return undefined;
+    const matchGroup = roundName.match(/(?:group|groupe)\s*([a-z0-9]+)/i);
+    return matchGroup ? matchGroup[1].toUpperCase() : undefined;
+}
+
 type TableRow = {
     rank?: number | string;
     position?: number | string;
     rg?: number | string;
     place?: number | string;
+    group?: string;
     team?: { name?: string };
     club?: { name?: string };
     teamName?: string;
@@ -75,7 +94,16 @@ function toNumber(value: unknown): number | undefined {
     return Number.isFinite(parsed) ? parsed : undefined;
 }
 
-function extractTableRows(data: unknown): TableRow[] {
+function normalizeGroupName(value: unknown): string | undefined {
+    if (!value) return undefined;
+    return String(value)
+        .toLowerCase()
+        .replace(/^(group|groupe)\s*/i, "")
+        .trim();
+}
+
+function extractTableRows(data: unknown, groupName?: string): TableRow[] {
+    const normalizedGroup = normalizeGroupName(groupName);
     if (Array.isArray(data)) {
         return data as TableRow[];
     }
@@ -107,7 +135,14 @@ function extractTableRows(data: unknown): TableRow[] {
         for (const stage of stages) {
             const groups = stage.groups as Array<Record<string, unknown>> | undefined;
             if (!Array.isArray(groups)) continue;
-            const fromStageGroupStandings = groups.find((entry) => Array.isArray(entry?.standings))?.standings;
+            const matchingGroup = normalizedGroup
+                ? groups.find(
+                      (entry) => normalizeGroupName(entry?.name) === normalizedGroup
+                  )
+                : undefined;
+            const fromStageGroupStandings =
+                (matchingGroup?.standings as unknown) ??
+                groups.find((entry) => Array.isArray(entry?.standings))?.standings;
             if (Array.isArray(fromStageGroupStandings)) {
                 return fromStageGroupStandings as TableRow[];
             }
@@ -128,7 +163,12 @@ function extractTableRows(data: unknown): TableRow[] {
         }
         if (Array.isArray(dataNode?.groups)) {
             const dataGroups = dataNode.groups as Array<Record<string, unknown>>;
-            const fromDataGroupStandings = dataGroups.find((entry) => Array.isArray(entry?.standings))?.standings;
+            const matchingGroup = normalizedGroup
+                ? dataGroups.find((entry) => normalizeGroupName(entry?.name) === normalizedGroup)
+                : undefined;
+            const fromDataGroupStandings =
+                (matchingGroup?.standings as unknown) ??
+                dataGroups.find((entry) => Array.isArray(entry?.standings))?.standings;
             if (Array.isArray(fromDataGroupStandings)) {
                 return fromDataGroupStandings as TableRow[];
             }
@@ -138,7 +178,12 @@ function extractTableRows(data: unknown): TableRow[] {
             for (const stage of stages) {
                 const groups = stage.groups as Array<Record<string, unknown>> | undefined;
                 if (!Array.isArray(groups)) continue;
-                const fromStageGroupStandings = groups.find((entry) => Array.isArray(entry?.standings))?.standings;
+                const matchingGroup = normalizedGroup
+                    ? groups.find((entry) => normalizeGroupName(entry?.name) === normalizedGroup)
+                    : undefined;
+                const fromStageGroupStandings =
+                    (matchingGroup?.standings as unknown) ??
+                    groups.find((entry) => Array.isArray(entry?.standings))?.standings;
                 if (Array.isArray(fromStageGroupStandings)) {
                     return fromStageGroupStandings as TableRow[];
                 }
@@ -151,8 +196,8 @@ function extractTableRows(data: unknown): TableRow[] {
     return [];
 }
 
-function tableRowsFromData(data: unknown): TableDisplayRow[] {
-    const list = extractTableRows(data);
+function tableRowsFromData(data: unknown, groupName?: string): TableDisplayRow[] {
+    const list = extractTableRows(data, groupName);
 
     return list.map((row, idx) => {
         const rankRaw = row.rank ?? row.position ?? row.rg ?? row.place;
@@ -189,7 +234,11 @@ function tableRowsFromData(data: unknown): TableDisplayRow[] {
 
 export default function App() {
     const {grouped} = useLiveBoard();
-    const [rankingCompetition, setRankingCompetition] = useState<{id?: string; name?: string} | null>(null);
+    const [rankingCompetition, setRankingCompetition] = useState<{
+        id?: string;
+        name?: string;
+        groupName?: string;
+    } | null>(null);
     const [rankingRows, setRankingRows] = useState<TableDisplayRow[]>([]);
     const [rankingStatus, setRankingStatus] = useState<"idle" | "loading" | "error">("idle");
     const [searchTerm, setSearchTerm] = useState("");
@@ -248,7 +297,7 @@ export default function App() {
                 .then((r) => (r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`))))
                 .then((data) => {
                     if (cancelled) return;
-                    const rows = tableRowsFromData(data);
+                    const rows = tableRowsFromData(data, rankingCompetition.groupName);
                     if (rows.length === 0 && attempt < 2) {
                         retryTimer = setTimeout(() => loadTable(attempt + 1), 1000);
                         return;
@@ -281,6 +330,7 @@ export default function App() {
         const scoreText = isUpcoming ? localScheduled ?? "--:--" : match.scores?.score ?? "0 : 0";
         const displayStatus = statusLabel(match.status, match.time, localScheduled);
         const competitionId = match.competition?.id ? String(match.competition.id) : undefined;
+        const groupName = extractGroupName(match);
 
         return (
             <article key={match.id ?? `${match.home?.name}-${match.away?.name}`} className="matchCard">
@@ -341,6 +391,7 @@ export default function App() {
                             setRankingCompetition({
                                 id: competitionId,
                                 name: match.competition?.name,
+                                groupName,
                             })
                         }
                     >
@@ -483,7 +534,13 @@ export default function App() {
                             ×
                         </button>
                         <div className="rankingTitle">
-                            {rankingCompetition.name ? `Classement - ${rankingCompetition.name}` : "Classement"}
+                            {rankingCompetition.name
+                                ? `Classement - ${rankingCompetition.name}${
+                                      rankingCompetition.groupName
+                                          ? ` (Groupe ${rankingCompetition.groupName})`
+                                          : ""
+                                  }`
+                                : "Classement"}
                         </div>
                         {rankingStatus === "loading" ? (
                             <div className="rankingStatus">Chargement...</div>

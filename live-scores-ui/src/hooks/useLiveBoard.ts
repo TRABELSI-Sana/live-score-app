@@ -16,6 +16,10 @@ export type MatchState = {
     status?: string;
     time?: string;
     competition?: { id?: number; name?: string, country?: string };
+    stage?: { id?: number; name?: string; group?: string };
+    group?: { id?: number; name?: string };
+    round?: { id?: number; name?: string; group?: string };
+    groupName?: string;
     home?: { id?: number; name?: string; logo?: string };
     away?: { id?: number; name?: string; logo?: string };
 
