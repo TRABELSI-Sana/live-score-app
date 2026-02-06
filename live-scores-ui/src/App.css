@@ -404,8 +404,8 @@ body {
 
 .modalClose {
   position: absolute;
-  top: -16px;
-  right: -16px;
+  top: 16px;
+  right: 16px;
   width: 36px;
   height: 36px;
   border-radius: 12px;
