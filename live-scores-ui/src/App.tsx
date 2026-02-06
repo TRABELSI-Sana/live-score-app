@@ -41,103 +41,6 @@ function formatLocalTime(value?: string): string | undefined {
     });
 }
 
-function icon(ev?: string) {
-    if (ev?.includes("GOAL")) return "⚽";
-    if (ev?.includes("YELLOW")) return "🟨";
-    if (ev?.includes("RED")) return "🟥";
-    if (ev?.includes("MISSED_PENALTY")) return "MISSED PENALTY 🥅❌";
-    return "•";
-}
-
-function uniqBy<T>(items: T[], keyFn: (t: T) => string): T[] {
-    const seen = new Set<string>();
-    const out: T[] = [];
-    for (const it of items) {
-        const k = keyFn(it);
-        if (seen.has(k)) continue;
-        seen.add(k);
-        out.push(it);
-    }
-    return out;
-}
-
-function norm(v: unknown): string {
-    return String(v ?? "").trim().toLowerCase();
-}
-
-function normEvent(ev: unknown): string {
-    return String(ev ?? "").trim().toUpperCase();
-}
-
-function normPlayer(p: unknown): string {
-    return String(p ?? "")
-        .toLowerCase()
-        .replace(/\./g, "")
-        .replace(/[^\p{L}\p{N} ]/gu, " ")
-        .replace(/\s+/g, " ")
-        .trim();
-}
-
-function parseMinute(t: unknown): number {
-    const s = String(t ?? "").replace("'", "");
-    const m = s.match(/\d+/g);
-    if (!m || m.length === 0) return 999;
-    const base = Number(m[0]);
-    const added = m.length > 1 ? Number(m[1]) : 0;
-    return Number.isFinite(base) ? base + added / 10 : 999;
-}
-
-function parseScore(score?: string): {home?: number; away?: number} {
-    if (!score) return {};
-    const m = score.match(/\d+/g);
-    if (!m || m.length < 2) return {};
-    const home = Number(m[0]);
-    const away = Number(m[1]);
-    return {
-        home: Number.isFinite(home) ? home : undefined,
-        away: Number.isFinite(away) ? away : undefined,
-    };
-}
-
-function filterGoalsByScore<T extends {event?: string; home_away?: string}>(
-    events: T[],
-    score?: string
-): T[] {
-    const {home, away} = parseScore(score);
-    if (home === undefined && away === undefined) return events;
-
-    let homeGoals = 0;
-    let awayGoals = 0;
-
-    return events.filter((event) => {
-        const ev = normEvent(event.event);
-        if (!ev.includes("GOAL")) return true;
-        const side = sideFromEvent(event.home_away);
-        if (side === "home") {
-            if (home === undefined || homeGoals < home) {
-                homeGoals += 1;
-                return true;
-            }
-            return false;
-        }
-        if (side === "away") {
-            if (away === undefined || awayGoals < away) {
-                awayGoals += 1;
-                return true;
-            }
-            return false;
-        }
-        return true;
-    });
-}
-
-function sideFromEvent(side?: unknown) {
-    const normalized = norm(side);
-    if (["home", "h", "local", "team1"].includes(normalized)) return "home";
-    if (["away", "a", "visitor", "team2"].includes(normalized)) return "away";
-    return "unknown";
-}
-
 type TableRow = {
     rank?: number | string;
     position?: number | string;
@@ -344,219 +247,162 @@ export default function App() {
         };
     }, [rankingCompetition]);
 
-    return (
-        <div className="page">
-            <header className="hero">
-                <div className="heroBadge">Scores en direct</div>
-                <div className="logoRow">
-                    <div className="logoMark" aria-hidden="true">
-                        <span className="logoPulse"/>
+    const renderMatchCard = (match: (typeof allMatches)[number], variant: string) => {
+        const status = match.status ?? "";
+        const isUpcoming = UPCOMING_STATUSES.has(status);
+        const isFinished = status === "FINISHED";
+        const localScheduled = formatLocalTime(match.scheduled);
+        const scoreText = isUpcoming ? localScheduled ?? "--:--" : match.scores?.score ?? "0 : 0";
+        const displayStatus = statusLabel(match.status, match.time, localScheduled);
+
+        return (
+            <article key={match.id ?? `${match.home?.name}-${match.away?.name}`} className="matchCard">
+                <div className="matchCardTop">
+                    <span className="matchTime">{localScheduled ?? match.time ?? "--:--"}</span>
+                    <span
+                        className={`statusPill ${
+                            isUpcoming ? "statusUpcoming" : isFinished ? "statusFinished" : "statusLive"
+                        }`}
+                    >
+                        {displayStatus}
+                    </span>
+                </div>
+                <div className="matchTeams">
+                    <div className="teamRow">
+                        {match.home?.logo ? (
+                            <img
+                                className="teamLogo"
+                                src={match.home.logo}
+                                alt={match.home?.name ?? "Home"}
+                                loading="lazy"
+                                onError={(e) => {
+                                    (e.currentTarget as HTMLImageElement).style.display = "none";
+                                }}
+                            />
+                        ) : (
+                            <span className="teamLogoPlaceholder"/>
+                        )}
+                        <span>{match.home?.name ?? "Home"}</span>
                     </div>
-                    <div className="logoText">
-                        <span className="logoStrong">LiveFoot</span>
-                        <span className="logoLight">tempo</span>
+                    <div className="teamRow">
+                        {match.away?.logo ? (
+                            <img
+                                className="teamLogo"
+                                src={match.away.logo}
+                                alt={match.away?.name ?? "Away"}
+                                loading="lazy"
+                                onError={(e) => {
+                                    (e.currentTarget as HTMLImageElement).style.display = "none";
+                                }}
+                            />
+                        ) : (
+                            <span className="teamLogoPlaceholder"/>
+                        )}
+                        <span>{match.away?.name ?? "Away"}</span>
                     </div>
                 </div>
-                <p className="heroSubtitle">
-                    Le tableau du jour : scores, statuts clairs et horaires locaux pour suivre les matchs
-                    d&apos;un coup d&apos;œil.
-                </p>
+                <div className={`matchScore ${isUpcoming ? "matchScoreUpcoming" : ""}`}>{scoreText}</div>
+                <div className="matchMetaRow">
+                    <span className="matchCompetition">{match.competition?.name ?? "LiveFoot"}</span>
+                    <span className="matchTag">{variant}</span>
+                </div>
+            </article>
+        );
+    };
+
+    return (
+        <div className="page">
+            <header className="topBar">
+                <div className="brand">
+                    <span className="brandIcon">?</span>
+                    <span className="brandText">LiveFoot</span>
+                </div>
+                <label className="searchBar">
+                    <span className="searchIcon">🔍</span>
+                    <input type="search" placeholder="Search for teams, leagues, matches..." aria-label="Recherche" />
+                </label>
             </header>
 
-            <main className="content">
-                <section className="statsRow">
-                    <div className="statCard">
-                        <span className="statValue">{allMatches.length}</span>
-                        <span className="statLabel">Matchs listés</span>
+            <main className="layout">
+                <aside className="infoCard">
+                    <h1>Les matchs du jour – Scores et résultats en temps réel</h1>
+                    <p>
+                        Retrouvez ici tous les matchs de football joués aujourd&apos;hui, avec les scores mis à
+                        jour en direct, les buteurs, les cartons et les statuts des rencontres.
+                    </p>
+                    <p>
+                        Les compétitions sont classées par ligue pour une lecture simple et rapide. Aujourd&apos;hui,
+                        la Premier League, la Bundesliga et les compétitions africaines sont à l&apos;honneur.
+                    </p>
+                    <div className="infoTags">
+                        <span>À propos</span>
+                        <span>Politique confidentialité</span>
+                        <span>Conditions</span>
                     </div>
-                    <div className="statCard statCardLive">
-                        <span className="statValue">{liveMatches.length}</span>
-                        <span className="statLabel">En cours</span>
-                    </div>
-                    <div className="statCard">
-                        <span className="statValue">{upcomingMatches.length}</span>
-                        <span className="statLabel">À venir</span>
-                    </div>
-                    <div className="statCard">
-                        <span className="statValue">{finishedMatches.length}</span>
-                        <span className="statLabel">Terminés</span>
-                    </div>
-                </section>
-                <section className="board">
-                    {grouped.length === 0 ? (
-                        <div className="empty">
-                            <h2>Aucun match disponible</h2>
-                            <p>Revenez plus tard pour suivre les prochaines rencontres en direct.</p>
+                    <button type="button" className="contactButton">
+                        Contact
+                    </button>
+                </aside>
+
+                <section className="centerColumn">
+                    <div className="sectionBlock">
+                        <div className="sectionHeader">
+                            <h2>Matchs en cours</h2>
+                            <span>{liveMatches.length} matchs</span>
                         </div>
-                    ) : (
-                        grouped.map(({comp, list}) => (
-                            <div key={comp?.id ?? comp?.name ?? String(comp)} className="competition">
-                                <div className="competitionHeader">
-                                    <h2>{comp?.name ?? String(comp)}</h2>
-                                    <button
-                                        type="button"
-                                        className="rankingButton"
-                                        onClick={() => setRankingCompetition({id: comp?.id, name: comp?.name})}
-                                    >
-                                        CLASSEMENT
-                                    </button>
+                        <div className="matchGrid">
+                            {liveMatches.length === 0 ? (
+                                <div className="empty">
+                                    <h2>Aucun match en cours</h2>
+                                    <p>Revenez plus tard pour suivre les prochaines rencontres en direct.</p>
                                 </div>
-
-                                <div className="matches">
-                                    {list.map((m, idx) => {
-                                        const filteredEvents = (m.lastEvents ?? []).filter((e) => {
-                                            const ev = normEvent(e.event);
-                                            return !ev.includes("SUB") && !ev.includes("YELLOW");
-                                        });
-                                        const mergedEvents = new Map<string, (typeof filteredEvents)[number]>();
-                                        for (const e of filteredEvents) {
-                                            const key = [
-                                                norm(e.home_away),
-                                                String(parseMinute(e.time)),
-                                                normEvent(e.event),
-                                            ].join("|");
-                                            const existing = mergedEvents.get(key);
-                                            if (!existing) {
-                                                mergedEvents.set(key, e);
-                                                continue;
-                                            }
-                                            const existingPlayer = normPlayer(existing.player);
-                                            const nextPlayer = normPlayer(e.player);
-                                            if (!existingPlayer && nextPlayer) {
-                                                mergedEvents.set(key, e);
-                                            }
-                                        }
-                                        const events = uniqBy(
-                                            Array.from(mergedEvents.values()),
-                                            (e) =>
-                                                [
-                                                    norm(e.home_away),
-                                                    String(parseMinute(e.time)),
-                                                    normEvent(e.event),
-                                                    normPlayer(e.player),
-                                                ].join("|")
-                                        )
-                                            .slice()
-                                            .sort((a, b) => parseMinute(b.time) - parseMinute(a.time));
-                                        const limitedEvents = filterGoalsByScore(events, m.scores?.score);
-                                        const homeEvents = limitedEvents.filter(
-                                            (e) => sideFromEvent(e.home_away) === "home"
-                                        );
-                                        const awayEvents = limitedEvents.filter(
-                                            (e) => sideFromEvent(e.home_away) === "away"
-                                        );
-                                        const unknownEvents = limitedEvents.filter(
-                                            (e) => sideFromEvent(e.home_away) === "unknown"
-                                        );
-
-                                        const status = m.status ?? "";
-                                        const isUpcoming = UPCOMING_STATUSES.has(status);
-                                        const localScheduled = formatLocalTime(m.scheduled);
-                                        const scoreText = isUpcoming
-                                            ? localScheduled ?? "--:--"
-                                            : m.scores?.score ?? "0 : 0";
-
-                                        return (
-                                            <div key={m.id ?? idx} className="match">
-                                                <div className="matchRow">
-                                                    <div className="team teamHome">
-                                                        {m.home?.logo ? (
-                                                            <img
-                                                                className="teamLogo"
-                                                                src={m.home.logo}
-                                                                alt={m.home?.name ?? "Home"}
-                                                                loading="lazy"
-                                                                onError={(e) => {
-                                                                    (e.currentTarget as HTMLImageElement).style.display =
-                                                                        "none";
-                                                                }}
-                                                            />
-                                                        ) : (
-                                                            <span className="teamLogoPlaceholder"/>
-                                                        )}
-                                                        <span>{m.home?.name ?? "Home"}</span>
-                                                    </div>
-                                                    <div className={`scoreBox ${isUpcoming ? "scoreBoxUpcoming" : ""}`}>
-                                                        {scoreText}
-                                                    </div>
-                                                    <div className="team teamAway">
-                                                        <span>{m.away?.name ?? "Away"}</span>
-                                                        {m.away?.logo ? (
-                                                            <img
-                                                                className="teamLogo"
-                                                                src={m.away.logo}
-                                                                alt={m.away?.name ?? "Away"}
-                                                                loading="lazy"
-                                                                onError={(e) => {
-                                                                    (e.currentTarget as HTMLImageElement).style.display =
-                                                                        "none";
-                                                                }}
-                                                            />
-                                                        ) : (
-                                                            <span className="teamLogoPlaceholder"/>
-                                                        )}
-                                                    </div>
-                                                </div>
-                                                <div className="matchMeta">
-                                                    {statusLabel(m.status, m.time, localScheduled)}
-                                                </div>
-                                                {!isUpcoming &&
-                                                (homeEvents.length > 0 ||
-                                                    awayEvents.length > 0 ||
-                                                    unknownEvents.length > 0) ? (
-                                                    <div className="eventsGrid">
-                                                        <div className="eventsColumn eventsHome">
-                                                            {homeEvents.map((e, eventIdx) => (
-                                                                <div
-                                                                    key={String(e.id ?? eventIdx)}
-                                                                    className="eventRow eventRowHome"
-                                                                >
-                                                                    <span className="eventMinute">
-                                                                        {e.time ? `${e.time}'` : ""}
-                                                                    </span>
-                                                                    <span className="eventIcon">{icon(e.event)}</span>
-                                                                    <span className="eventPlayer">{e.player ?? ""}</span>
-                                                                </div>
-                                                            ))}
-                                                        </div>
-                                                        <div className="eventsColumn eventsCenter">
-                                                            {unknownEvents.map((e, eventIdx) => (
-                                                                <div
-                                                                    key={String(e.id ?? eventIdx)}
-                                                                    className="eventRow eventRowCenter"
-                                                                >
-                                                                    <span className="eventMinute">
-                                                                        {e.time ? `${e.time}'` : ""}
-                                                                    </span>
-                                                                    <span className="eventIcon">{icon(e.event)}</span>
-                                                                    <span className="eventPlayer">{e.player ?? ""}</span>
-                                                                </div>
-                                                            ))}
-                                                        </div>
-                                                        <div className="eventsColumn eventsAway">
-                                                            {awayEvents.map((e, eventIdx) => (
-                                                                <div
-                                                                    key={String(e.id ?? eventIdx)}
-                                                                    className="eventRow eventRowAway"
-                                                                >
-                                                                    <span className="eventMinute">
-                                                                        {e.time ? `${e.time}'` : ""}
-                                                                    </span>
-                                                                    <span className="eventIcon">{icon(e.event)}</span>
-                                                                    <span className="eventPlayer">{e.player ?? ""}</span>
-                                                                </div>
-                                                            ))}
-                                                        </div>
-                                                    </div>
-                                                ) : null}
-                                            </div>
-                                        );
-                                    })}
+                            ) : (
+                                liveMatches.map((match) => renderMatchCard(match, "EN COURS"))
+                            )}
+                        </div>
+                    </div>
+                    <div className="sectionBlock">
+                        <div className="sectionHeader">
+                            <h2>Matchs à venir</h2>
+                            <span>{upcomingMatches.length} matchs</span>
+                        </div>
+                        <div className="matchGrid">
+                            {upcomingMatches.length === 0 ? (
+                                <div className="empty">
+                                    <h2>Aucun match à venir</h2>
+                                    <p>Les prochains matchs seront affichés ici.</p>
                                 </div>
-                            </div>
-                        ))
-                    )}
+                            ) : (
+                                upcomingMatches.map((match) => renderMatchCard(match, "À VENIR"))
+                            )}
+                        </div>
+                    </div>
+                    <div className="sectionBlock">
+                        <div className="sectionHeader">
+                            <h2>Matchs terminés</h2>
+                            <span>{finishedMatches.length} matchs</span>
+                        </div>
+                        <div className="matchGrid">
+                            {finishedMatches.length === 0 ? (
+                                <div className="empty">
+                                    <h2>Aucun match terminé</h2>
+                                    <p>Les résultats finaux apparaîtront ici.</p>
+                                </div>
+                            ) : (
+                                finishedMatches.map((match) => renderMatchCard(match, "TERMINÉ"))
+                            )}
+                        </div>
+                    </div>
                 </section>
+
+                <aside className="focusCard">
+                    <h3>Focus du jour</h3>
+                    <ul>
+                        <li>Al Hilal impressionne avec une large victoire.</li>
+                        <li>La Premier League propose plusieurs affiches attendues.</li>
+                        <li>Les compétitions africaines attirent de plus en plus de spectateurs.</li>
+                    </ul>
+                </aside>
             </main>
             <footer className="siteFooter">
                 <div className="footerLinks">
