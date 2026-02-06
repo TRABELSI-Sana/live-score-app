@@ -29,6 +29,11 @@ function isSubstitutionEvent(event?: string): boolean {
     return normalized === "SUBSTITUTION" || normalized === "SUB" || normalized === "SUBIN" || normalized === "SUBOUT";
 }
 
+function isYellowCardEvent(event?: string): boolean {
+    const normalized = normalizeEventType(event);
+    return normalized === "YELLOWCARD" || normalized === "YELLOW";
+}
+
 function formatEventIcon(event?: MatchEvent): string {
     if (!event) return "•";
     const type = normalizeEventType(event.event);
@@ -440,7 +445,9 @@ export default function App() {
             .map((id) => (id === null || id === undefined ? undefined : String(id)))
             .filter((id): id is string => Boolean(id));
         const sortedEvents = [...(match.lastEvents ?? [])].sort((a, b) => eventSortKey(a) - eventSortKey(b));
-        const recentEvents = sortedEvents.filter((event) => !isSubstitutionEvent(event.event));
+        const recentEvents = sortedEvents.filter(
+            (event) => !isSubstitutionEvent(event.event) && !isYellowCardEvent(event.event)
+        );
         const goalEvents = sortedEvents.filter((event) => isGoalEvent(event.event));
         const homeEvents = recentEvents.filter((event) => event.home_away?.toLowerCase().startsWith("h"));
         const awayEvents = recentEvents.filter((event) => event.home_away?.toLowerCase().startsWith("a"));
