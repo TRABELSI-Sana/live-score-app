@@ -65,8 +65,8 @@ type TableRow = {
     rg?: number | string;
     place?: number | string;
     group?: string;
-    team?: { name?: string };
-    club?: { name?: string };
+    team?: { id?: number | string; name?: string };
+    club?: { id?: number | string; name?: string };
     teamName?: string;
     name?: string;
     points?: number | string;
@@ -102,10 +102,56 @@ function normalizeGroupName(value: unknown): string | undefined {
         .trim();
 }
 
-function extractTableRows(data: unknown, groupName?: string): TableRow[] {
+function toId(value: unknown): string | undefined {
+    if (value === null || value === undefined) return undefined;
+    const normalized = String(value).trim();
+    return normalized === "" ? undefined : normalized;
+}
+
+function groupMatchesTeams(group: Record<string, unknown>, teamIds: string[]): boolean {
+    if (!Array.isArray(group?.standings)) return false;
+    return (group.standings as TableRow[]).some((row) => {
+        const teamId = toId(row.team?.id ?? row.club?.id);
+        return teamId ? teamIds.includes(teamId) : false;
+    });
+}
+
+function selectGroupStandings(
+    groups: Array<Record<string, unknown>>,
+    normalizedGroup?: string,
+    teamIds: string[] = []
+): { rows: TableRow[]; groupName?: string } {
+    if (normalizedGroup) {
+        const matchingGroup = groups.find(
+            (entry) => normalizeGroupName(entry?.name) === normalizedGroup
+        );
+        const standings = matchingGroup?.standings;
+        if (Array.isArray(standings)) {
+            return { rows: standings as TableRow[], groupName: String(matchingGroup?.name ?? "").trim() || undefined };
+        }
+    }
+    if (teamIds.length > 0) {
+        const matchingGroup = groups.find((entry) => groupMatchesTeams(entry, teamIds));
+        const standings = matchingGroup?.standings;
+        if (Array.isArray(standings)) {
+            return { rows: standings as TableRow[], groupName: String(matchingGroup?.name ?? "").trim() || undefined };
+        }
+    }
+    const fallback = groups.find((entry) => Array.isArray(entry?.standings))?.standings;
+    if (Array.isArray(fallback)) {
+        return { rows: fallback as TableRow[] };
+    }
+    return { rows: [] };
+}
+
+function extractTableRows(
+    data: unknown,
+    groupName?: string,
+    teamIds: string[] = []
+): { rows: TableRow[]; groupName?: string } {
     const normalizedGroup = normalizeGroupName(groupName);
     if (Array.isArray(data)) {
-        return data as TableRow[];
+        return { rows: data as TableRow[] };
     }
     const candidate = data as {
         table?: unknown;
@@ -115,19 +161,19 @@ function extractTableRows(data: unknown, groupName?: string): TableRow[] {
         stages?: unknown;
     };
     if (Array.isArray(candidate?.table)) {
-        return candidate.table as TableRow[];
+        return { rows: candidate.table as TableRow[] };
     }
     if (Array.isArray(candidate?.response)) {
         const response = candidate.response as Array<Record<string, unknown>>;
         const fromResponseTable = response.find((entry) => Array.isArray(entry?.table))?.table;
         if (Array.isArray(fromResponseTable)) {
-            return fromResponseTable as TableRow[];
+            return { rows: fromResponseTable as TableRow[] };
         }
         const fromLeagueStandings = response
             .map((entry) => (entry.league as { standings?: unknown })?.standings)
             .find((standings) => Array.isArray(standings) && Array.isArray(standings[0]));
         if (Array.isArray(fromLeagueStandings) && Array.isArray(fromLeagueStandings[0])) {
-            return fromLeagueStandings[0] as TableRow[];
+            return { rows: fromLeagueStandings[0] as TableRow[] };
         }
     }
     if (Array.isArray(candidate?.stages)) {
@@ -135,21 +181,14 @@ function extractTableRows(data: unknown, groupName?: string): TableRow[] {
         for (const stage of stages) {
             const groups = stage.groups as Array<Record<string, unknown>> | undefined;
             if (!Array.isArray(groups)) continue;
-            const matchingGroup = normalizedGroup
-                ? groups.find(
-                      (entry) => normalizeGroupName(entry?.name) === normalizedGroup
-                  )
-                : undefined;
-            const fromStageGroupStandings =
-                (matchingGroup?.standings as unknown) ??
-                groups.find((entry) => Array.isArray(entry?.standings))?.standings;
-            if (Array.isArray(fromStageGroupStandings)) {
-                return fromStageGroupStandings as TableRow[];
+            const selection = selectGroupStandings(groups, normalizedGroup, teamIds);
+            if (selection.rows.length > 0) {
+                return selection;
             }
         }
     }
     if (Array.isArray(candidate?.standings) && Array.isArray(candidate.standings[0])) {
-        return candidate.standings[0] as TableRow[];
+        return { rows: candidate.standings[0] as TableRow[] };
     }
     if (candidate?.data) {
         const dataNode = candidate.data as {
@@ -159,18 +198,13 @@ function extractTableRows(data: unknown, groupName?: string): TableRow[] {
             standings?: unknown;
         };
         if (Array.isArray(dataNode?.table)) {
-            return dataNode.table as TableRow[];
+            return { rows: dataNode.table as TableRow[] };
         }
         if (Array.isArray(dataNode?.groups)) {
             const dataGroups = dataNode.groups as Array<Record<string, unknown>>;
-            const matchingGroup = normalizedGroup
-                ? dataGroups.find((entry) => normalizeGroupName(entry?.name) === normalizedGroup)
-                : undefined;
-            const fromDataGroupStandings =
-                (matchingGroup?.standings as unknown) ??
-                dataGroups.find((entry) => Array.isArray(entry?.standings))?.standings;
-            if (Array.isArray(fromDataGroupStandings)) {
-                return fromDataGroupStandings as TableRow[];
+            const selection = selectGroupStandings(dataGroups, normalizedGroup, teamIds);
+            if (selection.rows.length > 0) {
+                return selection;
             }
         }
         if (Array.isArray(dataNode?.stages)) {
@@ -178,28 +212,27 @@ function extractTableRows(data: unknown, groupName?: string): TableRow[] {
             for (const stage of stages) {
                 const groups = stage.groups as Array<Record<string, unknown>> | undefined;
                 if (!Array.isArray(groups)) continue;
-                const matchingGroup = normalizedGroup
-                    ? groups.find((entry) => normalizeGroupName(entry?.name) === normalizedGroup)
-                    : undefined;
-                const fromStageGroupStandings =
-                    (matchingGroup?.standings as unknown) ??
-                    groups.find((entry) => Array.isArray(entry?.standings))?.standings;
-                if (Array.isArray(fromStageGroupStandings)) {
-                    return fromStageGroupStandings as TableRow[];
+                const selection = selectGroupStandings(groups, normalizedGroup, teamIds);
+                if (selection.rows.length > 0) {
+                    return selection;
                 }
             }
         }
         if (Array.isArray(dataNode?.standings) && Array.isArray(dataNode.standings[0])) {
-            return dataNode.standings[0] as TableRow[];
+            return { rows: dataNode.standings[0] as TableRow[] };
         }
     }
-    return [];
+    return { rows: [] };
 }
 
-function tableRowsFromData(data: unknown, groupName?: string): TableDisplayRow[] {
-    const list = extractTableRows(data, groupName);
+function tableRowsFromData(
+    data: unknown,
+    groupName?: string,
+    teamIds: string[] = []
+): { rows: TableDisplayRow[]; groupName?: string } {
+    const { rows: list, groupName: resolvedGroupName } = extractTableRows(data, groupName, teamIds);
 
-    return list.map((row, idx) => {
+    const rows = list.map((row, idx) => {
         const rankRaw = row.rank ?? row.position ?? row.rg ?? row.place;
         const rankNum = toNumber(rankRaw);
         const rank = rankNum !== undefined ? String(rankNum) : String(rankRaw ?? idx + 1);
@@ -230,6 +263,7 @@ function tableRowsFromData(data: unknown, groupName?: string): TableDisplayRow[]
 
         return { rank, team, points, played, diff };
     });
+    return { rows, groupName: resolvedGroupName };
 }
 
 export default function App() {
@@ -238,6 +272,7 @@ export default function App() {
         id?: string;
         name?: string;
         groupName?: string;
+        teamIds?: string[];
     } | null>(null);
     const [rankingRows, setRankingRows] = useState<TableDisplayRow[]>([]);
     const [rankingStatus, setRankingStatus] = useState<"idle" | "loading" | "error">("idle");
@@ -297,12 +332,19 @@ export default function App() {
                 .then((r) => (r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`))))
                 .then((data) => {
                     if (cancelled) return;
-                    const rows = tableRowsFromData(data, rankingCompetition.groupName);
+                    const { rows, groupName } = tableRowsFromData(
+                        data,
+                        rankingCompetition.groupName,
+                        rankingCompetition.teamIds ?? []
+                    );
                     if (rows.length === 0 && attempt < 2) {
                         retryTimer = setTimeout(() => loadTable(attempt + 1), 1000);
                         return;
                     }
                     setRankingRows(rows);
+                    if (!rankingCompetition.groupName && groupName) {
+                        setRankingCompetition((prev) => (prev ? { ...prev, groupName } : prev));
+                    }
                     setRankingStatus("idle");
                 })
                 .catch(() => {
@@ -331,6 +373,9 @@ export default function App() {
         const displayStatus = statusLabel(match.status, match.time, localScheduled);
         const competitionId = match.competition?.id ? String(match.competition.id) : undefined;
         const groupName = extractGroupName(match);
+        const teamIds = [match.home?.id, match.away?.id]
+            .map((id) => (id === null || id === undefined ? undefined : String(id)))
+            .filter((id): id is string => Boolean(id));
 
         return (
             <article key={match.id ?? `${match.home?.name}-${match.away?.name}`} className="matchCard">
@@ -392,6 +437,7 @@ export default function App() {
                                 id: competitionId,
                                 name: match.competition?.name,
                                 groupName,
+                                teamIds,
                             })
                         }
                     >
