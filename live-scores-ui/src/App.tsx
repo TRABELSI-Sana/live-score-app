@@ -18,10 +18,26 @@ function formatEventLabel(event?: MatchEvent): string {
     const type = normalizeEventType(event.event);
     if (type === "GOAL" || type === "GOALPENALTY" || type === "PENALTY" || type === "GOALP") return "But";
     if (type === "OWNGOAL") return "C.S.C.";
-    if (type === "YELLOWCARD") return "Carton jaune";
-    if (type === "REDCARD") return "Carton rouge";
+    if (type === "YELLOWCARD" || type === "YELLOW") return "Carton jaune";
+    if (type === "REDCARD" || type === "RED") return "Carton rouge";
     if (type === "SECONDYELLOW") return "Deuxième jaune";
     return event.event ? event.event.replace(/_/g, " ").toLowerCase() : "Événement";
+}
+
+function isSubstitutionEvent(event?: string): boolean {
+    const normalized = normalizeEventType(event);
+    return normalized === "SUBSTITUTION" || normalized === "SUB" || normalized === "SUBIN" || normalized === "SUBOUT";
+}
+
+function formatEventIcon(event?: MatchEvent): string {
+    if (!event) return "•";
+    const type = normalizeEventType(event.event);
+    if (type === "GOAL" || type === "GOALPENALTY" || type === "PENALTY" || type === "GOALP") return "⚽️";
+    if (type === "OWNGOAL") return "🥅";
+    if (type === "YELLOWCARD" || type === "YELLOW") return "🟨";
+    if (type === "REDCARD" || type === "RED") return "🟥";
+    if (type === "SECONDYELLOW") return "🟨🟥";
+    return "•";
 }
 
 function formatEventMinute(time?: string): string {
@@ -414,8 +430,10 @@ export default function App() {
             .map((id) => (id === null || id === undefined ? undefined : String(id)))
             .filter((id): id is string => Boolean(id));
         const sortedEvents = [...(match.lastEvents ?? [])].sort((a, b) => eventSortKey(a) - eventSortKey(b));
-        const recentEvents = sortedEvents.slice(-4);
+        const recentEvents = sortedEvents.filter((event) => !isSubstitutionEvent(event.event));
         const goalEvents = sortedEvents.filter((event) => isGoalEvent(event.event));
+        const homeEvents = recentEvents.filter((event) => event.home_away?.toLowerCase().startsWith("h"));
+        const awayEvents = recentEvents.filter((event) => event.home_away?.toLowerCase().startsWith("a"));
 
         return (
             <article key={match.id ?? `${match.home?.name}-${match.away?.name}`} className="matchCard">
@@ -430,37 +448,69 @@ export default function App() {
                     </span>
                 </div>
                 <div className="matchTeams">
-                    <div className="teamRow">
-                        {match.home?.logo ? (
-                            <img
-                                className="teamLogo"
-                                src={match.home.logo}
-                                alt={match.home?.name ?? "Home"}
-                                loading="lazy"
-                                onError={(e) => {
-                                    (e.currentTarget as HTMLImageElement).style.display = "none";
-                                }}
-                            />
-                        ) : (
-                            <span className="teamLogoPlaceholder"/>
-                        )}
-                        <span>{match.home?.name ?? "Home"}</span>
+                    <div className="teamBlock">
+                        <div className="teamRow">
+                            {match.home?.logo ? (
+                                <img
+                                    className="teamLogo"
+                                    src={match.home.logo}
+                                    alt={match.home?.name ?? "Home"}
+                                    loading="lazy"
+                                    onError={(e) => {
+                                        (e.currentTarget as HTMLImageElement).style.display = "none";
+                                    }}
+                                />
+                            ) : (
+                                <span className="teamLogoPlaceholder"/>
+                            )}
+                            <span>{match.home?.name ?? "Home"}</span>
+                        </div>
+                        {homeEvents.length > 0 ? (
+                            <ul className="teamEventsList">
+                                {homeEvents.map((event, index) => (
+                                    <li key={`${event.id ?? event.ts ?? event.time ?? index}`} className="teamEventItem">
+                                        <span className="eventIcon" aria-hidden="true">
+                                            {formatEventIcon(event)}
+                                        </span>
+                                        <span className="eventLabel">{formatEventLabel(event)}</span>
+                                        <span className="eventPlayer">{event.player ?? "Joueur"}</span>
+                                        <span className="eventMinute">{formatEventMinute(event.time)}</span>
+                                    </li>
+                                ))}
+                            </ul>
+                        ) : null}
                     </div>
-                    <div className="teamRow">
-                        {match.away?.logo ? (
-                            <img
-                                className="teamLogo"
-                                src={match.away.logo}
-                                alt={match.away?.name ?? "Away"}
-                                loading="lazy"
-                                onError={(e) => {
-                                    (e.currentTarget as HTMLImageElement).style.display = "none";
-                                }}
-                            />
-                        ) : (
-                            <span className="teamLogoPlaceholder"/>
-                        )}
-                        <span>{match.away?.name ?? "Away"}</span>
+                    <div className="teamBlock">
+                        <div className="teamRow">
+                            {match.away?.logo ? (
+                                <img
+                                    className="teamLogo"
+                                    src={match.away.logo}
+                                    alt={match.away?.name ?? "Away"}
+                                    loading="lazy"
+                                    onError={(e) => {
+                                        (e.currentTarget as HTMLImageElement).style.display = "none";
+                                    }}
+                                />
+                            ) : (
+                                <span className="teamLogoPlaceholder"/>
+                            )}
+                            <span>{match.away?.name ?? "Away"}</span>
+                        </div>
+                        {awayEvents.length > 0 ? (
+                            <ul className="teamEventsList">
+                                {awayEvents.map((event, index) => (
+                                    <li key={`${event.id ?? event.ts ?? event.time ?? index}`} className="teamEventItem">
+                                        <span className="eventIcon" aria-hidden="true">
+                                            {formatEventIcon(event)}
+                                        </span>
+                                        <span className="eventLabel">{formatEventLabel(event)}</span>
+                                        <span className="eventPlayer">{event.player ?? "Joueur"}</span>
+                                        <span className="eventMinute">{formatEventMinute(event.time)}</span>
+                                    </li>
+                                ))}
+                            </ul>
+                        ) : null}
                     </div>
                 </div>
                 <div className={`matchScore ${isUpcoming ? "matchScoreUpcoming" : ""}`}>{scoreText}</div>
@@ -471,22 +521,7 @@ export default function App() {
                             <span className="goalCount">{goalEvents.length} but{goalEvents.length > 1 ? "s" : ""}</span>
                         ) : null}
                     </div>
-                    {recentEvents.length > 0 ? (
-                        <ul className="eventsList">
-                            {recentEvents.map((event, index) => (
-                                <li key={`${event.id ?? event.ts ?? event.time ?? index}`}>
-                                    <span className="eventMinute">{formatEventMinute(event.time)}</span>
-                                    <span className="eventSide">
-                                        {event.home_away?.toLowerCase().startsWith("h") ? "DOM" : event.home_away?.toLowerCase().startsWith("a") ? "EXT" : "--"}
-                                    </span>
-                                    <span className="eventLabel">{formatEventLabel(event)}</span>
-                                    <span className="eventPlayer">{event.player ?? "Joueur"}</span>
-                                </li>
-                            ))}
-                        </ul>
-                    ) : (
-                        <div className="eventEmpty">Aucun événement signalé.</div>
-                    )}
+                    {recentEvents.length === 0 ? <div className="eventEmpty">Aucun événement signalé.</div> : null}
                     {goalEvents.length > 0 ? (
                         <div className="scorersRow">
                             <span className="scorersLabel">Buteurs :</span>
