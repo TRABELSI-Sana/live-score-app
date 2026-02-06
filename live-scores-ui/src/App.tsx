@@ -192,13 +192,24 @@ export default function App() {
     const [rankingCompetition, setRankingCompetition] = useState<{id?: string; name?: string} | null>(null);
     const [rankingRows, setRankingRows] = useState<TableDisplayRow[]>([]);
     const [rankingStatus, setRankingStatus] = useState<"idle" | "loading" | "error">("idle");
+    const [searchTerm, setSearchTerm] = useState("");
     const allMatches = grouped.flatMap((group) => group.list ?? []);
-    const liveMatches = allMatches.filter((match) => {
+    const normalizedSearch = searchTerm.trim().toLowerCase();
+    const matchesSearch = (value: string) =>
+        normalizedSearch.length === 0 || value.toLowerCase().includes(normalizedSearch);
+    const filteredMatches = allMatches.filter((match) => {
+        if (normalizedSearch.length === 0) return true;
+        const home = match.home?.name ?? "";
+        const away = match.away?.name ?? "";
+        const competition = match.competition?.name ?? "";
+        return [home, away, competition].some((entry) => matchesSearch(entry));
+    });
+    const liveMatches = filteredMatches.filter((match) => {
         const status = String(match.status ?? "").toUpperCase();
         return status === "IN PLAY" || status === "ADDED TIME";
     });
-    const upcomingMatches = allMatches.filter((match) => UPCOMING_STATUSES.has(match.status ?? ""));
-    const finishedMatches = allMatches.filter((match) => String(match.status ?? "") === "FINISHED");
+    const upcomingMatches = filteredMatches.filter((match) => UPCOMING_STATUSES.has(match.status ?? ""));
+    const finishedMatches = filteredMatches.filter((match) => String(match.status ?? "") === "FINISHED");
 
     useEffect(() => {
         if (!rankingCompetition) {
@@ -254,6 +265,7 @@ export default function App() {
         const localScheduled = formatLocalTime(match.scheduled);
         const scoreText = isUpcoming ? localScheduled ?? "--:--" : match.scores?.score ?? "0 : 0";
         const displayStatus = statusLabel(match.status, match.time, localScheduled);
+        const competitionId = match.competition?.id ? String(match.competition.id) : undefined;
 
         return (
             <article key={match.id ?? `${match.home?.name}-${match.away?.name}`} className="matchCard">
@@ -306,6 +318,20 @@ export default function App() {
                     <span className="matchCompetition">{match.competition?.name ?? "LiveFoot"}</span>
                     <span className="matchTag">{variant}</span>
                 </div>
+                {competitionId ? (
+                    <button
+                        type="button"
+                        className="rankingButton"
+                        onClick={() =>
+                            setRankingCompetition({
+                                id: competitionId,
+                                name: match.competition?.name,
+                            })
+                        }
+                    >
+                        Voir classement
+                    </button>
+                ) : null}
             </article>
         );
     };
@@ -314,12 +340,20 @@ export default function App() {
         <div className="page">
             <header className="topBar">
                 <div className="brand">
-                    <span className="brandIcon">?</span>
+                    <span className="brandIcon" aria-hidden="true">
+                        LF
+                    </span>
                     <span className="brandText">LiveFoot</span>
                 </div>
                 <label className="searchBar">
                     <span className="searchIcon">🔍</span>
-                    <input type="search" placeholder="Search for teams, leagues, matches..." aria-label="Recherche" />
+                    <input
+                        type="search"
+                        placeholder="Search for teams, leagues, matches..."
+                        aria-label="Recherche"
+                        value={searchTerm}
+                        onChange={(event) => setSearchTerm(event.target.value)}
+                    />
                 </label>
             </header>
 

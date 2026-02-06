@@ -54,6 +54,8 @@ body {
   display: grid;
   place-items: center;
   font-weight: 700;
+  font-size: 12px;
+  letter-spacing: 0.5px;
 }
 
 .brandText {
@@ -285,6 +287,22 @@ body {
   text-transform: uppercase;
   letter-spacing: 0.4px;
   color: var(--primary-deep);
+}
+
+.rankingButton {
+  border: none;
+  background: #eef0ff;
+  color: var(--primary-deep);
+  border-radius: 999px;
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.rankingButton:hover,
+.rankingButton:focus-visible {
+  background: #e1e4ff;
 }
 
 .focusCard h3 {
