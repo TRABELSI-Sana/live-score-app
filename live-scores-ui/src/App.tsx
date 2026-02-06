@@ -343,7 +343,7 @@ export default function App() {
     });
     const liveMatches = filteredMatches.filter((match) => {
         const status = String(match.status ?? "").toUpperCase();
-        return status === "IN PLAY" || status === "ADDED TIME";
+        return status === "IN PLAY" || status === "ADDED TIME" || status === "HALF TIME BREAK" || status === "HALF TIME";
     });
     const upcomingMatches = filteredMatches.filter((match) => UPCOMING_STATUSES.has(match.status ?? ""));
     const finishedMatches = filteredMatches.filter((match) => String(match.status ?? "") === "FINISHED");
