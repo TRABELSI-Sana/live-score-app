@@ -62,15 +62,7 @@ function eventSortKey(event: MatchEvent): number {
     return base * 100 + (Number.isFinite(added) ? added : 0);
 }
 
-function parseScore(value?: string): { home: number; away: number; total: number } | undefined {
-    if (!value) return undefined;
-    const match = value.match(/(\d+)\s*[-:]\s*(\d+)/);
-    if (!match) return undefined;
-    const home = Number(match[1]);
-    const away = Number(match[2]);
-    if (!Number.isFinite(home) || !Number.isFinite(away)) return undefined;
-    return { home, away, total: home + away };
-}
+
 
 function statusLabel(status?: string, time?: string, scheduled?: string) {
     if (!status) return scheduled ?? "--:--";
