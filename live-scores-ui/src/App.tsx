@@ -62,6 +62,43 @@ function eventSortKey(event: MatchEvent): number {
     return base * 100 + (Number.isFinite(added) ? added : 0);
 }
 
+function parseMatchTimeValue(value?: string): number | undefined {
+    if (!value) return undefined;
+    const trimmed = value.trim();
+    if (!trimmed) return undefined;
+    let parsed = Date.parse(trimmed);
+    if (Number.isNaN(parsed)) {
+        const normalized = trimmed.replace(" ", "T");
+        if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2})?$/.test(normalized)) {
+            parsed = Date.parse(`${normalized}Z`);
+        } else if (/^\d{2}:\d{2}(:\d{2})?$/.test(normalized)) {
+            const now = new Date();
+            const [hours, minutes, seconds] = normalized.split(":").map((part) => Number(part));
+            parsed = Date.UTC(
+                now.getUTCFullYear(),
+                now.getUTCMonth(),
+                now.getUTCDate(),
+                hours,
+                minutes,
+                Number.isFinite(seconds) ? seconds : 0
+            );
+        }
+    }
+    return Number.isNaN(parsed) ? undefined : parsed;
+}
+
+function matchSortKey(match: { scheduled?: string; time?: string }): number {
+    const scheduled = parseMatchTimeValue(match.scheduled);
+    if (scheduled !== undefined) return scheduled;
+    const time = (match.time ?? "").trim();
+    const minuteMatch = time.match(/(\d+)(?:\+(\d+))?/);
+    if (!minuteMatch) return Number.MAX_SAFE_INTEGER;
+    const base = Number(minuteMatch[1]);
+    const added = minuteMatch[2] ? Number(minuteMatch[2]) : 0;
+    if (!Number.isFinite(base)) return Number.MAX_SAFE_INTEGER;
+    return base * 100 + (Number.isFinite(added) ? added : 0);
+}
+
 
 
 function statusLabel(status?: string, time?: string, scheduled?: string) {
@@ -354,19 +391,24 @@ export default function App() {
     });
     const upcomingMatches = filteredMatches.filter((match) => UPCOMING_STATUSES.has(match.status ?? ""));
     const finishedMatches = filteredMatches.filter((match) => String(match.status ?? "") === "FINISHED");
+    const sortedLiveMatches = [...liveMatches].sort((a, b) => matchSortKey(a) - matchSortKey(b));
+    const sortedUpcomingMatches = [...upcomingMatches].sort((a, b) => matchSortKey(a) - matchSortKey(b));
+    const sortedFinishedMatches = [...finishedMatches].sort((a, b) => matchSortKey(a) - matchSortKey(b));
     const focusItems = [
-        liveMatches[0]
-            ? `${liveMatches[0].home?.name ?? "Équipe A"} - ${liveMatches[0].away?.name ?? "Équipe B"} en direct.`
+        sortedLiveMatches[0]
+            ? `${sortedLiveMatches[0].home?.name ?? "Équipe A"} - ${
+                  sortedLiveMatches[0].away?.name ?? "Équipe B"
+              } en direct.`
             : null,
-        upcomingMatches[0]
-            ? `À suivre : ${upcomingMatches[0].home?.name ?? "Équipe A"} vs ${
-                  upcomingMatches[0].away?.name ?? "Équipe B"
+        sortedUpcomingMatches[0]
+            ? `À suivre : ${sortedUpcomingMatches[0].home?.name ?? "Équipe A"} vs ${
+                  sortedUpcomingMatches[0].away?.name ?? "Équipe B"
               }.`
             : null,
-        finishedMatches[0]
-            ? `Dernier résultat : ${finishedMatches[0].home?.name ?? "Équipe A"} ${
-                  finishedMatches[0].scores?.score ?? ""
-              } ${finishedMatches[0].away?.name ?? "Équipe B"}.`
+        sortedFinishedMatches[0]
+            ? `Dernier résultat : ${sortedFinishedMatches[0].home?.name ?? "Équipe A"} ${
+                  sortedFinishedMatches[0].scores?.score ?? ""
+              } ${sortedFinishedMatches[0].away?.name ?? "Équipe B"}.`
             : null,
     ].filter((item): item is string => Boolean(item));
 
@@ -620,7 +662,7 @@ export default function App() {
                                     </p>
                                 </div>
                             ) : (
-                                liveMatches.map((match) => renderMatchCard(match, "EN COURS"))
+                                sortedLiveMatches.map((match) => renderMatchCard(match, "EN COURS"))
                             )}
                         </div>
                     </div>
@@ -639,7 +681,7 @@ export default function App() {
                                     </p>
                                 </div>
                             ) : (
-                                upcomingMatches.map((match) => renderMatchCard(match, "À VENIR"))
+                                sortedUpcomingMatches.map((match) => renderMatchCard(match, "À VENIR"))
                             )}
                         </div>
                     </div>
@@ -658,7 +700,7 @@ export default function App() {
                                     </p>
                                 </div>
                             ) : (
-                                finishedMatches.map((match) => renderMatchCard(match, "TERMINÉ"))
+                                sortedFinishedMatches.map((match) => renderMatchCard(match, "TERMINÉ"))
                             )}
                         </div>
                     </div>
