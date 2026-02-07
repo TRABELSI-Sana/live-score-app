@@ -62,6 +62,49 @@ function eventSortKey(event: MatchEvent): number {
     return base * 100 + (Number.isFinite(added) ? added : 0);
 }
 
+function parseMatchTimeValue(value?: string): number | undefined {
+    if (!value) return undefined;
+    const trimmed = value.trim();
+    if (!trimmed) return undefined;
+    let parsed = Date.parse(trimmed);
+    if (Number.isNaN(parsed)) {
+        const normalized = trimmed.replace(" ", "T");
+        if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2})?$/.test(normalized)) {
+            parsed = Date.parse(`${normalized}Z`);
+        } else if (/^\d{2}:\d{2}(:\d{2})?$/.test(normalized)) {
+            const now = new Date();
+            const [hours, minutes, seconds] = normalized.split(":").map((part) => Number(part));
+            parsed = Date.UTC(
+                now.getUTCFullYear(),
+                now.getUTCMonth(),
+                now.getUTCDate(),
+                hours,
+                minutes,
+                Number.isFinite(seconds) ? seconds : 0
+            );
+        }
+    }
+    return Number.isNaN(parsed) ? undefined : parsed;
+}
+
+function matchSortKey(match: { scheduled?: string; time?: string }): number {
+    const scheduled = parseMatchTimeValue(match.scheduled);
+    if (scheduled !== undefined) return scheduled;
+    const time = (match.time ?? "").trim();
+    const minuteMatch = time.match(/(\d+)(?:\+(\d+))?/);
+    if (!minuteMatch) return Number.MAX_SAFE_INTEGER;
+    const base = Number(minuteMatch[1]);
+    const added = minuteMatch[2] ? Number(minuteMatch[2]) : 0;
+    if (!Number.isFinite(base)) return Number.MAX_SAFE_INTEGER;
+    return base * 100 + (Number.isFinite(added) ? added : 0);
+}
+
+function formatCompetitionLabel(comp?: { name?: string; country?: string }): string {
+    const name = comp?.name?.trim() || "Championnat";
+    const country = comp?.country?.trim();
+    return country ? `${name} — ${country}` : name;
+}
+
 
 
 function statusLabel(status?: string, time?: string, scheduled?: string) {
@@ -354,19 +397,56 @@ export default function App() {
     });
     const upcomingMatches = filteredMatches.filter((match) => UPCOMING_STATUSES.has(match.status ?? ""));
     const finishedMatches = filteredMatches.filter((match) => String(match.status ?? "") === "FINISHED");
+    const sortedLiveMatches = [...liveMatches].sort((a, b) => matchSortKey(a) - matchSortKey(b));
+    const sortedUpcomingMatches = [...upcomingMatches].sort((a, b) => matchSortKey(a) - matchSortKey(b));
+    const sortedFinishedMatches = [...finishedMatches].sort((a, b) => matchSortKey(a) - matchSortKey(b));
+    const liveGroups = grouped
+        .map((group) => ({
+            comp: group.comp,
+            matches: group.list
+                .filter((match) => {
+                    const status = String(match.status ?? "").toUpperCase();
+                    return (
+                        status === "IN PLAY" ||
+                        status === "ADDED TIME" ||
+                        status === "HALF TIME BREAK" ||
+                        status === "HALF TIME"
+                    );
+                })
+                .sort((a, b) => matchSortKey(a) - matchSortKey(b)),
+        }))
+        .filter((group) => group.matches.length > 0);
+    const upcomingGroups = grouped
+        .map((group) => ({
+            comp: group.comp,
+            matches: group.list
+                .filter((match) => UPCOMING_STATUSES.has(match.status ?? ""))
+                .sort((a, b) => matchSortKey(a) - matchSortKey(b)),
+        }))
+        .filter((group) => group.matches.length > 0);
+    const finishedGroups = grouped
+        .map((group) => ({
+            comp: group.comp,
+            matches: group.list
+                .filter((match) => String(match.status ?? "") === "FINISHED")
+                .sort((a, b) => matchSortKey(a) - matchSortKey(b)),
+        }))
+        .filter((group) => group.matches.length > 0);
     const focusItems = [
-        liveMatches[0]
-            ? `${liveMatches[0].home?.name ?? "Équipe A"} - ${liveMatches[0].away?.name ?? "Équipe B"} en direct.`
+        sortedLiveMatches[0]
+            ? `${sortedLiveMatches[0].home?.name ?? "Équipe A"} - ${
+                  sortedLiveMatches[0].away?.name ?? "Équipe B"
+              } en direct.`
             : null,
-        upcomingMatches[0]
-            ? `À suivre : ${upcomingMatches[0].home?.name ?? "Équipe A"} vs ${
-                  upcomingMatches[0].away?.name ?? "Équipe B"
+        sortedUpcomingMatches[0]
+            ? `À suivre : ${sortedUpcomingMatches[0].home?.name ?? "Équipe A"} vs ${
+                  sortedUpcomingMatches[0].away?.name ?? "Équipe B"
               }.`
             : null,
-        finishedMatches[0]
-            ? `Dernier résultat : ${finishedMatches[0].home?.name ?? "Équipe A"} ${
-                  finishedMatches[0].scores?.score ?? ""
-              } ${finishedMatches[0].away?.name ?? "Équipe B"}.`
+        sortedFinishedMatches[0]
+            ? `Dernier résultat : ${sortedFinishedMatches[0].home?.name ?? "Équipe A"} ${
+                  sortedFinishedMatches[0].scores?.score ?? ""
+              } ${sortedFinishedMatches[0].away?.name ?? "Équipe B"}.`
             : null,
     ].filter((item): item is string => Boolean(item));
 
@@ -610,57 +690,86 @@ export default function App() {
                             <h2>Matchs en cours</h2>
                             <span>{liveMatches.length} matchs</span>
                         </div>
-                        <div className="matchGrid">
-                            {liveMatches.length === 0 ? (
-                                <div className="empty">
-                                    <h2>Aucun match en cours</h2>
-                                    <p>
-                                        Revenez plus tard pour suivre les prochaines rencontres en direct. Vous pouvez
-                                        déjà parcourir les matchs à venir et les compétitions à l&apos;affiche.
-                                    </p>
+                        {liveGroups.length === 0 ? (
+                            <div className="empty">
+                                <h2>Aucun match en cours</h2>
+                                <p>
+                                    Revenez plus tard pour suivre les prochaines rencontres en direct. Vous pouvez déjà
+                                    parcourir les matchs à venir et les compétitions à l&apos;affiche.
+                                </p>
+                            </div>
+                        ) : (
+                            liveGroups.map((group) => (
+                                <div key={group.comp.id ?? group.comp.name} className="competitionBlock">
+                                    <div className="competitionHeader">
+                                        <span className="competitionTitle">{formatCompetitionLabel(group.comp)}</span>
+                                        <span className="competitionCount">
+                                            {group.matches.length} match{group.matches.length > 1 ? "s" : ""}
+                                        </span>
+                                    </div>
+                                    <div className="matchGrid">
+                                        {group.matches.map((match) => renderMatchCard(match, "EN COURS"))}
+                                    </div>
                                 </div>
-                            ) : (
-                                liveMatches.map((match) => renderMatchCard(match, "EN COURS"))
-                            )}
-                        </div>
+                            ))
+                        )}
                     </div>
                     <div className="sectionBlock">
                         <div className="sectionHeader">
                             <h2>Matchs à venir</h2>
                             <span>{upcomingMatches.length} matchs</span>
                         </div>
-                        <div className="matchGrid">
-                            {upcomingMatches.length === 0 ? (
-                                <div className="empty">
-                                    <h2>Aucun match à venir</h2>
-                                    <p>
-                                        Les prochains matchs seront affichés ici avec leurs horaires et informations
-                                        de diffusion.
-                                    </p>
+                        {upcomingGroups.length === 0 ? (
+                            <div className="empty">
+                                <h2>Aucun match à venir</h2>
+                                <p>
+                                    Les prochains matchs seront affichés ici avec leurs horaires et informations de
+                                    diffusion.
+                                </p>
+                            </div>
+                        ) : (
+                            upcomingGroups.map((group) => (
+                                <div key={group.comp.id ?? group.comp.name} className="competitionBlock">
+                                    <div className="competitionHeader">
+                                        <span className="competitionTitle">{formatCompetitionLabel(group.comp)}</span>
+                                        <span className="competitionCount">
+                                            {group.matches.length} match{group.matches.length > 1 ? "s" : ""}
+                                        </span>
+                                    </div>
+                                    <div className="matchGrid">
+                                        {group.matches.map((match) => renderMatchCard(match, "À VENIR"))}
+                                    </div>
                                 </div>
-                            ) : (
-                                upcomingMatches.map((match) => renderMatchCard(match, "À VENIR"))
-                            )}
-                        </div>
+                            ))
+                        )}
                     </div>
                     <div className="sectionBlock">
                         <div className="sectionHeader">
                             <h2>Matchs terminés</h2>
                             <span>{finishedMatches.length} matchs</span>
                         </div>
-                        <div className="matchGrid">
-                            {finishedMatches.length === 0 ? (
-                                <div className="empty">
-                                    <h2>Aucun match terminé</h2>
-                                    <p>
-                                        Les résultats finaux apparaîtront ici avec les scores et les événements
-                                        marquants.
-                                    </p>
+                        {finishedGroups.length === 0 ? (
+                            <div className="empty">
+                                <h2>Aucun match terminé</h2>
+                                <p>
+                                    Les résultats finaux apparaîtront ici avec les scores et les événements marquants.
+                                </p>
+                            </div>
+                        ) : (
+                            finishedGroups.map((group) => (
+                                <div key={group.comp.id ?? group.comp.name} className="competitionBlock">
+                                    <div className="competitionHeader">
+                                        <span className="competitionTitle">{formatCompetitionLabel(group.comp)}</span>
+                                        <span className="competitionCount">
+                                            {group.matches.length} match{group.matches.length > 1 ? "s" : ""}
+                                        </span>
+                                    </div>
+                                    <div className="matchGrid">
+                                        {group.matches.map((match) => renderMatchCard(match, "TERMINÉ"))}
+                                    </div>
                                 </div>
-                            ) : (
-                                finishedMatches.map((match) => renderMatchCard(match, "TERMINÉ"))
-                            )}
-                        </div>
+                            ))
+                        )}
                     </div>
                     <div className="sectionBlock editorialBlock">
                         <div className="sectionHeader">
