@@ -5,16 +5,19 @@ VPS_USER="ubuntu"
 VPS_HOST="51.210.246.121"
 REMOTE_DIR="/home/${VPS_USER}/apps/live-scores"
 
-FRONTEND_DIR="../live-scores-ui"
-JAR_GLOB="target/*-SNAPSHOT.jar"
+BACKEND_DIR="backend"
+FRONTEND_DIR="frontend"
+JAR_GLOB="${BACKEND_DIR}/target/*-SNAPSHOT.jar"
 
 echo "==> 1) Build backend"
+pushd "${BACKEND_DIR}" >/dev/null
 ./mvnw -DskipTests clean package
+popd >/dev/null
 
 JAR_PATH="$(ls -1 ${JAR_GLOB} 2>/dev/null | head -n 1 || true)"
 if [[ -z "${JAR_PATH}" || ! -f "${JAR_PATH}" ]]; then
   echo "❌ Jar not found. Looked for: ${JAR_GLOB}"
-  ls -la target || true
+  ls -la "${BACKEND_DIR}/target" || true
   exit 1
 fi
 echo "✅ Using jar: ${JAR_PATH}"
@@ -36,7 +39,7 @@ ssh ${VPS_USER}@${VPS_HOST} "mkdir -p ${REMOTE_DIR}/{backend,frontend-image,ngin
 
 echo "==> 5) Upload backend (jar + Dockerfile)"
 rsync -av "${JAR_PATH}" ${VPS_USER}@${VPS_HOST}:${REMOTE_DIR}/backend/app.jar
-rsync -av backend/Dockerfile ${VPS_USER}@${VPS_HOST}:${REMOTE_DIR}/backend/
+rsync -av ${BACKEND_DIR}/Dockerfile ${VPS_USER}@${VPS_HOST}:${REMOTE_DIR}/backend/
 
 echo "==> 6) Upload frontend-image (Dockerfile + dist)"
 rsync -av --delete frontend-image/ ${VPS_USER}@${VPS_HOST}:${REMOTE_DIR}/frontend-image/
