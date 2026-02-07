@@ -177,6 +177,34 @@ body {
   color: var(--muted);
 }
 
+.competitionBlock {
+  display: grid;
+  gap: 12px;
+}
+
+.competitionHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+  padding: 6px 12px;
+  border-radius: 12px;
+  background: rgba(122, 154, 43, 0.08);
+  border: 1px solid rgba(122, 154, 43, 0.18);
+}
+
+.competitionTitle {
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.competitionCount {
+  font-size: 12px;
+  color: var(--muted);
+}
+
 .matchGrid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
