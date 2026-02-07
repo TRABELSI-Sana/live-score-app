@@ -1,6 +1,6 @@
 import "./App.css";
 import {useEffect, useState} from "react";
-import type {MatchEvent} from "./hooks/useLiveBoard.ts";
+import type {MatchEvent, MatchState} from "./hooks/useLiveBoard.ts";
 import {useLiveBoard} from "./hooks/useLiveBoard.ts";
 
 const UPCOMING_STATUSES = new Set(["NOT STARTED", "SCHEDULED"]);
@@ -106,15 +106,10 @@ function formatCompetitionLabel(comp?: { name?: string; country?: string }): str
 }
 
 function buildCompetitionGroups(
-    matches: Array<{
-        status?: string;
-        scheduled?: string;
-        time?: string;
-        competition?: { id?: number | string; name?: string; country?: string };
-    }>,
-    filter: (match: { status?: string }) => boolean
-): Array<{ comp: { id?: string; name?: string; country?: string }; matches: typeof matches }> {
-    const map = new Map<string, { comp: { id?: string; name?: string; country?: string }; matches: typeof matches }>();
+    matches: MatchState[],
+    filter: (match: MatchState) => boolean
+): Array<{ comp: { id?: string; name?: string; country?: string }; matches: MatchState[] }> {
+    const map = new Map<string, { comp: { id?: string; name?: string; country?: string }; matches: MatchState[] }>();
 
     for (const match of matches) {
         if (!filter(match)) continue;
