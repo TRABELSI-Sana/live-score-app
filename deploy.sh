@@ -11,6 +11,7 @@ JAR_GLOB="${BACKEND_DIR}/target/*-SNAPSHOT.jar"
 
 echo "==> 1) Build backend"
 pushd "${BACKEND_DIR}" >/dev/null
+chmod +x mvnw
 ./mvnw -DskipTests clean package
 popd >/dev/null
 
