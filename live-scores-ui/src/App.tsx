@@ -105,41 +105,6 @@ function formatCompetitionLabel(comp?: { name?: string; country?: string }): str
     return country ? `${name} — ${country}` : name;
 }
 
-function buildCompetitionGroups(
-    matches: MatchState[],
-    filter: (match: MatchState) => boolean
-): Array<{ comp: { id?: string; name?: string; country?: string }; matches: MatchState[] }> {
-    const map = new Map<string, { comp: { id?: string; name?: string; country?: string }; matches: MatchState[] }>();
-
-    for (const match of matches) {
-        if (!filter(match)) continue;
-        const comp = match.competition;
-        const key = String(comp?.id ?? comp?.name ?? "Other");
-        if (!map.has(key)) {
-            map.set(key, {
-                comp: {
-                    id: comp?.id ? String(comp.id) : undefined,
-                    name: comp?.name ?? "Other",
-                    country: comp?.country,
-                },
-                matches: [],
-            });
-        }
-        map.get(key)!.matches.push(match);
-    }
-
-    return Array.from(map.values())
-        .map((group) => ({
-            ...group,
-            matches: group.matches.sort((a, b) => matchSortKey(a) - matchSortKey(b)),
-        }))
-        .sort((a, b) => {
-            const aFirst = a.matches[0] ? matchSortKey(a.matches[0]) : Number.MAX_SAFE_INTEGER;
-            const bFirst = b.matches[0] ? matchSortKey(b.matches[0]) : Number.MAX_SAFE_INTEGER;
-            return aFirst - bFirst;
-        });
-}
-
 
 
 function statusLabel(status?: string, time?: string, scheduled?: string) {
@@ -435,12 +400,38 @@ export default function App() {
     const sortedLiveMatches = [...liveMatches].sort((a, b) => matchSortKey(a) - matchSortKey(b));
     const sortedUpcomingMatches = [...upcomingMatches].sort((a, b) => matchSortKey(a) - matchSortKey(b));
     const sortedFinishedMatches = [...finishedMatches].sort((a, b) => matchSortKey(a) - matchSortKey(b));
-    const liveGroups = buildCompetitionGroups(filteredMatches, (match) => {
-        const status = String(match.status ?? "").toUpperCase();
-        return status === "IN PLAY" || status === "ADDED TIME" || status === "HALF TIME BREAK" || status === "HALF TIME";
-    });
-    const upcomingGroups = buildCompetitionGroups(filteredMatches, (match) => UPCOMING_STATUSES.has(match.status ?? ""));
-    const finishedGroups = buildCompetitionGroups(filteredMatches, (match) => String(match.status ?? "") === "FINISHED");
+    const liveGroups = grouped
+        .map((group) => ({
+            comp: group.comp,
+            matches: group.list
+                .filter((match) => {
+                    const status = String(match.status ?? "").toUpperCase();
+                    return (
+                        status === "IN PLAY" ||
+                        status === "ADDED TIME" ||
+                        status === "HALF TIME BREAK" ||
+                        status === "HALF TIME"
+                    );
+                })
+                .sort((a, b) => matchSortKey(a) - matchSortKey(b)),
+        }))
+        .filter((group) => group.matches.length > 0);
+    const upcomingGroups = grouped
+        .map((group) => ({
+            comp: group.comp,
+            matches: group.list
+                .filter((match) => UPCOMING_STATUSES.has(match.status ?? ""))
+                .sort((a, b) => matchSortKey(a) - matchSortKey(b)),
+        }))
+        .filter((group) => group.matches.length > 0);
+    const finishedGroups = grouped
+        .map((group) => ({
+            comp: group.comp,
+            matches: group.list
+                .filter((match) => String(match.status ?? "") === "FINISHED")
+                .sort((a, b) => matchSortKey(a) - matchSortKey(b)),
+        }))
+        .filter((group) => group.matches.length > 0);
     const focusItems = [
         sortedLiveMatches[0]
             ? `${sortedLiveMatches[0].home?.name ?? "Équipe A"} - ${
