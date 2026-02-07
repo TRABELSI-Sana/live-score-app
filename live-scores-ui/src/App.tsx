@@ -128,10 +128,16 @@ function buildCompetitionGroups(
         map.get(key)!.matches.push(match);
     }
 
-    return Array.from(map.values()).map((group) => ({
-        ...group,
-        matches: group.matches.sort((a, b) => matchSortKey(a) - matchSortKey(b)),
-    }));
+    return Array.from(map.values())
+        .map((group) => ({
+            ...group,
+            matches: group.matches.sort((a, b) => matchSortKey(a) - matchSortKey(b)),
+        }))
+        .sort((a, b) => {
+            const aKey = a.matches[0] ? matchSortKey(a.matches[0]) : Number.MAX_SAFE_INTEGER;
+            const bKey = b.matches[0] ? matchSortKey(b.matches[0]) : Number.MAX_SAFE_INTEGER;
+            return aKey - bKey;
+        });
 }
 
 
