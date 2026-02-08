@@ -458,6 +458,37 @@ export default function App() {
               } ${sortedFinishedMatches[0].away?.name ?? "Équipe B"}.`
             : null,
     ].filter((item): item is string => Boolean(item));
+    const competitionNames = Array.from(
+        new Set(
+            filteredMatches
+                .map((match) => match.competition?.name)
+                .filter((name): name is string => Boolean(name && name.trim()))
+        )
+    );
+    const topCompetitions = competitionNames.slice(0, 4);
+    const totalMatches = filteredMatches.length;
+    const statsItems = [
+        { label: "Matchs du jour", value: totalMatches },
+        { label: "En cours", value: liveMatches.length },
+        { label: "À venir", value: upcomingMatches.length },
+        { label: "Terminés", value: finishedMatches.length },
+    ];
+    const livePreview = sortedLiveMatches.slice(0, 5);
+    const upcomingPreview = sortedUpcomingMatches.slice(0, 5);
+    const finishedPreview = sortedFinishedMatches.slice(0, 5);
+    const keyMoments = filteredMatches
+        .flatMap((match) =>
+            (match.lastEvents ?? [])
+                .filter((event) => isGoalEvent(event.event))
+                .map((event) => ({
+                    matchLabel: `${match.home?.name ?? "Équipe A"} - ${match.away?.name ?? "Équipe B"}`,
+                    time: formatEventMinute(event.time),
+                    scorer: event.player ?? "Joueur",
+                    competition: match.competition?.name ?? "LiveFoot",
+                }))
+        )
+        .sort((a, b) => (a.time > b.time ? -1 : 1))
+        .slice(0, 8);
 
     useEffect(() => {
         if (!rankingCompetition) {
@@ -678,19 +709,32 @@ export default function App() {
 
             <main className="layout">
                 <aside className="infoCard">
-                    <h1>Les matchs du jour – Scores et résultats en temps réel</h1>
-                    <p>
-                        Retrouvez ici tous les matchs de football joués aujourd&apos;hui, avec les scores mis à
-                        jour en direct, les buteurs, les cartons et les statuts des rencontres.
-                    </p>
-                    <p>
-                        Les compétitions sont classées par ligue pour une lecture simple et rapide. Aujourd&apos;hui,
-                        la Premier League, la Bundesliga et les compétitions africaines sont à l&apos;honneur.
-                    </p>
-                    <p>
-                        LiveFoot propose également un résumé des tendances : clubs en forme, scores serrés et
-                        moments clés à surveiller. Revenez régulièrement pour suivre l&apos;évolution des résultats.
-                    </p>
+                    <h1>Scores en direct du football</h1>
+                    <p>Suivi en temps réel des scores, minutes et événements des matchs du jour.</p>
+                    <div className="infoStats">
+                        {statsItems.map((item) => (
+                            <div key={item.label} className="infoStat">
+                                <span className="infoStatValue">{item.value}</span>
+                                <span className="infoStatLabel">{item.label}</span>
+                            </div>
+                        ))}
+                    </div>
+                    <div className="infoMeta">
+                        <span>{competitionNames.length} compétitions suivies</span>
+                        <span>Données en direct via fournisseurs officiels</span>
+                    </div>
+                    {topCompetitions.length > 0 ? (
+                        <div className="infoHighlights">
+                            <h2>Compétitions en vue</h2>
+                            <div className="infoTags">
+                                {topCompetitions.map((name) => (
+                                    <span key={name} className="infoTag">
+                                        {name}
+                                    </span>
+                                ))}
+                            </div>
+                        </div>
+                    ) : null}
                 </aside>
 
                 <section className="centerColumn">
@@ -721,6 +765,26 @@ export default function App() {
                                     </div>
                                 </div>
                             ))
+                        )}
+                    </div>
+                    <div className="sectionBlock momentsBlock">
+                        <div className="sectionHeader">
+                            <h2>Moments clés</h2>
+                            <span>Derniers buts</span>
+                        </div>
+                        {keyMoments.length > 0 ? (
+                            <ul className="momentsList">
+                                {keyMoments.map((moment, index) => (
+                                    <li key={`${moment.matchLabel}-${moment.time}-${index}`} className="momentItem">
+                                        <span className="momentMatch">{moment.matchLabel}</span>
+                                        <span className="momentDetail">
+                                            {moment.scorer} · {moment.time} · {moment.competition}
+                                        </span>
+                                    </li>
+                                ))}
+                            </ul>
+                        ) : (
+                            <p className="momentsEmpty">Aucun but signalé pour le moment.</p>
                         )}
                     </div>
                     <div className="sectionBlock">
@@ -780,25 +844,71 @@ export default function App() {
                             ))
                         )}
                     </div>
-                    <div className="sectionBlock editorialBlock">
+                    <div className="sectionBlock dashboardBlock">
                         <div className="sectionHeader">
-                            <h2>Guide LiveFoot</h2>
-                            <span>Infos pratiques</span>
+                            <h2>Tableau rapide</h2>
+                            <span>Matches clés</span>
                         </div>
-                        <div className="editorialContent">
-                            <p>
-                                LiveFoot centralise les scores en direct, les horaires et les principaux événements des
-                                matchs pour vous faire gagner du temps.
-                            </p>
-                            <p>
-                                Les données sont regroupées par ligue afin d&apos;identifier rapidement les rencontres
-                                importantes et les équipes en forme.
-                            </p>
-                            <ul>
-                                <li>Ajoutez vos compétitions favorites pour un suivi plus simple.</li>
-                                <li>Vérifiez régulièrement les matchs en cours pour les changements de score.</li>
-                                <li>Consultez les résultats terminés pour les résumés clés.</li>
-                            </ul>
+                        <div className="dashboardGrid">
+                            <div className="dashboardCard">
+                                <h3>En direct</h3>
+                                {livePreview.length > 0 ? (
+                                    <ul>
+                                        {livePreview.map((match) => (
+                                            <li key={match.id ?? `${match.home?.name}-${match.away?.name}-live`}>
+                                                <span className="dashTeams">
+                                                    {match.home?.name ?? "Équipe A"} - {match.away?.name ?? "Équipe B"}
+                                                </span>
+                                                <span className="dashMeta">
+                                                    {match.scores?.score ?? "0 : 0"} · {match.time ?? "--"}
+                                                </span>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                ) : (
+                                    <p className="dashboardEmpty">Aucun match en direct.</p>
+                                )}
+                            </div>
+                            <div className="dashboardCard">
+                                <h3>À venir</h3>
+                                {upcomingPreview.length > 0 ? (
+                                    <ul>
+                                        {upcomingPreview.map((match) => (
+                                            <li key={match.id ?? `${match.home?.name}-${match.away?.name}-upcoming`}>
+                                                <span className="dashTeams">
+                                                    {match.home?.name ?? "Équipe A"} - {match.away?.name ?? "Équipe B"}
+                                                </span>
+                                                <span className="dashMeta">
+                                                    {formatLocalTime(match.scheduled) ?? "--:--"} ·{" "}
+                                                    {match.competition?.name ?? "LiveFoot"}
+                                                </span>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                ) : (
+                                    <p className="dashboardEmpty">Aucune rencontre programmée.</p>
+                                )}
+                            </div>
+                            <div className="dashboardCard">
+                                <h3>Terminés</h3>
+                                {finishedPreview.length > 0 ? (
+                                    <ul>
+                                        {finishedPreview.map((match) => (
+                                            <li key={match.id ?? `${match.home?.name}-${match.away?.name}-done`}>
+                                                <span className="dashTeams">
+                                                    {match.home?.name ?? "Équipe A"} - {match.away?.name ?? "Équipe B"}
+                                                </span>
+                                                <span className="dashMeta">
+                                                    {match.scores?.score ?? "0 : 0"} ·{" "}
+                                                    {match.competition?.name ?? "LiveFoot"}
+                                                </span>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                ) : (
+                                    <p className="dashboardEmpty">Aucun résultat final.</p>
+                                )}
+                            </div>
                         </div>
                     </div>
                 </section>
