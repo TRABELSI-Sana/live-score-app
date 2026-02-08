@@ -94,9 +94,13 @@ class AiInsightsService(
     private fun formatEvent(event: MatchEvent): String {
         val minute = event.time?.trim()?.takeIf { it.isNotEmpty() }?.let { "$it'" } ?: "--'"
         val player = event.player?.trim()?.takeIf { it.isNotEmpty() }
-        val team = event.team?.trim()?.takeIf { it.isNotEmpty() }
+        val side = when (event.homeAway?.trim()?.lowercase()) {
+            "h", "home", "dom" -> "domicile"
+            "a", "away", "ext" -> "extérieur"
+            else -> null
+        }
         val type = event.event?.trim()?.takeIf { it.isNotEmpty() } ?: "événement"
-        val actor = listOfNotNull(player, team).joinToString(" - ").ifBlank { "inconnu" }
+        val actor = listOfNotNull(player, side).joinToString(" - ").ifBlank { "inconnu" }
         return "$type à $minute ($actor)"
     }
 

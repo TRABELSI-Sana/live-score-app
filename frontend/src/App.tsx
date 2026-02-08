@@ -227,19 +227,6 @@ type TableDisplayRow = {
     diff: string;
 };
 
-type AiInsightResponse = {
-    answer: string;
-    status: string;
-    model: string;
-    matchesConsidered: number;
-    competitions: string[];
-    generatedAt: string;
-};
-
-type AiSuggestionsResponse = {
-    suggestions: string[];
-    model: string;
-};
 
 function toNumber(value: unknown): number | undefined {
     const parsed = typeof value === "string" && value.trim() === "" ? NaN : Number(value);
@@ -429,17 +416,6 @@ export default function App() {
     const [rankingRows, setRankingRows] = useState<TableDisplayRow[]>([]);
     const [rankingStatus, setRankingStatus] = useState<"idle" | "loading" | "error">("idle");
     const [searchTerm, setSearchTerm] = useState("");
-    const [aiPrompt, setAiPrompt] = useState("");
-    const [aiAnswer, setAiAnswer] = useState<string | null>(null);
-    const [aiStatus, setAiStatus] = useState<"idle" | "loading" | "error">("idle");
-    const [aiSuggestions, setAiSuggestions] = useState<string[]>([]);
-    const [aiMeta, setAiMeta] = useState<{
-        status?: string;
-        model?: string;
-        matchesConsidered?: number;
-        competitions?: string[];
-        generatedAt?: string;
-    } | null>(null);
     const allMatches = grouped.flatMap((group) => group.list ?? []);
     const normalizedSearch = searchTerm.trim().toLowerCase();
     const matchesSearch = (value: string) =>
@@ -466,24 +442,6 @@ export default function App() {
     });
     const upcomingGroups = buildCompetitionGroups(filteredMatches, (match) => UPCOMING_STATUSES.has(match.status ?? ""));
     const finishedGroups = buildCompetitionGroups(filteredMatches, (match) => String(match.status ?? "") === "FINISHED");
-    const focusItems = [
-        sortedLiveMatches[0]
-            ? `${sortedLiveMatches[0].home?.name ?? "Équipe A"} - ${
-                  sortedLiveMatches[0].away?.name ?? "Équipe B"
-              } en direct.`
-            : null,
-        sortedUpcomingMatches[0]
-            ? `À suivre : ${sortedUpcomingMatches[0].home?.name ?? "Équipe A"} vs ${
-                  sortedUpcomingMatches[0].away?.name ?? "Équipe B"
-              }.`
-            : null,
-        sortedFinishedMatches[0]
-            ? `Dernier résultat : ${sortedFinishedMatches[0].home?.name ?? "Équipe A"} ${
-                  sortedFinishedMatches[0].scores?.score ?? ""
-              } ${sortedFinishedMatches[0].away?.name ?? "Équipe B"}.`
-            : null,
-    ].filter((item): item is string => Boolean(item));
-
     useEffect(() => {
         if (!rankingCompetition) {
             setRankingRows([]);
@@ -537,58 +495,6 @@ export default function App() {
             }
         };
     }, [rankingCompetition]);
-
-    useEffect(() => {
-        let cancelled = false;
-        fetch("/api/ai/suggestions")
-            .then((response) => (response.ok ? response.json() : Promise.reject(new Error("AI"))))
-            .then((data: AiSuggestionsResponse) => {
-                if (cancelled) return;
-                setAiSuggestions(data.suggestions ?? []);
-                setAiMeta((prev) => ({ ...prev, model: data.model }));
-            })
-            .catch(() => {
-                if (cancelled) return;
-                setAiSuggestions([]);
-            });
-
-        return () => {
-            cancelled = true;
-        };
-    }, []);
-
-    const requestAiInsight = () => {
-        const prompt = aiPrompt.trim();
-        if (!prompt) {
-            setAiStatus("error");
-            setAiAnswer("Ajoutez une question pour obtenir une analyse IA.");
-            return;
-        }
-        setAiStatus("loading");
-        fetch("/api/ai/insights", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-            },
-            body: JSON.stringify({ prompt }),
-        })
-            .then((response) => (response.ok ? response.json() : Promise.reject(new Error("AI"))))
-            .then((data: AiInsightResponse) => {
-                setAiAnswer(data.answer);
-                setAiMeta({
-                    status: data.status,
-                    model: data.model,
-                    matchesConsidered: data.matchesConsidered,
-                    competitions: data.competitions,
-                    generatedAt: data.generatedAt,
-                });
-                setAiStatus(data.status === "ok" ? "idle" : "error");
-            })
-            .catch(() => {
-                setAiStatus("error");
-                setAiAnswer("Impossible de contacter l'IA pour le moment.");
-            });
-    };
 
     const renderMatchCard = (match: (typeof allMatches)[number], variant: string) => {
         const status = match.status ?? "";
@@ -745,7 +651,7 @@ export default function App() {
                     <span className="searchIcon">🔍</span>
                     <input
                         type="search"
-                        placeholder="Search for teams, leagues, matches..."
+                        placeholder="Rechercher un club, une ligue, un match..."
                         aria-label="Recherche"
                         value={searchTerm}
                         onChange={(event) => setSearchTerm(event.target.value)}
@@ -754,23 +660,14 @@ export default function App() {
             </header>
 
             <main className="layout">
-                <aside className="infoCard">
-                    <h1>Les matchs du jour – Scores et résultats en temps réel</h1>
-                    <p>
-                        Retrouvez ici tous les matchs de football joués aujourd&apos;hui, avec les scores mis à
-                        jour en direct, les buteurs, les cartons et les statuts des rencontres.
-                    </p>
-                    <p>
-                        Les compétitions sont classées par ligue pour une lecture simple et rapide. Aujourd&apos;hui,
-                        la Premier League, la Bundesliga et les compétitions africaines sont à l&apos;honneur.
-                    </p>
-                    <p>
-                        LiveFoot propose également un résumé des tendances : clubs en forme, scores serrés et
-                        moments clés à surveiller. Revenez régulièrement pour suivre l&apos;évolution des résultats.
-                    </p>
-                </aside>
-
                 <section className="centerColumn">
+                    <div className="simpleIntro">
+                        <h1>LiveFoot — Scores en direct</h1>
+                        <p>
+                            Un affichage simple des matchs, classés par compétition. Retrouvez les scores, horaires
+                            et événements principaux en un coup d&apos;œil.
+                        </p>
+                    </div>
                     <div className="sectionBlock liveSection">
                         <div className="sectionHeader">
                             <h2>Matchs en cours</h2>
@@ -857,98 +754,7 @@ export default function App() {
                             ))
                         )}
                     </div>
-                    <div className="sectionBlock editorialBlock">
-                        <div className="sectionHeader">
-                            <h2>Guide LiveFoot</h2>
-                            <span>Infos pratiques</span>
-                        </div>
-                        <div className="editorialContent">
-                            <p>
-                                LiveFoot centralise les scores en direct, les horaires et les principaux événements des
-                                matchs pour vous faire gagner du temps.
-                            </p>
-                            <p>
-                                Les données sont regroupées par ligue afin d&apos;identifier rapidement les rencontres
-                                importantes et les équipes en forme.
-                            </p>
-                            <ul>
-                                <li>Ajoutez vos compétitions favorites pour un suivi plus simple.</li>
-                                <li>Vérifiez régulièrement les matchs en cours pour les changements de score.</li>
-                                <li>Consultez les résultats terminés pour les résumés clés.</li>
-                            </ul>
-                        </div>
-                    </div>
                 </section>
-
-                <aside className="rightColumn">
-                    <div className="focusCard">
-                        <h3>Focus du jour</h3>
-                        {focusItems.length > 0 ? (
-                            <ul>
-                                {focusItems.map((item, index) => (
-                                    <li key={`${item}-${index}`}>{item}</li>
-                                ))}
-                            </ul>
-                        ) : (
-                            <p className="focusFallback">
-                                Les moments forts apparaîtront ici dès que les matchs démarrent.
-                            </p>
-                        )}
-                    </div>
-                    <div className="focusCard aiCard">
-                        <div className="aiHeader">
-                            <h3>Assistant IA LiveFoot</h3>
-                            {aiMeta?.model ? <span className="aiBadge">Modèle: {aiMeta.model}</span> : null}
-                        </div>
-                        <p className="aiIntro">
-                            Posez une question pour obtenir un résumé instantané des rencontres et des tendances.
-                        </p>
-                        <div className="aiSuggestions">
-                            {aiSuggestions.map((suggestion) => (
-                                <button
-                                    key={suggestion}
-                                    type="button"
-                                    className="aiSuggestion"
-                                    onClick={() => setAiPrompt(suggestion)}
-                                >
-                                    {suggestion}
-                                </button>
-                            ))}
-                        </div>
-                        <div className="aiForm">
-                            <textarea
-                                className="aiTextarea"
-                                rows={4}
-                                placeholder="Ex: Quels sont les matchs les plus chauds en ce moment ?"
-                                value={aiPrompt}
-                                onChange={(event) => setAiPrompt(event.target.value)}
-                            />
-                            <button
-                                type="button"
-                                className="aiButton"
-                                onClick={requestAiInsight}
-                                disabled={aiStatus === "loading"}
-                            >
-                                {aiStatus === "loading" ? "Analyse en cours..." : "Lancer l'analyse IA"}
-                            </button>
-                        </div>
-                        {aiAnswer ? (
-                            <div className="aiResponse">
-                                <div className={`aiStatus ${aiStatus === "error" ? "aiStatusError" : ""}`}>
-                                    {aiMeta?.status === "unavailable"
-                                        ? "IA indisponible"
-                                        : "Analyse IA prête"}
-                                </div>
-                                <p>{aiAnswer}</p>
-                                {aiMeta?.competitions && aiMeta.competitions.length > 0 ? (
-                                    <div className="aiMeta">
-                                        Compétitions analysées: {aiMeta.competitions.join(", ")}
-                                    </div>
-                                ) : null}
-                            </div>
-                        ) : null}
-                    </div>
-                </aside>
             </main>
             <footer className="siteFooter">
                 <div className="footerLinks">
