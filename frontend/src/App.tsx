@@ -227,6 +227,20 @@ type TableDisplayRow = {
     diff: string;
 };
 
+type AiInsightResponse = {
+    answer: string;
+    status: string;
+    model: string;
+    matchesConsidered: number;
+    competitions: string[];
+    generatedAt: string;
+};
+
+type AiSuggestionsResponse = {
+    suggestions: string[];
+    model: string;
+};
+
 function toNumber(value: unknown): number | undefined {
     const parsed = typeof value === "string" && value.trim() === "" ? NaN : Number(value);
     return Number.isFinite(parsed) ? parsed : undefined;
@@ -415,6 +429,17 @@ export default function App() {
     const [rankingRows, setRankingRows] = useState<TableDisplayRow[]>([]);
     const [rankingStatus, setRankingStatus] = useState<"idle" | "loading" | "error">("idle");
     const [searchTerm, setSearchTerm] = useState("");
+    const [aiPrompt, setAiPrompt] = useState("");
+    const [aiAnswer, setAiAnswer] = useState<string | null>(null);
+    const [aiStatus, setAiStatus] = useState<"idle" | "loading" | "error">("idle");
+    const [aiSuggestions, setAiSuggestions] = useState<string[]>([]);
+    const [aiMeta, setAiMeta] = useState<{
+        status?: string;
+        model?: string;
+        matchesConsidered?: number;
+        competitions?: string[];
+        generatedAt?: string;
+    } | null>(null);
     const allMatches = grouped.flatMap((group) => group.list ?? []);
     const normalizedSearch = searchTerm.trim().toLowerCase();
     const matchesSearch = (value: string) =>
@@ -512,6 +537,58 @@ export default function App() {
             }
         };
     }, [rankingCompetition]);
+
+    useEffect(() => {
+        let cancelled = false;
+        fetch("/api/ai/suggestions")
+            .then((response) => (response.ok ? response.json() : Promise.reject(new Error("AI"))))
+            .then((data: AiSuggestionsResponse) => {
+                if (cancelled) return;
+                setAiSuggestions(data.suggestions ?? []);
+                setAiMeta((prev) => ({ ...prev, model: data.model }));
+            })
+            .catch(() => {
+                if (cancelled) return;
+                setAiSuggestions([]);
+            });
+
+        return () => {
+            cancelled = true;
+        };
+    }, []);
+
+    const requestAiInsight = () => {
+        const prompt = aiPrompt.trim();
+        if (!prompt) {
+            setAiStatus("error");
+            setAiAnswer("Ajoutez une question pour obtenir une analyse IA.");
+            return;
+        }
+        setAiStatus("loading");
+        fetch("/api/ai/insights", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ prompt }),
+        })
+            .then((response) => (response.ok ? response.json() : Promise.reject(new Error("AI"))))
+            .then((data: AiInsightResponse) => {
+                setAiAnswer(data.answer);
+                setAiMeta({
+                    status: data.status,
+                    model: data.model,
+                    matchesConsidered: data.matchesConsidered,
+                    competitions: data.competitions,
+                    generatedAt: data.generatedAt,
+                });
+                setAiStatus(data.status === "ok" ? "idle" : "error");
+            })
+            .catch(() => {
+                setAiStatus("error");
+                setAiAnswer("Impossible de contacter l'IA pour le moment.");
+            });
+    };
 
     const renderMatchCard = (match: (typeof allMatches)[number], variant: string) => {
         const status = match.status ?? "";
@@ -803,17 +880,74 @@ export default function App() {
                     </div>
                 </section>
 
-                <aside className="focusCard">
-                    <h3>Focus du jour</h3>
-                    {focusItems.length > 0 ? (
-                        <ul>
-                            {focusItems.map((item, index) => (
-                                <li key={`${item}-${index}`}>{item}</li>
+                <aside className="rightColumn">
+                    <div className="focusCard">
+                        <h3>Focus du jour</h3>
+                        {focusItems.length > 0 ? (
+                            <ul>
+                                {focusItems.map((item, index) => (
+                                    <li key={`${item}-${index}`}>{item}</li>
+                                ))}
+                            </ul>
+                        ) : (
+                            <p className="focusFallback">
+                                Les moments forts apparaîtront ici dès que les matchs démarrent.
+                            </p>
+                        )}
+                    </div>
+                    <div className="focusCard aiCard">
+                        <div className="aiHeader">
+                            <h3>Assistant IA LiveFoot</h3>
+                            {aiMeta?.model ? <span className="aiBadge">Modèle: {aiMeta.model}</span> : null}
+                        </div>
+                        <p className="aiIntro">
+                            Posez une question pour obtenir un résumé instantané des rencontres et des tendances.
+                        </p>
+                        <div className="aiSuggestions">
+                            {aiSuggestions.map((suggestion) => (
+                                <button
+                                    key={suggestion}
+                                    type="button"
+                                    className="aiSuggestion"
+                                    onClick={() => setAiPrompt(suggestion)}
+                                >
+                                    {suggestion}
+                                </button>
                             ))}
-                        </ul>
-                    ) : (
-                        <p className="focusFallback">Les moments forts apparaîtront ici dès que les matchs démarrent.</p>
-                    )}
+                        </div>
+                        <div className="aiForm">
+                            <textarea
+                                className="aiTextarea"
+                                rows={4}
+                                placeholder="Ex: Quels sont les matchs les plus chauds en ce moment ?"
+                                value={aiPrompt}
+                                onChange={(event) => setAiPrompt(event.target.value)}
+                            />
+                            <button
+                                type="button"
+                                className="aiButton"
+                                onClick={requestAiInsight}
+                                disabled={aiStatus === "loading"}
+                            >
+                                {aiStatus === "loading" ? "Analyse en cours..." : "Lancer l'analyse IA"}
+                            </button>
+                        </div>
+                        {aiAnswer ? (
+                            <div className="aiResponse">
+                                <div className={`aiStatus ${aiStatus === "error" ? "aiStatusError" : ""}`}>
+                                    {aiMeta?.status === "unavailable"
+                                        ? "IA indisponible"
+                                        : "Analyse IA prête"}
+                                </div>
+                                <p>{aiAnswer}</p>
+                                {aiMeta?.competitions && aiMeta.competitions.length > 0 ? (
+                                    <div className="aiMeta">
+                                        Compétitions analysées: {aiMeta.competitions.join(", ")}
+                                    </div>
+                                ) : null}
+                            </div>
+                        ) : null}
+                    </div>
                 </aside>
             </main>
             <footer className="siteFooter">
