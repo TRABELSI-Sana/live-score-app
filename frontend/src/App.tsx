@@ -694,7 +694,7 @@ export default function App() {
                 </aside>
 
                 <section className="centerColumn">
-                    <div className="sectionBlock">
+                    <div className="sectionBlock liveSection">
                         <div className="sectionHeader">
                             <h2>Matchs en cours</h2>
                             <span>{liveMatches.length} matchs</span>

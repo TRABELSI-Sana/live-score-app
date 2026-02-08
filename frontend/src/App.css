@@ -211,6 +211,35 @@ body {
   gap: 16px;
 }
 
+.liveSection .matchGrid {
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+}
+
+.liveSection .matchCard {
+  padding: 12px 14px 14px;
+  gap: 10px;
+}
+
+.liveSection .matchScore {
+  font-size: 16px;
+  padding: 6px 0;
+}
+
+.liveSection .matchEvents {
+  padding: 8px 10px;
+}
+
+.liveSection .teamRow {
+  font-size: 13px;
+}
+
+.liveSection .teamLogo,
+.liveSection .teamLogoPlaceholder {
+  width: 22px;
+  height: 22px;
+}
+
 .matchCard {
   background: var(--card);
   border-radius: 16px;
