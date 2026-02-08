@@ -212,11 +212,14 @@ body {
 }
 
 .liveSection .matchGrid {
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(200px, 320px));
   gap: 12px;
+  justify-content: start;
 }
 
 .liveSection .matchCard {
+  max-width: 340px;
+  width: 100%;
   padding: 12px 14px 14px;
   gap: 10px;
 }
