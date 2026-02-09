@@ -503,11 +503,6 @@ export default function App() {
         const localScheduled = formatLocalTime(match.scheduled);
         const scoreText = isUpcoming ? localScheduled ?? "--:--" : match.scores?.score ?? "0 : 0";
         const displayStatus = statusLabel(match.status, match.time, localScheduled);
-        const competitionId = match.competition?.id ? String(match.competition.id) : undefined;
-        const groupName = extractGroupName(match);
-        const teamIds = [match.home?.id, match.away?.id]
-            .map((id) => (id === null || id === undefined ? undefined : String(id)))
-            .filter((id): id is string => Boolean(id));
         const sortedEvents = [...(match.lastEvents ?? [])].sort((a, b) => eventSortKey(a) - eventSortKey(b));
         const recentEvents = sortedEvents.filter(
             (event) => !isSubstitutionEvent(event.event) && !isYellowCardEvent(event.event)
@@ -515,125 +510,76 @@ export default function App() {
         const goalEvents = sortedEvents.filter((event) => isGoalEvent(event.event));
         const homeEvents = recentEvents.filter((event) => event.home_away?.toLowerCase().startsWith("h"));
         const awayEvents = recentEvents.filter((event) => event.home_away?.toLowerCase().startsWith("a"));
+        const eventSummary = goalEvents
+            .map((event) => `${event.player ?? "Joueur"} ${formatEventMinute(event.time)}`)
+            .join(" · ");
 
         return (
-            <article key={match.id ?? `${match.home?.name}-${match.away?.name}`} className="matchCard">
-                <div className="matchCardTop">
-                    <span className="matchTime">{localScheduled ?? match.time ?? "--:--"}</span>
-                    <span
-                        className={`statusPill ${
-                            isUpcoming ? "statusUpcoming" : isFinished ? "statusFinished" : "statusLive"
-                        }`}
-                    >
-                        {displayStatus}
-                    </span>
-                </div>
-                <div className="matchTeams">
-                    <div className="teamBlock">
-                        <div className="teamRow">
-                            {match.home?.logo ? (
-                                <img
-                                    className="teamLogo"
-                                    src={match.home.logo}
-                                    alt={match.home?.name ?? "Home"}
-                                    loading="lazy"
-                                    onError={(e) => {
-                                        (e.currentTarget as HTMLImageElement).style.display = "none";
-                                    }}
-                                />
-                            ) : (
-                                <span className="teamLogoPlaceholder"/>
-                            )}
-                            <span>{match.home?.name ?? "Home"}</span>
-                        </div>
+            <article key={match.id ?? `${match.home?.name}-${match.away?.name}`} className="matchRowCard">
+                <div className="matchRowMain">
+                    <div className="matchRowTime">
+                        <span className="matchTime">{localScheduled ?? match.time ?? "--:--"}</span>
+                        <span
+                            className={`statusText ${
+                                isUpcoming ? "statusUpcoming" : isFinished ? "statusFinished" : "statusLive"
+                            }`}
+                        >
+                            {displayStatus}
+                        </span>
+                    </div>
+                    <div className="matchRowTeam">
+                        {match.home?.logo ? (
+                            <img
+                                className="teamLogo"
+                                src={match.home.logo}
+                                alt={match.home?.name ?? "Home"}
+                                loading="lazy"
+                                onError={(e) => {
+                                    (e.currentTarget as HTMLImageElement).style.display = "none";
+                                }}
+                            />
+                        ) : (
+                            <span className="teamLogoPlaceholder"/>
+                        )}
+                        <span>{match.home?.name ?? "Home"}</span>
                         {homeEvents.length > 0 ? (
-                            <ul className="teamEventsList">
-                                {homeEvents.map((event, index) => (
-                                    <li key={`${event.id ?? event.ts ?? event.time ?? index}`} className="teamEventItem">
-                                        <span className="eventIcon" aria-hidden="true">
-                                            {formatEventIcon(event)}
-                                        </span>
-                                        <span className="eventLabel">{formatEventLabel(event)}</span>
-                                        <span className="eventPlayer">{event.player ?? "Joueur"}</span>
-                                        <span className="eventMinute">{formatEventMinute(event.time)}</span>
-                                    </li>
-                                ))}
-                            </ul>
-                        ) : null}
-                    </div>
-                    <div className="teamBlock">
-                        <div className="teamRow">
-                            {match.away?.logo ? (
-                                <img
-                                    className="teamLogo"
-                                    src={match.away.logo}
-                                    alt={match.away?.name ?? "Away"}
-                                    loading="lazy"
-                                    onError={(e) => {
-                                        (e.currentTarget as HTMLImageElement).style.display = "none";
-                                    }}
-                                />
-                            ) : (
-                                <span className="teamLogoPlaceholder"/>
-                            )}
-                            <span>{match.away?.name ?? "Away"}</span>
-                        </div>
-                        {awayEvents.length > 0 ? (
-                            <ul className="teamEventsList">
-                                {awayEvents.map((event, index) => (
-                                    <li key={`${event.id ?? event.ts ?? event.time ?? index}`} className="teamEventItem">
-                                        <span className="eventIcon" aria-hidden="true">
-                                            {formatEventIcon(event)}
-                                        </span>
-                                        <span className="eventLabel">{formatEventLabel(event)}</span>
-                                        <span className="eventPlayer">{event.player ?? "Joueur"}</span>
-                                        <span className="eventMinute">{formatEventMinute(event.time)}</span>
-                                    </li>
-                                ))}
-                            </ul>
-                        ) : null}
-                    </div>
-                </div>
-                <div className={`matchScore ${isUpcoming ? "matchScoreUpcoming" : ""}`}>{scoreText}</div>
-                <div className="matchEvents">
-                    <div className="matchEventsHeader">
-                        <span>Événements</span>
-                        {goalEvents.length > 0 ? (
-                            <span className="goalCount">{goalEvents.length} but{goalEvents.length > 1 ? "s" : ""}</span>
-                        ) : null}
-                    </div>
-                    {recentEvents.length === 0 ? <div className="eventEmpty">Aucun événement signalé.</div> : null}
-                    {goalEvents.length > 0 ? (
-                        <div className="scorersRow">
-                            <span className="scorersLabel">Buteurs :</span>
-                            <span className="scorersList">
-                                {goalEvents
-                                    .map((event) => `${event.player ?? "Joueur"} ${formatEventMinute(event.time)}`)
-                                    .join(" · ")}
+                            <span className="matchRowEvents">
+                                {homeEvents
+                                    .map((event) => `${formatEventIcon(event)} ${formatEventMinute(event.time)}`)
+                                    .join(" ")}
                             </span>
-                        </div>
-                    ) : null}
-                </div>
-                <div className="matchMetaRow">
-                    <span className="matchCompetition">{match.competition?.name ?? "LiveFoot"}</span>
+                        ) : null}
+                    </div>
+                    <div className={`matchScorePill ${isUpcoming ? "matchScoreUpcoming" : ""}`}>{scoreText}</div>
+                    <div className="matchRowTeam matchRowTeamRight">
+                        {awayEvents.length > 0 ? (
+                            <span className="matchRowEvents">
+                                {awayEvents
+                                    .map((event) => `${formatEventIcon(event)} ${formatEventMinute(event.time)}`)
+                                    .join(" ")}
+                            </span>
+                        ) : null}
+                        <span>{match.away?.name ?? "Away"}</span>
+                        {match.away?.logo ? (
+                            <img
+                                className="teamLogo"
+                                src={match.away.logo}
+                                alt={match.away?.name ?? "Away"}
+                                loading="lazy"
+                                onError={(e) => {
+                                    (e.currentTarget as HTMLImageElement).style.display = "none";
+                                }}
+                            />
+                        ) : (
+                            <span className="teamLogoPlaceholder"/>
+                        )}
+                    </div>
                     <span className="matchTag">{variant}</span>
                 </div>
-                {competitionId ? (
-                    <button
-                        type="button"
-                        className="rankingButton"
-                        onClick={() =>
-                            setRankingCompetition({
-                                id: competitionId,
-                                name: match.competition?.name,
-                                groupName,
-                                teamIds,
-                            })
-                        }
-                    >
-                        Voir classement
-                    </button>
-                ) : null}
+                <div className="matchRowMeta">
+                    <span className="matchCompetition">{match.competition?.name ?? "LiveFoot"}</span>
+                    {eventSummary ? <span className="matchRowSummary">Buteurs : {eventSummary}</span> : null}
+                </div>
             </article>
         );
     };
@@ -664,9 +610,14 @@ export default function App() {
                     <div className="simpleIntro">
                         <h1>LiveFoot — Scores en direct</h1>
                         <p>
-                            Un affichage simple des matchs, classés par compétition. Retrouvez les scores, horaires
-                            et événements principaux en un coup d&apos;œil.
+                            Suivez les matchs minute par minute avec un affichage clair : score, statut, événements clés
+                            et compétitions du jour.
                         </p>
+                        <div className="introHighlights">
+                            <span>Mises à jour régulières</span>
+                            <span>Matchs à venir et résultats</span>
+                            <span>Classements par compétition</span>
+                        </div>
                     </div>
                     <div className="sectionBlock liveSection">
                         <div className="sectionHeader">
@@ -686,9 +637,25 @@ export default function App() {
                                 <div key={group.comp.id ?? group.comp.name} className="competitionBlock">
                                     <div className="competitionHeader">
                                         <span className="competitionTitle">{formatCompetitionLabel(group.comp)}</span>
-                                        <span className="competitionCount">
-                                            {group.matches.length} match{group.matches.length > 1 ? "s" : ""}
-                                        </span>
+                                        <div className="competitionActions">
+                                            <span className="competitionCount">
+                                                {group.matches.length} match{group.matches.length > 1 ? "s" : ""}
+                                            </span>
+                                            {group.comp.id ? (
+                                                <button
+                                                    type="button"
+                                                    className="competitionLink"
+                                                    onClick={() =>
+                                                        setRankingCompetition({
+                                                            id: String(group.comp.id),
+                                                            name: group.comp.name,
+                                                        })
+                                                    }
+                                                >
+                                                    Classement
+                                                </button>
+                                            ) : null}
+                                        </div>
                                     </div>
                                     <div className="matchGrid">
                                         {group.matches.map((match) => renderMatchCard(match, "EN COURS"))}
@@ -715,9 +682,25 @@ export default function App() {
                                 <div key={group.comp.id ?? group.comp.name} className="competitionBlock">
                                     <div className="competitionHeader">
                                         <span className="competitionTitle">{formatCompetitionLabel(group.comp)}</span>
-                                        <span className="competitionCount">
-                                            {group.matches.length} match{group.matches.length > 1 ? "s" : ""}
-                                        </span>
+                                        <div className="competitionActions">
+                                            <span className="competitionCount">
+                                                {group.matches.length} match{group.matches.length > 1 ? "s" : ""}
+                                            </span>
+                                            {group.comp.id ? (
+                                                <button
+                                                    type="button"
+                                                    className="competitionLink"
+                                                    onClick={() =>
+                                                        setRankingCompetition({
+                                                            id: String(group.comp.id),
+                                                            name: group.comp.name,
+                                                        })
+                                                    }
+                                                >
+                                                    Classement
+                                                </button>
+                                            ) : null}
+                                        </div>
                                     </div>
                                     <div className="matchGrid">
                                         {group.matches.map((match) => renderMatchCard(match, "À VENIR"))}
@@ -743,9 +726,25 @@ export default function App() {
                                 <div key={group.comp.id ?? group.comp.name} className="competitionBlock">
                                     <div className="competitionHeader">
                                         <span className="competitionTitle">{formatCompetitionLabel(group.comp)}</span>
-                                        <span className="competitionCount">
-                                            {group.matches.length} match{group.matches.length > 1 ? "s" : ""}
-                                        </span>
+                                        <div className="competitionActions">
+                                            <span className="competitionCount">
+                                                {group.matches.length} match{group.matches.length > 1 ? "s" : ""}
+                                            </span>
+                                            {group.comp.id ? (
+                                                <button
+                                                    type="button"
+                                                    className="competitionLink"
+                                                    onClick={() =>
+                                                        setRankingCompetition({
+                                                            id: String(group.comp.id),
+                                                            name: group.comp.name,
+                                                        })
+                                                    }
+                                                >
+                                                    Classement
+                                                </button>
+                                            ) : null}
+                                        </div>
                                     </div>
                                     <div className="matchGrid">
                                         {group.matches.map((match) => renderMatchCard(match, "TERMINÉ"))}
@@ -755,6 +754,52 @@ export default function App() {
                         )}
                     </div>
                 </section>
+                <aside className="sideColumn">
+                    <div className="sideCard">
+                        <div className="sideCardHeader">
+                            <h3>IA — Résumé automatique</h3>
+                            <span className="sideBadge">BETA</span>
+                        </div>
+                        <p>
+                            Nous générons un aperçu automatique des matchs clés du jour pour vous aider à repérer
+                            rapidement les scores importants.
+                        </p>
+                        <div className="sideList">
+                            <div>
+                                <span className="sideLabel">Matchs en direct</span>
+                                <strong>{liveMatches.length}</strong>
+                            </div>
+                            <div>
+                                <span className="sideLabel">Matchs à venir</span>
+                                <strong>{upcomingMatches.length}</strong>
+                            </div>
+                            <div>
+                                <span className="sideLabel">Matchs terminés</span>
+                                <strong>{finishedMatches.length}</strong>
+                            </div>
+                        </div>
+                        {sortedLiveMatches[0] ? (
+                            <div className="sideHighlight">
+                                <span className="sideLabel">Match suivi</span>
+                                <span>
+                                    {sortedLiveMatches[0].home?.name ?? "Home"} —{" "}
+                                    {sortedLiveMatches[0].away?.name ?? "Away"}
+                                </span>
+                                <strong>{sortedLiveMatches[0].scores?.score ?? "0 : 0"}</strong>
+                            </div>
+                        ) : null}
+                    </div>
+                    <div className="sideCard">
+                        <h3>Accès rapide</h3>
+                        <p>Retrouvez les pages utiles et la documentation légale.</p>
+                        <div className="sideLinks">
+                            <a href="/about.html">À propos</a>
+                            <a href="/contact.html">Contact</a>
+                            <a href="/privacy.html">Confidentialité</a>
+                            <a href="/terms.html">Conditions</a>
+                        </div>
+                    </div>
+                </aside>
             </main>
             <footer className="siteFooter">
                 <div className="footerLinks">
