@@ -13,16 +13,7 @@ function isGoalEvent(event?: string): boolean {
     return normalized === "GOAL" || normalized === "GOALPENALTY" || normalized === "PENALTY" || normalized === "OWNGOAL" || normalized === "GOALP";
 }
 
-function formatEventLabel(event?: MatchEvent): string {
-    if (!event) return "Événement";
-    const type = normalizeEventType(event.event);
-    if (type === "GOAL" || type === "GOALPENALTY" || type === "PENALTY" || type === "GOALP") return "But";
-    if (type === "OWNGOAL") return "C.S.C.";
-    if (type === "YELLOWCARD" || type === "YELLOW") return "Carton jaune";
-    if (type === "REDCARD" || type === "RED") return "Carton rouge";
-    if (type === "SECONDYELLOW") return "Deuxième jaune";
-    return event.event ? event.event.replace(/_/g, " ").toLowerCase() : "Événement";
-}
+
 
 function isSubstitutionEvent(event?: string): boolean {
     const normalized = normalizeEventType(event);
@@ -434,8 +425,6 @@ export default function App() {
     const upcomingMatches = filteredMatches.filter((match) => UPCOMING_STATUSES.has(match.status ?? ""));
     const finishedMatches = filteredMatches.filter((match) => String(match.status ?? "") === "FINISHED");
     const sortedLiveMatches = [...liveMatches].sort((a, b) => matchSortKey(a) - matchSortKey(b));
-    const sortedUpcomingMatches = [...upcomingMatches].sort((a, b) => matchSortKey(a) - matchSortKey(b));
-    const sortedFinishedMatches = [...finishedMatches].sort((a, b) => matchSortKey(a) - matchSortKey(b));
     const liveGroups = buildCompetitionGroups(filteredMatches, (match) => {
         const status = String(match.status ?? "").toUpperCase();
         return status === "IN PLAY" || status === "ADDED TIME" || status === "HALF TIME BREAK" || status === "HALF TIME";
