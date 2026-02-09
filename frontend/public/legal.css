@@ -1,13 +1,12 @@
 :root {
-    color: #2f3726;
+    color: #1f2937;
     font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-    background-color: #f6f8ef;
-    --teal: #7a9a2b;
-    --teal-dark: #4f6a17;
-    --coral: #93b83e;
-    --border: #dfe6d3;
-    --soft: #eef5e6;
-    --muted: #6f7b62;
+    background-color: #f8fafc;
+    --teal: #16a34a;
+    --teal-dark: #166534;
+    --border: #e5e7eb;
+    --soft: #f1f5f9;
+    --muted: #6b7280;
 }
 
 *,
@@ -18,33 +17,30 @@
 
 body {
     margin: 0;
-    background: #ffffff;
+    background: #f8fafc;
     min-height: 100vh;
 }
 
 .legal-page {
-    max-width: 980px;
-    margin: 40px auto 60px;
-    padding: 0 20px;
+    max-width: 960px;
+    margin: 32px auto 60px;
+    padding: 0 18px;
 }
 
 .legal-header {
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     justify-content: space-between;
-    gap: 16px;
-    padding: 18px 20px;
-    border-radius: 18px;
-    border: 1px solid var(--border);
-    background: #ffffff;
-    box-shadow: 0 16px 30px rgba(79, 106, 23, 0.12);
+    gap: 20px;
+    padding: 18px 0;
+    border-bottom: 2px solid var(--border);
 }
 
 .legal-header h1 {
     margin: 0;
     font-size: 22px;
     font-weight: 700;
-    color: var(--teal-dark);
+    color: #111827;
 }
 
 .legal-header p {
@@ -57,52 +53,49 @@ body {
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    padding: 6px 12px;
+    padding: 4px 10px;
     border-radius: 999px;
-    font-size: 11px;
+    font-size: 10px;
     font-weight: 700;
     letter-spacing: 0.6px;
     text-transform: uppercase;
     color: var(--teal-dark);
-    background: rgba(122, 154, 43, 0.18);
-    margin-bottom: 10px;
+    background: rgba(22, 163, 74, 0.12);
+    margin-bottom: 8px;
 }
 
 .legal-nav {
     display: flex;
-    gap: 10px;
+    gap: 12px;
     flex-wrap: wrap;
 }
 
 .legal-nav a {
-    padding: 6px 12px;
-    border-radius: 999px;
-    border: 1px solid var(--border);
-    background: var(--soft);
+    padding: 4px 0;
     font-size: 12px;
-    color: #2f3726;
+    color: var(--muted);
     text-decoration: none;
+    border-bottom: 2px solid transparent;
 }
 
 .legal-nav a:hover {
-    background: #ffffff;
-    border-color: rgba(122, 154, 43, 0.35);
     color: var(--teal-dark);
+    border-color: var(--teal);
 }
 
 .legal-main {
     margin-top: 18px;
-    padding: 28px;
-    border-radius: 18px;
+    padding: 24px;
     border: 1px solid var(--border);
+    border-radius: 14px;
     background: #ffffff;
-    box-shadow: 0 16px 30px rgba(79, 106, 23, 0.1);
+    box-shadow: 0 12px 24px rgba(15, 23, 42, 0.06);
 }
 
 .legal-main h2 {
-    margin-top: 24px;
+    margin-top: 20px;
     margin-bottom: 8px;
-    font-size: 16px;
+    font-size: 15px;
     color: var(--teal-dark);
 }
 
@@ -112,23 +105,67 @@ body {
 
 .legal-main p,
 .legal-main li {
-    line-height: 1.7;
+    line-height: 1.6;
     color: var(--muted);
     font-size: 14px;
 }
 
 .legal-main ul {
     margin: 12px 0 0;
-    padding-left: 18px;
+    padding-left: 16px;
 }
 
 .legal-highlight {
     padding: 14px 16px;
     border-radius: 12px;
-    border: 1px solid rgba(122, 154, 43, 0.35);
-    background: rgba(122, 154, 43, 0.12);
+    border: 1px solid rgba(22, 163, 74, 0.2);
+    background: #f0fdf4;
     font-size: 13px;
     color: var(--teal-dark);
+}
+
+.legal-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 14px;
+    margin: 20px 0;
+}
+
+.legal-card {
+    padding: 16px;
+    border-radius: 14px;
+    border: 1px solid var(--border);
+    background: #f9fafb;
+    box-shadow: 0 8px 18px rgba(15, 23, 42, 0.06);
+}
+
+.legal-card h3 {
+    margin: 0 0 8px;
+    font-size: 15px;
+    color: var(--teal-dark);
+}
+
+.legal-card p {
+    margin: 0;
+    color: var(--muted);
+    font-size: 13px;
+    line-height: 1.6;
+}
+
+.legal-cta {
+    margin-top: 20px;
+    padding: 16px;
+    border-radius: 14px;
+    border: 1px dashed rgba(22, 163, 74, 0.4);
+    background: #f0fdf4;
+    color: var(--teal-dark);
+    font-weight: 600;
+    font-size: 13px;
+}
+
+.legal-cta a {
+    color: inherit;
+    font-weight: 700;
 }
 
 .legal-highlight p {
@@ -144,7 +181,7 @@ body {
     padding-top: 16px;
     border-top: 1px solid var(--border);
     display: flex;
-    gap: 16px;
+    gap: 14px;
     flex-wrap: wrap;
     font-size: 13px;
     color: var(--muted);
