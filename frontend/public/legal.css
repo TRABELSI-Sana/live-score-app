@@ -131,6 +131,50 @@ body {
     color: var(--teal-dark);
 }
 
+.legal-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 16px;
+    margin: 20px 0;
+}
+
+.legal-card {
+    padding: 16px;
+    border-radius: 14px;
+    border: 1px solid var(--border);
+    background: #fdfef9;
+    box-shadow: 0 10px 20px rgba(79, 106, 23, 0.08);
+}
+
+.legal-card h3 {
+    margin: 0 0 8px;
+    font-size: 15px;
+    color: var(--teal-dark);
+}
+
+.legal-card p {
+    margin: 0;
+    color: var(--muted);
+    font-size: 13px;
+    line-height: 1.6;
+}
+
+.legal-cta {
+    margin-top: 20px;
+    padding: 16px;
+    border-radius: 14px;
+    border: 1px dashed rgba(122, 154, 43, 0.6);
+    background: #f5fbe9;
+    color: var(--teal-dark);
+    font-weight: 600;
+    font-size: 13px;
+}
+
+.legal-cta a {
+    color: inherit;
+    font-weight: 700;
+}
+
 .legal-highlight p {
     margin: 0 0 8px;
 }
