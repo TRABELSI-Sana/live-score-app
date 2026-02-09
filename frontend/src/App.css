@@ -115,6 +115,39 @@ body {
   line-height: 1.5;
 }
 
+.introNote {
+  font-size: 13px;
+}
+
+.infoGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+}
+
+.infoCard {
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow);
+  display: grid;
+  gap: 6px;
+}
+
+.infoCard h3 {
+  margin: 0;
+  font-size: 15px;
+  color: var(--primary-deep);
+}
+
+.infoCard p {
+  margin: 0;
+  font-size: 13px;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
 .sectionBlock {
   display: grid;
   gap: 12px;

@@ -667,6 +667,33 @@ export default function App() {
                             Un affichage simple des matchs, classés par compétition. Retrouvez les scores, horaires
                             et événements principaux en un coup d&apos;œil.
                         </p>
+                        <p className="introNote">
+                            Les données sont regroupées par ligue et mises à jour régulièrement pour suivre les
+                            évolutions importantes (buts, cartons, fin de match).
+                        </p>
+                    </div>
+                    <div className="infoGrid" aria-label="Informations clés">
+                        <div className="infoCard">
+                            <h3>Suivi en temps réel</h3>
+                            <p>
+                                Consultez les rencontres en cours avec le score, le statut du match et les actions
+                                marquantes affichées par équipe.
+                            </p>
+                        </div>
+                        <div className="infoCard">
+                            <h3>Programme à venir</h3>
+                            <p>
+                                Les horaires locaux sont indiqués pour les prochains matchs afin de planifier votre
+                                suivi et retrouver facilement votre club.
+                            </p>
+                        </div>
+                        <div className="infoCard">
+                            <h3>Résultats &amp; classement</h3>
+                            <p>
+                                Accédez aux scores finaux et ouvrez le classement d&apos;une compétition directement depuis
+                                chaque rencontre.
+                            </p>
+                        </div>
                     </div>
                     <div className="sectionBlock liveSection">
                         <div className="sectionHeader">
