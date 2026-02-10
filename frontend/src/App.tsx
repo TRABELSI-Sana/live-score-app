@@ -13,17 +13,6 @@ function isGoalEvent(event?: string): boolean {
     return normalized === "GOAL" || normalized === "GOALPENALTY" || normalized === "PENALTY" || normalized === "OWNGOAL" || normalized === "GOALP";
 }
 
-function formatEventLabel(event?: MatchEvent): string {
-    if (!event) return "Événement";
-    const type = normalizeEventType(event.event);
-    if (type === "GOAL" || type === "GOALPENALTY" || type === "PENALTY" || type === "GOALP") return "But";
-    if (type === "OWNGOAL") return "C.S.C.";
-    if (type === "YELLOWCARD" || type === "YELLOW") return "Carton jaune";
-    if (type === "REDCARD" || type === "RED") return "Carton rouge";
-    if (type === "SECONDYELLOW") return "Deuxième jaune";
-    return event.event ? event.event.replace(/_/g, " ").toLowerCase() : "Événement";
-}
-
 function isSubstitutionEvent(event?: string): boolean {
     const normalized = normalizeEventType(event);
     return normalized === "SUBSTITUTION" || normalized === "SUB" || normalized === "SUBIN" || normalized === "SUBOUT";
@@ -179,24 +168,6 @@ function formatLocalTime(value?: string): string | undefined {
     });
 }
 
-function extractGroupName(match: {
-    group?: { name?: string } | string;
-    groupName?: string;
-    stage?: { name?: string; group?: string };
-    round?: { name?: string; group?: string };
-}): string | undefined {
-    const direct =
-        (typeof match.group === "string" ? match.group : match.group?.name) ??
-        match.groupName ??
-        match.stage?.group ??
-        match.round?.group;
-    if (direct) return String(direct).trim();
-    const roundName = match.round?.name ?? match.stage?.name;
-    if (!roundName) return undefined;
-    const matchGroup = roundName.match(/(?:group|groupe)\s*([a-z0-9]+)/i);
-    return matchGroup ? matchGroup[1].toUpperCase() : undefined;
-}
-
 type TableRow = {
     rank?: number | string;
     position?: number | string;
@@ -225,6 +196,11 @@ type TableDisplayRow = {
     points: string;
     played: string;
     diff: string;
+};
+
+type AiInsightResponse = {
+    answer?: string;
+    status?: string;
 };
 
 
@@ -415,6 +391,8 @@ export default function App() {
     } | null>(null);
     const [rankingRows, setRankingRows] = useState<TableDisplayRow[]>([]);
     const [rankingStatus, setRankingStatus] = useState<"idle" | "loading" | "error">("idle");
+    const [aiSummary, setAiSummary] = useState<string>("Chargement du résumé IA...");
+    const [aiStatus, setAiStatus] = useState<"loading" | "idle" | "error">("loading");
     const [searchTerm, setSearchTerm] = useState("");
     const allMatches = grouped.flatMap((group) => group.list ?? []);
     const normalizedSearch = searchTerm.trim().toLowerCase();
@@ -434,14 +412,49 @@ export default function App() {
     const upcomingMatches = filteredMatches.filter((match) => UPCOMING_STATUSES.has(match.status ?? ""));
     const finishedMatches = filteredMatches.filter((match) => String(match.status ?? "") === "FINISHED");
     const sortedLiveMatches = [...liveMatches].sort((a, b) => matchSortKey(a) - matchSortKey(b));
-    const sortedUpcomingMatches = [...upcomingMatches].sort((a, b) => matchSortKey(a) - matchSortKey(b));
-    const sortedFinishedMatches = [...finishedMatches].sort((a, b) => matchSortKey(a) - matchSortKey(b));
     const liveGroups = buildCompetitionGroups(filteredMatches, (match) => {
         const status = String(match.status ?? "").toUpperCase();
         return status === "IN PLAY" || status === "ADDED TIME" || status === "HALF TIME BREAK" || status === "HALF TIME";
     });
     const upcomingGroups = buildCompetitionGroups(filteredMatches, (match) => UPCOMING_STATUSES.has(match.status ?? ""));
     const finishedGroups = buildCompetitionGroups(filteredMatches, (match) => String(match.status ?? "") === "FINISHED");
+    useEffect(() => {
+        let cancelled = false;
+        setAiStatus("loading");
+
+        const prompt =
+            "Fais un résumé ultra court (3 points max) des matchs en direct et des principales affiches à venir.";
+
+        fetch("/api/ai/insights", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ prompt, maxMatches: 12 }),
+        })
+            .then((response) => (response.ok ? response.json() : Promise.reject(new Error(`HTTP ${response.status}`))))
+            .then((data: AiInsightResponse) => {
+                if (cancelled) return;
+                const text = data.answer?.trim();
+                if (!text) {
+                    setAiSummary("Résumé IA indisponible pour le moment.");
+                    setAiStatus("error");
+                    return;
+                }
+                setAiSummary(text);
+                setAiStatus(data.status === "ok" ? "idle" : "error");
+            })
+            .catch(() => {
+                if (cancelled) return;
+                setAiSummary("Le résumé IA est momentanément indisponible.");
+                setAiStatus("error");
+            });
+
+        return () => {
+            cancelled = true;
+        };
+    }, [grouped]);
+
     useEffect(() => {
         if (!rankingCompetition) {
             setRankingRows([]);
@@ -788,6 +801,11 @@ export default function App() {
                                 <strong>{sortedLiveMatches[0].scores?.score ?? "0 : 0"}</strong>
                             </div>
                         ) : null}
+                        <div className="sideHighlight">
+                            <span className="sideLabel">Résumé IA</span>
+                            <p>{aiSummary}</p>
+                            {aiStatus === "loading" ? <span className="statusText statusUpcoming">Analyse en cours…</span> : null}
+                        </div>
                     </div>
                     <div className="sideCard">
                         <h3>Accès rapide</h3>
