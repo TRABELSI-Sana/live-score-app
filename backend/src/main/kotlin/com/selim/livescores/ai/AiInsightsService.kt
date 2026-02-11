@@ -6,8 +6,10 @@ import com.selim.livescores.service.MatchService
 import org.springframework.ai.chat.client.ChatClient
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
+import java.util.concurrent.ExecutionException
 import java.util.concurrent.Executors
 import java.util.concurrent.Semaphore
+import java.util.concurrent.TimeoutException
 import java.util.concurrent.TimeUnit
 
 @Service
@@ -22,7 +24,7 @@ class AiInsightsService(
     maxConcurrentRequests: Int
 ) {
     private val aiCallExecutor = Executors.newCachedThreadPool()
-    private val aiSlots = Semaphore(maxConcurrentRequests.coerceAtLeast(1))
+    private val aiSlots = Semaphore(maxConcurrentRequests.coerceAtLeast(10))
 
     fun suggestions(): AiSuggestionsResponse = AiSuggestionsResponse(
         suggestions = listOf(
@@ -81,11 +83,38 @@ class AiInsightsService(
                 matchesConsidered = selected.size,
                 competitions = competitions
             )
-        } catch (_: Exception) {
-            future?.cancel(true)
+        } catch (_: TimeoutException) {
+            future?.cancel(false)
             AiInsightResponse(
                 answer = "Le module IA est lent ou indisponible. Réessayez plus tard.",
                 status = "timeout",
+                model = model,
+                matchesConsidered = selected.size,
+                competitions = competitions
+            )
+        } catch (_: InterruptedException) {
+            future?.cancel(false)
+            Thread.currentThread().interrupt()
+            AiInsightResponse(
+                answer = "La génération IA a été interrompue. Réessayez dans un instant.",
+                status = "interrupted",
+                model = model,
+                matchesConsidered = selected.size,
+                competitions = competitions
+            )
+        } catch (_: ExecutionException) {
+            AiInsightResponse(
+                answer = "Le module IA est momentanément indisponible. Réessayez plus tard.",
+                status = "error",
+                model = model,
+                matchesConsidered = selected.size,
+                competitions = competitions
+            )
+        } catch (_: Exception) {
+            future?.cancel(false)
+            AiInsightResponse(
+                answer = "Le module IA est momentanément indisponible. Réessayez plus tard.",
+                status = "error",
                 model = model,
                 matchesConsidered = selected.size,
                 competitions = competitions

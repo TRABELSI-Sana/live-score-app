@@ -13,14 +13,9 @@ function isGoalEvent(event?: string): boolean {
     return normalized === "GOAL" || normalized === "GOALPENALTY" || normalized === "PENALTY" || normalized === "OWNGOAL" || normalized === "GOALP";
 }
 
-function isSubstitutionEvent(event?: string): boolean {
+function isRedCardEvent(event?: string): boolean {
     const normalized = normalizeEventType(event);
-    return normalized === "SUBSTITUTION" || normalized === "SUB" || normalized === "SUBIN" || normalized === "SUBOUT";
-}
-
-function isYellowCardEvent(event?: string): boolean {
-    const normalized = normalizeEventType(event);
-    return normalized === "YELLOWCARD" || normalized === "YELLOW";
+    return normalized === "REDCARD" || normalized === "RED" || normalized === "SECONDYELLOW";
 }
 
 function formatEventIcon(event?: MatchEvent): string {
@@ -419,22 +414,20 @@ export default function App() {
     const upcomingGroups = buildCompetitionGroups(filteredMatches, (match) => UPCOMING_STATUSES.has(match.status ?? ""));
     const finishedGroups = buildCompetitionGroups(filteredMatches, (match) => String(match.status ?? "") === "FINISHED");
     useEffect(() => {
-        let cancelled = false;
-        setAiStatus("loading");
-
         const prompt =
             "Fais un résumé ultra court (3 points max) des matchs en direct et des principales affiches à venir.";
+        const params = new URLSearchParams({
+            prompt,
+            maxMatches: "12",
+        });
 
-        fetch("/api/ai/insights", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-            },
-            body: JSON.stringify({ prompt, maxMatches: 12 }),
-        })
-            .then((response) => (response.ok ? response.json() : Promise.reject(new Error(`HTTP ${response.status}`))))
-            .then((data: AiInsightResponse) => {
-                if (cancelled) return;
+        setAiStatus("loading");
+
+        const stream = new EventSource(`/api/ai/insights/stream?${params.toString()}`);
+
+        const handleInsight = (evt: MessageEvent) => {
+            try {
+                const data = JSON.parse(evt.data) as AiInsightResponse;
                 const text = data.answer?.trim();
                 if (!text) {
                     setAiSummary("Résumé IA indisponible pour le moment.");
@@ -443,17 +436,30 @@ export default function App() {
                 }
                 setAiSummary(text);
                 setAiStatus(data.status === "ok" ? "idle" : "error");
-            })
-            .catch(() => {
-                if (cancelled) return;
+            } catch {
                 setAiSummary("Le résumé IA est momentanément indisponible.");
                 setAiStatus("error");
-            });
+            } finally {
+                stream.close();
+            }
+        };
+
+        const handleError = () => {
+            setAiSummary("Le résumé IA est momentanément indisponible.");
+            setAiStatus("error");
+            stream.close();
+        };
+
+        stream.addEventListener("insight", handleInsight as EventListener);
+        stream.addEventListener("error", handleError);
+        stream.onerror = handleError;
 
         return () => {
-            cancelled = true;
+            stream.removeEventListener("insight", handleInsight as EventListener);
+            stream.removeEventListener("error", handleError);
+            stream.close();
         };
-    }, [grouped]);
+    }, [grouped.length, liveMatches.length, upcomingMatches.length]);
 
     useEffect(() => {
         if (!rankingCompetition) {
@@ -517,15 +523,76 @@ export default function App() {
         const scoreText = isUpcoming ? localScheduled ?? "--:--" : match.scores?.score ?? "0 : 0";
         const displayStatus = statusLabel(match.status, match.time, localScheduled);
         const sortedEvents = [...(match.lastEvents ?? [])].sort((a, b) => eventSortKey(a) - eventSortKey(b));
-        const recentEvents = sortedEvents.filter(
-            (event) => !isSubstitutionEvent(event.event) && !isYellowCardEvent(event.event)
-        );
         const goalEvents = sortedEvents.filter((event) => isGoalEvent(event.event));
-        const homeEvents = recentEvents.filter((event) => event.home_away?.toLowerCase().startsWith("h"));
-        const awayEvents = recentEvents.filter((event) => event.home_away?.toLowerCase().startsWith("a"));
+        const cardEvents = sortedEvents.filter((event) => isRedCardEvent(event.event));
+        const homeGoals = goalEvents.filter((event) => event.home_away?.toLowerCase().startsWith("h"));
+        const awayGoals = goalEvents.filter((event) => event.home_away?.toLowerCase().startsWith("a"));
+        const homeCards = cardEvents.filter((event) => event.home_away?.toLowerCase().startsWith("h"));
+        const awayCards = cardEvents.filter((event) => event.home_away?.toLowerCase().startsWith("a"));
         const eventSummary = goalEvents
             .map((event) => `${event.player ?? "Joueur"} ${formatEventMinute(event.time)}`)
             .join(" · ");
+
+        const renderTeam = (
+            side: "home" | "away",
+            team: { name?: string; logo?: string } | undefined,
+            goals: MatchEvent[],
+            cards: MatchEvent[]
+        ) => (
+            <div className={`teamBlock ${side === "away" ? "teamBlockAway" : ""}`}>
+                <div className={`matchRowTeam ${side === "away" ? "matchRowTeamRight" : ""}`}>
+                    {side === "away" ? null : (
+                        team?.logo ? (
+                            <img
+                                className="teamLogo"
+                                src={team.logo}
+                                alt={team?.name ?? "Équipe"}
+                                loading="lazy"
+                                onError={(e) => {
+                                    (e.currentTarget as HTMLImageElement).style.display = "none";
+                                }}
+                            />
+                        ) : (
+                            <span className="teamLogoPlaceholder"/>
+                        )
+                    )}
+                    <span>{team?.name ?? "Équipe"}</span>
+                    {side === "away" ? (
+                        team?.logo ? (
+                            <img
+                                className="teamLogo"
+                                src={team.logo}
+                                alt={team?.name ?? "Équipe"}
+                                loading="lazy"
+                                onError={(e) => {
+                                    (e.currentTarget as HTMLImageElement).style.display = "none";
+                                }}
+                            />
+                        ) : (
+                            <span className="teamLogoPlaceholder"/>
+                        )
+                    ) : null}
+                </div>
+                {goals.length > 0 ? (
+                    <div className={`eventList ${side === "away" ? "eventListRight" : ""}`}>
+                        {goals.map((event, idx) => (
+                            <span key={`goal-${idx}`} className="eventBadge eventGoal">
+                                ⚽ {event.player ?? "Joueur"} {formatEventMinute(event.time)}
+                            </span>
+                        ))}
+                    </div>
+                ) : null}
+                {cards.length > 0 ? (
+                    <div className={`eventList ${side === "away" ? "eventListRight" : ""}`}>
+                        {cards.map((event, idx) => (
+                            <span key={`red-${idx}`} className="eventBadge eventRed">
+                                {formatEventIcon(event)} {event.player ?? "Joueur"} {formatEventMinute(event.time)}
+                            </span>
+                        ))}
+                    </div>
+                ) : null}
+            </div>
+        );
 
         return (
             <article key={match.id ?? `${match.home?.name}-${match.away?.name}`} className="matchRowCard">
@@ -539,55 +606,11 @@ export default function App() {
                         >
                             {displayStatus}
                         </span>
+                        <span className="matchTag">{variant}</span>
                     </div>
-                    <div className="matchRowTeam">
-                        {match.home?.logo ? (
-                            <img
-                                className="teamLogo"
-                                src={match.home.logo}
-                                alt={match.home?.name ?? "Home"}
-                                loading="lazy"
-                                onError={(e) => {
-                                    (e.currentTarget as HTMLImageElement).style.display = "none";
-                                }}
-                            />
-                        ) : (
-                            <span className="teamLogoPlaceholder"/>
-                        )}
-                        <span>{match.home?.name ?? "Home"}</span>
-                        {homeEvents.length > 0 ? (
-                            <span className="matchRowEvents">
-                                {homeEvents
-                                    .map((event) => `${formatEventIcon(event)} ${formatEventMinute(event.time)}`)
-                                    .join(" ")}
-                            </span>
-                        ) : null}
-                    </div>
+                    {renderTeam("home", match.home, homeGoals, homeCards)}
                     <div className={`matchScorePill ${isUpcoming ? "matchScoreUpcoming" : ""}`}>{scoreText}</div>
-                    <div className="matchRowTeam matchRowTeamRight">
-                        {awayEvents.length > 0 ? (
-                            <span className="matchRowEvents">
-                                {awayEvents
-                                    .map((event) => `${formatEventIcon(event)} ${formatEventMinute(event.time)}`)
-                                    .join(" ")}
-                            </span>
-                        ) : null}
-                        <span>{match.away?.name ?? "Away"}</span>
-                        {match.away?.logo ? (
-                            <img
-                                className="teamLogo"
-                                src={match.away.logo}
-                                alt={match.away?.name ?? "Away"}
-                                loading="lazy"
-                                onError={(e) => {
-                                    (e.currentTarget as HTMLImageElement).style.display = "none";
-                                }}
-                            />
-                        ) : (
-                            <span className="teamLogoPlaceholder"/>
-                        )}
-                    </div>
-                    <span className="matchTag">{variant}</span>
+                    {renderTeam("away", match.away, awayGoals, awayCards)}
                 </div>
                 <div className="matchRowMeta">
                     <span className="matchCompetition">{match.competition?.name ?? "LiveFoot"}</span>
@@ -620,18 +643,31 @@ export default function App() {
 
             <main className="layout">
                 <section className="centerColumn">
-                    <div className="simpleIntro">
-                        <h1>LiveFoot — Scores en direct</h1>
+                    <section className="sectionBlock seoIntro" aria-labelledby="seo-intro-title">
+                        <h1 id="seo-intro-title">LiveFoot — Scores de football en direct</h1>
                         <p>
-                            Suivez les matchs minute par minute avec un affichage clair : score, statut, événements clés
-                            et compétitions du jour.
+                            Suivez les matchs du jour en temps réel : score, buteurs, cartons, temps additionnel et
+                            état de la rencontre.
                         </p>
-                        <div className="introHighlights">
-                            <span>Mises à jour régulières</span>
-                            <span>Matchs à venir et résultats</span>
-                            <span>Classements par compétition</span>
+                        <p>
+                            Nos tableaux regroupent les compétitions populaires (Ligue 1, Premier League, Bundesliga,
+                            Serie A, Liga) avec un affichage lisible sur mobile et desktop.
+                        </p>
+                        <div className="seoChecklist">
+                            <h2>Pourquoi LiveFoot ?</h2>
+                            <ul>
+                                <li>Mises à jour continues des scores et statuts de match.</li>
+                                <li>Événements clés : buts, cartons rouges, moments décisifs.</li>
+                                <li>Classements de compétition accessibles rapidement.</li>
+                            </ul>
                         </div>
-                    </div>
+                        <div className="seoLinks">
+                            <a href="/about.html">À propos</a>
+                            <a href="/privacy.html">Politique de confidentialité</a>
+                            <a href="/terms.html">Conditions</a>
+                            <a href="/contact.html">Contact</a>
+                        </div>
+                    </section>
                     <div className="sectionBlock liveSection">
                         <div className="sectionHeader">
                             <h2>Matchs en cours</h2>

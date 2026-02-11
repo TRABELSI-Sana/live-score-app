@@ -11,7 +11,7 @@ services:
       - SPRING_DATA_REDIS_HOST=redis
       - SPRING_DATA_REDIS_PORT=6379
       - SPRING_AI_OLLAMA_BASE_URL=http://ollama:11434
-      - APP_AI_TIMEOUT_SECONDS=120
+      - APP_AI_TIMEOUT_SECONDS=420
       - APP_AI_MAX_CONCURRENT_REQUESTS=1
     depends_on:
       - redis
@@ -31,10 +31,22 @@ services:
 
   ollama:
     image: ollama/ollama
+    restart: unless-stopped
+    # bind only on localhost for safety (backend still reaches it via docker network)
     ports:
-      - "11434:11434"
+      - "127.0.0.1:11434:11434"
+    environment:
+      # Avoid parallel request handling inside Ollama; CPU-only inference gets much slower otherwise
+      - OLLAMA_NUM_PARALLEL=1
+      # Keep model loaded (avoid reload thrash)
+      - OLLAMA_KEEP_ALIVE=1h
+      # Cap queue so the service fails fast instead of piling up 5+ minute waits
+      - OLLAMA_MAX_QUEUE=32
     volumes:
       - ollama_data:/root/.ollama
+    # Give ollama predictable resources on this VPS
+    cpus: "6"
+    mem_limit: 10g
 
 volumes:
   ollama_data:

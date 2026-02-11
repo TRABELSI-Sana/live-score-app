@@ -4,7 +4,6 @@ set -euo pipefail
 VPS_USER="ubuntu"
 VPS_HOST="51.210.246.121"
 REMOTE_DIR="/home/${VPS_USER}/apps/live-scores"
-
 BACKEND_DIR="backend"
 FRONTEND_DIR="frontend"
 JAR_GLOB="${BACKEND_DIR}/target/*-SNAPSHOT.jar"
