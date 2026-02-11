@@ -6,14 +6,24 @@ import com.selim.livescores.service.MatchService
 import org.springframework.ai.chat.client.ChatClient
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
+import java.util.concurrent.Executors
+import java.util.concurrent.Semaphore
+import java.util.concurrent.TimeUnit
 
 @Service
 class AiInsightsService(
     private val chatClient: ChatClient,
     private val matchService: MatchService,
     @Value("\${spring.ai.ollama.chat.options.model:mistral}")
-    private val model: String
+    private val model: String,
+    @Value("\${app.ai.timeout-seconds:8}")
+    private val timeoutSeconds: Long,
+    @Value("\${app.ai.max-concurrent-requests:1}")
+    maxConcurrentRequests: Int
 ) {
+    private val aiCallExecutor = Executors.newCachedThreadPool()
+    private val aiSlots = Semaphore(maxConcurrentRequests.coerceAtLeast(1))
+
     fun suggestions(): AiSuggestionsResponse = AiSuggestionsResponse(
         suggestions = listOf(
             "Résume les matchs les plus serrés du moment.",
@@ -34,19 +44,35 @@ class AiInsightsService(
         val prompt = request.prompt?.trim()?.takeIf { it.isNotEmpty() }
             ?: "Fais un résumé des matchs et des tendances du jour."
 
-        return try {
-            val response = chatClient.prompt()
-                .system(systemPrompt())
-                .user(
-                    """
-                    Contexte LiveFoot:
-                    $context
+        if (!aiSlots.tryAcquire()) {
+            return AiInsightResponse(
+                answer = "Le module IA est occupé. Réessayez dans quelques secondes.",
+                status = "busy",
+                model = model,
+                matchesConsidered = selected.size,
+                competitions = competitions
+            )
+        }
 
-                    Demande: $prompt
-                    """.trimIndent()
-                )
-                .call()
-                .content()
+        var future: java.util.concurrent.Future<String?>? = null
+
+        return try {
+            future = aiCallExecutor.submit<String?> {
+                chatClient.prompt()
+                    .system(systemPrompt())
+                    .user(
+                        """
+                        Contexte LiveFoot:
+                        $context
+
+                        Demande: $prompt
+                        """.trimIndent()
+                    )
+                    .call()
+                    .content()
+            }
+
+            val response = future.get(timeoutSeconds, TimeUnit.SECONDS)
 
             AiInsightResponse(
                 answer = response ?: "Réponse IA indisponible pour le moment.",
@@ -55,14 +81,17 @@ class AiInsightsService(
                 matchesConsidered = selected.size,
                 competitions = competitions
             )
-        } catch (ex: Exception) {
+        } catch (_: Exception) {
+            future?.cancel(true)
             AiInsightResponse(
-                answer = "Le module IA n'est pas disponible pour le moment. Vérifiez que Ollama est démarré.",
-                status = "unavailable",
+                answer = "Le module IA est lent ou indisponible. Réessayez plus tard.",
+                status = "timeout",
                 model = model,
                 matchesConsidered = selected.size,
                 competitions = competitions
             )
+        } finally {
+            aiSlots.release()
         }
     }
 

@@ -10,6 +10,9 @@ services:
     environment:
       - SPRING_DATA_REDIS_HOST=redis
       - SPRING_DATA_REDIS_PORT=6379
+      - SPRING_AI_OLLAMA_BASE_URL=http://ollama:11434
+      - APP_AI_TIMEOUT_SECONDS=120
+      - APP_AI_MAX_CONCURRENT_REQUESTS=1
     depends_on:
       - redis
 
