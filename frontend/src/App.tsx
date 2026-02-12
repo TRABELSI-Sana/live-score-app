@@ -1,5 +1,5 @@
 import "./App.css";
-import {useEffect, useState} from "react";
+import {useEffect, useRef, useState} from "react";
 import type {MatchEvent, MatchState} from "./hooks/useLiveBoard.ts";
 import {useLiveBoard} from "./hooks/useLiveBoard.ts";
 
@@ -211,6 +211,50 @@ type AiInsightResponse = {
     answer?: string;
     status?: string;
 };
+
+declare global {
+    interface Window {
+        adsbygoogle?: unknown[];
+    }
+}
+
+function AdsenseInline() {
+    const adPushedRef = useRef(false);
+    const adElementRef = useRef<HTMLModElement | null>(null);
+
+    useEffect(() => {
+        if (adPushedRef.current) return;
+
+        const adElement = adElementRef.current;
+        const adStatus = adElement?.getAttribute("data-adsbygoogle-status");
+        if (adStatus === "done") {
+            adPushedRef.current = true;
+            return;
+        }
+
+        try {
+            (window.adsbygoogle = window.adsbygoogle || []).push({});
+            adPushedRef.current = true;
+        } catch {
+            // ignored: ad blockers or missing script can prevent ad initialization.
+        }
+    }, []);
+
+    return (
+        <section className="adSection" aria-label="Annonce sponsorisée">
+            <span className="adLabel">Publicité</span>
+            <ins
+                ref={adElementRef}
+                className="adsbygoogle"
+                style={{ display: "block" }}
+                data-ad-client="ca-pub-6754395387524937"
+                data-ad-slot="8567185183"
+                data-ad-format="auto"
+                data-full-width-responsive="true"
+            />
+        </section>
+    );
+}
 
 
 function toNumber(value: unknown): number | undefined {
@@ -869,6 +913,7 @@ export default function App() {
                     </div>
                 </aside>
             </main>
+            <AdsenseInline />
             <footer className="siteFooter">
                 <div className="footerLinks">
                     <a href="/about.html">À propos</a>
