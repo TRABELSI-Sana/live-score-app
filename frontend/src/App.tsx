@@ -212,6 +212,8 @@ type AiInsightResponse = {
     status?: string;
 };
 
+const ADSENSE_SCRIPT_SRC = "https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6754395387524937";
+
 declare global {
     interface Window {
         adsbygoogle?: unknown[];
@@ -219,12 +221,64 @@ declare global {
     }
 }
 
+function getInitialAdScriptStatus(): "ready" | "loading" | "blocked" {
+    if (typeof window === "undefined") return "loading";
+    if (window.__adsenseScriptBlocked) return "blocked";
+    if (Array.isArray(window.adsbygoogle)) return "ready";
+    return "loading";
+}
+
 function AdsenseInline() {
     const adPushedRef = useRef(false);
     const adElementRef = useRef<HTMLModElement | null>(null);
+    const [adScriptStatus, setAdScriptStatus] = useState<"ready" | "loading" | "blocked">(getInitialAdScriptStatus);
 
     useEffect(() => {
-        if (window.__adsenseScriptBlocked) return;
+        if (adScriptStatus !== "loading") return;
+
+        const scriptId = "adsense-script";
+        const existingScript = document.getElementById(scriptId) as HTMLScriptElement | null;
+
+        const handleScriptLoad = () => setAdScriptStatus("ready");
+        const handleScriptError = () => {
+            window.__adsenseScriptBlocked = true;
+            setAdScriptStatus("blocked");
+        };
+
+        if (existingScript) {
+            if (existingScript.dataset.loaded === "true") {
+                queueMicrotask(() => handleScriptLoad());
+            } else {
+                existingScript.addEventListener("load", handleScriptLoad);
+                existingScript.addEventListener("error", handleScriptError);
+            }
+
+            return () => {
+                existingScript.removeEventListener("load", handleScriptLoad);
+                existingScript.removeEventListener("error", handleScriptError);
+            };
+        }
+
+        const script = document.createElement("script");
+        script.id = scriptId;
+        script.async = true;
+        script.crossOrigin = "anonymous";
+        script.src = ADSENSE_SCRIPT_SRC;
+        script.onload = () => {
+            script.dataset.loaded = "true";
+            handleScriptLoad();
+        };
+        script.onerror = handleScriptError;
+        document.head.appendChild(script);
+
+        return () => {
+            script.onload = null;
+            script.onerror = null;
+        };
+    }, [adScriptStatus]);
+
+    useEffect(() => {
+        if (adScriptStatus !== "ready") return;
         if (adPushedRef.current) return;
 
         const adElement = adElementRef.current;
@@ -238,11 +292,11 @@ function AdsenseInline() {
             (window.adsbygoogle = window.adsbygoogle || []).push({});
             adPushedRef.current = true;
         } catch {
-            // ignored: ad blockers or missing script can prevent ad initialization.
+            // ignored: ad blockers or delayed script availability.
         }
-    }, []);
+    }, [adScriptStatus]);
 
-    if (window.__adsenseScriptBlocked) return null;
+    if (adScriptStatus !== "ready") return null;
 
     return (
         <section className="adSection" aria-label="Annonce sponsorisée">
