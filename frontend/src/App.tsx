@@ -215,6 +215,7 @@ type AiInsightResponse = {
 declare global {
     interface Window {
         adsbygoogle?: unknown[];
+        __adsenseScriptBlocked?: boolean;
     }
 }
 
@@ -223,6 +224,7 @@ function AdsenseInline() {
     const adElementRef = useRef<HTMLModElement | null>(null);
 
     useEffect(() => {
+        if (window.__adsenseScriptBlocked) return;
         if (adPushedRef.current) return;
 
         const adElement = adElementRef.current;
@@ -239,6 +241,8 @@ function AdsenseInline() {
             // ignored: ad blockers or missing script can prevent ad initialization.
         }
     }, []);
+
+    if (window.__adsenseScriptBlocked) return null;
 
     return (
         <section className="adSection" aria-label="Annonce sponsorisée">
