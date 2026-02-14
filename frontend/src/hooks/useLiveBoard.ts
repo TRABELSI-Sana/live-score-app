@@ -6,6 +6,7 @@ export type MatchEvent = {
     time?: string;
     player?: string;
     home_away?: string;
+    homeAway?: string;
     match_id?: string;
     ts?: string;
 };

@@ -136,14 +136,16 @@ class MatchService(
      * If we already have the fixture version in Redis (from fixtures/today), we attach it so the key stays stable.
      */
     private fun normalizeProviderMatch(providerMatch: MatchState, boardKeysHint: List<String>? = null): MatchState {
-        if (providerMatch.fixtureId != null) return providerMatch
+        if (providerMatch.fixtureId != null) return providerMatch.copy(status = MatchStatus.normalize(providerMatch.status))
 
         val compId = providerMatch.competition?.id
         val homeId = providerMatch.home?.id
         val awayId = providerMatch.away?.id
         val sched = providerMatch.scheduled?.trim()
 
-        if (compId == null || homeId == null || awayId == null || sched.isNullOrBlank()) return providerMatch
+        if (compId == null || homeId == null || awayId == null || sched.isNullOrBlank()) {
+            return providerMatch.copy(status = MatchStatus.normalize(providerMatch.status))
+        }
 
         // Try to find a planned match already stored for today.
         val keys = boardKeysHint ?: getBoardMatchKeys()
@@ -160,9 +162,13 @@ class MatchService(
             }
 
         return if (existing?.fixtureId != null) {
-            providerMatch.copy(fixtureId = existing.fixtureId, fixtureDate = existing.fixtureDate)
+            providerMatch.copy(
+                fixtureId = existing.fixtureId,
+                fixtureDate = existing.fixtureDate,
+                status = MatchStatus.normalize(providerMatch.status)
+            )
         } else {
-            providerMatch
+            providerMatch.copy(status = MatchStatus.normalize(providerMatch.status))
         }
     }
 
@@ -223,6 +229,14 @@ class MatchService(
     }
 
     private fun chooseBetter(a: MatchState, b: MatchState): MatchState {
+        val aFinished = MatchStatus.isFinished(a.status)
+        val bFinished = MatchStatus.isFinished(b.status)
+        if (aFinished != bFinished) return if (aFinished) a else b
+
+        val aLive = MatchStatus.isLive(a.status)
+        val bLive = MatchStatus.isLive(b.status)
+        if (aLive != bLive) return if (aLive) a else b
+
         // Prefer the one that looks “more advanced” (later minute) or has richer data.
         val aMin = TimeParser.parseMinute(a.time) ?: -1
         val bMin = TimeParser.parseMinute(b.time) ?: -1

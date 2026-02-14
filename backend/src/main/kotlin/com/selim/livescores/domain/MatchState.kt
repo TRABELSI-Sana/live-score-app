@@ -23,6 +23,13 @@ data class MatchState(
     val status: String? = null,
     val time: String? = null,
     val competition: Competition? = null,
+    val stage: StageInfo? = null,
+    val group: GroupInfo? = null,
+    val round: RoundInfo? = null,
+
+    @JsonProperty("group_name")
+    val groupName: String? = null,
+
     val home: Team? = null,
     val away: Team? = null,
     val scores: Scores? = null,
@@ -39,6 +46,26 @@ data class Competition(
     val id: Long? = null,
     val name: String? = null,
     val country: String? = null
+)
+
+@JsonIgnoreProperties(ignoreUnknown = true)
+data class StageInfo(
+    val id: Long? = null,
+    val name: String? = null,
+    val group: String? = null
+)
+
+@JsonIgnoreProperties(ignoreUnknown = true)
+data class GroupInfo(
+    val id: Long? = null,
+    val name: String? = null
+)
+
+@JsonIgnoreProperties(ignoreUnknown = true)
+data class RoundInfo(
+    val id: Long? = null,
+    val name: String? = null,
+    val group: String? = null
 )
 
 @JsonIgnoreProperties(ignoreUnknown = true)

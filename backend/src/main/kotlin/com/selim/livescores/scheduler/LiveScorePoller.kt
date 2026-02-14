@@ -166,12 +166,9 @@ class LiveScorePoller(
         // Upsert les live + finished (important: score final + status)
         liveMatches.forEach { matchService.upsertFromProvider(it, previousBoardKeys) }
         finishedMatches.forEach { match ->
-            val previous = matchService.getOrInitState(match.matchKey)
-            val wasFinished = previous.status == MatchStatus.FINISHED
             val updated = matchService.upsertFromProvider(match, previousBoardKeys)
-            if (!wasFinished) {
-                refreshFinishedEvents(updated)
-            }
+            // Always refresh final events for finished matches to avoid stale scorers/cards from older live snapshots.
+            refreshFinishedEvents(updated)
         }
 
         // Mettre à jour les live keys (pour pollEvents)

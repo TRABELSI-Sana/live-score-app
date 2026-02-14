@@ -4,6 +4,19 @@ import type {MatchEvent, MatchState} from "./hooks/useLiveBoard.ts";
 import {useLiveBoard} from "./hooks/useLiveBoard.ts";
 
 const UPCOMING_STATUSES = new Set(["NOT STARTED", "SCHEDULED"]);
+
+function normalizeMatchStatus(status?: string): string {
+    if (!status) return "UNKNOWN";
+    const normalized = status.trim().toUpperCase().replace(/[_-]/g, " ").replace(/\s+/g, " ");
+    if (["FT", "AET", "AFTER EXTRA TIME", "PEN", "PENALTIES"].includes(normalized)) return "FINISHED";
+    if (normalized === "HALF TIME") return "HALF TIME BREAK";
+    return normalized;
+}
+
+function eventSide(event: MatchEvent): string {
+    const side = (event.home_away ?? (event as MatchEvent & { homeAway?: string }).homeAway ?? "").toLowerCase();
+    return side;
+}
 function normalizeEventType(value?: string): string {
     return (value ?? "").replace(/[\s_-]/g, "").toUpperCase();
 }
@@ -127,12 +140,13 @@ function buildCompetitionGroups(
 
 
 function statusLabel(status?: string, time?: string, scheduled?: string) {
+    const normalized = normalizeMatchStatus(status);
     if (!status) return scheduled ?? "--:--";
-    if (status === "IN PLAY" || status === "ADDED TIME") return time ? `${time}'` : "EN COURS";
-    if (status === "HALF TIME BREAK") return "MT";
-    if (status === "FINISHED") return "TERMINÉ";
-    if (UPCOMING_STATUSES.has(status)) return scheduled ?? "À VENIR";
-    return status;
+    if (normalized === "IN PLAY" || normalized === "ADDED TIME") return time ? `${time}'` : "EN COURS";
+    if (normalized === "HALF TIME BREAK") return "MT";
+    if (normalized === "FINISHED") return "TERMINÉ";
+    if (UPCOMING_STATUSES.has(normalized)) return scheduled ?? "À VENIR";
+    return normalized;
 }
 
 function formatLocalTime(value?: string): string | undefined {
@@ -401,18 +415,18 @@ export default function App() {
         return [home, away, competition].some((entry) => matchesSearch(entry));
     });
     const liveMatches = filteredMatches.filter((match) => {
-        const status = String(match.status ?? "").toUpperCase();
-        return status === "IN PLAY" || status === "ADDED TIME" || status === "HALF TIME BREAK" || status === "HALF TIME";
+        const status = normalizeMatchStatus(match.status);
+        return status === "IN PLAY" || status === "ADDED TIME" || status === "HALF TIME BREAK";
     });
-    const upcomingMatches = filteredMatches.filter((match) => UPCOMING_STATUSES.has(match.status ?? ""));
-    const finishedMatches = filteredMatches.filter((match) => String(match.status ?? "") === "FINISHED");
+    const upcomingMatches = filteredMatches.filter((match) => UPCOMING_STATUSES.has(normalizeMatchStatus(match.status)));
+    const finishedMatches = filteredMatches.filter((match) => normalizeMatchStatus(match.status) === "FINISHED");
     const sortedLiveMatches = [...liveMatches].sort((a, b) => matchSortKey(a) - matchSortKey(b));
     const liveGroups = buildCompetitionGroups(filteredMatches, (match) => {
-        const status = String(match.status ?? "").toUpperCase();
-        return status === "IN PLAY" || status === "ADDED TIME" || status === "HALF TIME BREAK" || status === "HALF TIME";
+        const status = normalizeMatchStatus(match.status);
+        return status === "IN PLAY" || status === "ADDED TIME" || status === "HALF TIME BREAK";
     });
-    const upcomingGroups = buildCompetitionGroups(filteredMatches, (match) => UPCOMING_STATUSES.has(match.status ?? ""));
-    const finishedGroups = buildCompetitionGroups(filteredMatches, (match) => String(match.status ?? "") === "FINISHED");
+    const upcomingGroups = buildCompetitionGroups(filteredMatches, (match) => UPCOMING_STATUSES.has(normalizeMatchStatus(match.status)));
+    const finishedGroups = buildCompetitionGroups(filteredMatches, (match) => normalizeMatchStatus(match.status) === "FINISHED");
     useEffect(() => {
         const prompt =
             "Fais un résumé ultra court (3 points max) des matchs en direct et des principales affiches à venir.";
@@ -516,7 +530,7 @@ export default function App() {
     }, [rankingCompetition]);
 
     const renderMatchCard = (match: (typeof allMatches)[number], variant: string) => {
-        const status = match.status ?? "";
+        const status = normalizeMatchStatus(match.status);
         const isUpcoming = UPCOMING_STATUSES.has(status);
         const isFinished = status === "FINISHED";
         const localScheduled = formatLocalTime(match.scheduled);
@@ -525,10 +539,10 @@ export default function App() {
         const sortedEvents = [...(match.lastEvents ?? [])].sort((a, b) => eventSortKey(a) - eventSortKey(b));
         const goalEvents = sortedEvents.filter((event) => isGoalEvent(event.event));
         const cardEvents = sortedEvents.filter((event) => isRedCardEvent(event.event));
-        const homeGoals = goalEvents.filter((event) => event.home_away?.toLowerCase().startsWith("h"));
-        const awayGoals = goalEvents.filter((event) => event.home_away?.toLowerCase().startsWith("a"));
-        const homeCards = cardEvents.filter((event) => event.home_away?.toLowerCase().startsWith("h"));
-        const awayCards = cardEvents.filter((event) => event.home_away?.toLowerCase().startsWith("a"));
+        const homeGoals = goalEvents.filter((event) => eventSide(event).startsWith("h"));
+        const awayGoals = goalEvents.filter((event) => eventSide(event).startsWith("a"));
+        const homeCards = cardEvents.filter((event) => eventSide(event).startsWith("h"));
+        const awayCards = cardEvents.filter((event) => eventSide(event).startsWith("a"));
         const eventSummary = goalEvents
             .map((event) => `${event.player ?? "Joueur"} ${formatEventMinute(event.time)}`)
             .join(" · ");
