@@ -26,6 +26,52 @@ function isGoalEvent(event?: string): boolean {
     return normalized === "GOAL" || normalized === "GOALPENALTY" || normalized === "PENALTY" || normalized === "OWNGOAL" || normalized === "GOALP";
 }
 
+function parseScore(score?: string): { home: number; away: number } | undefined {
+    if (!score) return undefined;
+    const match = score.trim().match(/(\d+)\s*[-:]\s*(\d+)/);
+    if (!match) return undefined;
+    const home = Number(match[1]);
+    const away = Number(match[2]);
+    if (!Number.isFinite(home) || !Number.isFinite(away)) return undefined;
+    return { home, away };
+}
+
+function scoreFromEvents(events: MatchEvent[] = []): { home: number; away: number } | undefined {
+    if (events.length === 0) return undefined;
+    let home = 0;
+    let away = 0;
+
+    for (const event of events) {
+        if (!isGoalEvent(event.event)) continue;
+        const side = eventSide(event);
+        if (side === "h") home += 1;
+        if (side === "a") away += 1;
+    }
+
+    if (home === 0 && away === 0) return undefined;
+    return { home, away };
+}
+
+function resolveDisplayScore(match: MatchState): string {
+    const providerScore = parseScore(match.scores?.score);
+    const eventScore = scoreFromEvents(match.lastEvents);
+
+    if (!providerScore && !eventScore) return "0 : 0";
+    if (!providerScore && eventScore) return `${eventScore.home} : ${eventScore.away}`;
+    if (!eventScore && providerScore) return `${providerScore.home} : ${providerScore.away}`;
+
+    if (!providerScore || !eventScore) return "0 : 0";
+    const providerTotal = providerScore.home + providerScore.away;
+    const eventTotal = eventScore.home + eventScore.away;
+
+    // Provider sometimes lags on final score while event feed already has the last goal.
+    if (eventTotal > providerTotal) {
+        return `${eventScore.home} : ${eventScore.away}`;
+    }
+
+    return `${providerScore.home} : ${providerScore.away}`;
+}
+
 function isRedCardEvent(event?: string): boolean {
     const normalized = normalizeEventType(event);
     return normalized === "REDCARD" || normalized === "RED" || normalized === "SECONDYELLOW";
@@ -636,7 +682,7 @@ export default function App() {
         const isUpcoming = UPCOMING_STATUSES.has(status);
         const isFinished = status === "FINISHED";
         const localScheduled = formatLocalTime(match.scheduled);
-        const scoreText = isUpcoming ? localScheduled ?? "--:--" : match.scores?.score ?? "0 : 0";
+        const scoreText = isUpcoming ? localScheduled ?? "--:--" : resolveDisplayScore(match);
         const displayStatus = statusLabel(match.status, match.time, localScheduled);
         const sortedEvents = [...(match.lastEvents ?? [])].sort((a, b) => eventSortKey(a) - eventSortKey(b));
         const goalEvents = sortedEvents.filter((event) => isGoalEvent(event.event));
@@ -950,7 +996,7 @@ export default function App() {
                                     {sortedLiveMatches[0].home?.name ?? "Home"} —{" "}
                                     {sortedLiveMatches[0].away?.name ?? "Away"}
                                 </span>
-                                <strong>{sortedLiveMatches[0].scores?.score ?? "0 : 0"}</strong>
+                                <strong>{resolveDisplayScore(sortedLiveMatches[0])}</strong>
                             </div>
                         ) : null}
                         <div className="sideHighlight">
