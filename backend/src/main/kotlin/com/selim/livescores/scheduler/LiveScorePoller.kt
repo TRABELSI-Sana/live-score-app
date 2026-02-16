@@ -1,7 +1,5 @@
 package com.selim.livescores.scheduler
 
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties
-import com.fasterxml.jackson.databind.ObjectMapper
 import com.selim.livescores.domain.MatchEvent
 import com.selim.livescores.domain.MatchState
 import com.selim.livescores.domain.MatchStatus
@@ -16,7 +14,7 @@ import java.time.Instant
 import java.util.concurrent.atomic.AtomicInteger
 
 /**
- * Polls live-score-api.com and updates Redis + pushes SSE.
+ * Polls SofaScore and updates Redis + pushes SSE.
  *
  * Strategy (starter plan 14,500 req/day):
  * - live matches every 60s
@@ -25,7 +23,6 @@ import java.util.concurrent.atomic.AtomicInteger
 @Component
 class LiveScorePoller(
     private val api: LiveScoreApiClient,
-    private val objectMapper: ObjectMapper,
     private val matchService: MatchService,
     private val dedup: EventDedupStore,
 ) {
@@ -110,19 +107,9 @@ class LiveScorePoller(
 
     private fun refreshFinishedEvents(state: MatchState) {
         val providerId = state.id ?: return
-        val json = guardedApiCall { api.getMatchEventsJson(providerId) } ?: return
-        val resp = try {
-            objectMapper.readValue(json, MatchEventsResponse::class.java)
-        } catch (e: Exception) {
-            disableApiFor(Duration.ofMinutes(10), "json_parse_error")
-            return
-        }
-        if (resp.success != true) return
-
-        val events = resp.data?.event.orEmpty()
-            .filter { !it.event.isNullOrBlank() && it.event != "." }
-
-        matchService.replaceEvents(state.matchKey, events)
+        val events = guardedApiCall { api.getMatchEvents(providerId) } ?: return
+        val filtered = events.filter { !it.event.isNullOrBlank() && it.event != "." }
+        matchService.replaceEvents(state.matchKey, filtered)
     }
 
     @Scheduled(fixedDelay = 60_000)
@@ -130,20 +117,9 @@ class LiveScorePoller(
         val previousLiveKeys = matchService.getLiveMatchKeys()
         val previousBoardKeys = matchService.getBoardMatchKeys()
 
-        val json = guardedApiCall { api.getLiveMatchesJson() } ?: return
-        val resp = try {
-            objectMapper.readValue(json, LiveMatchesResponse::class.java)
-        } catch (e: Exception) {
-            // Bad payload / schema change => pause a bit and exit.
-            disableApiFor(Duration.ofMinutes(10), "json_parse_error")
-            return
-        }
-        if (resp.success != true) return
-
-        // Normalize keys BEFORE we build the live/board key lists, otherwise we may keep both
-        // `ls-<match_id>` and `ls-<fixture_id>` and render duplicates.
-        val providerMatches = resp.data?.match.orEmpty()
-            .map { matchService.normalizeForKeys(it, previousBoardKeys) }
+        val providerMatches = guardedApiCall { api.getLiveMatches() }
+            ?.map { matchService.normalizeForKeys(it, previousBoardKeys) }
+            ?: return
 
         // Live = à poller (events), Finished = à afficher sans polling
         val liveMatches = providerMatches.filter { MatchStatus.isLive(it.status) }
@@ -212,19 +188,12 @@ class LiveScorePoller(
         toPoll.forEach { state ->
             val providerId = state.id ?: return@forEach
 
-            val json = guardedApiCall { api.getMatchEventsJson(providerId) } ?: return@forEach
-            val resp = try {
-                objectMapper.readValue(json, MatchEventsResponse::class.java)
-            } catch (e: Exception) {
-                disableApiFor(Duration.ofMinutes(10), "json_parse_error")
-                return@forEach
-            }
-            if (resp.success != true) return@forEach
+            val providerEvents = guardedApiCall { api.getMatchEvents(providerId) } ?: return@forEach
 
             val matchKey = state.matchKey
             val newEvents = mutableListOf<MatchEvent>()
 
-            resp.data?.event.orEmpty()
+            providerEvents
                 .filter { !it.event.isNullOrBlank() && it.event != "." }
                 .forEach { e ->
                     // Provider `id` is not stable between polls; use a composite stable key.
@@ -256,25 +225,3 @@ class LiveScorePoller(
     }
 
 }
-
-@JsonIgnoreProperties(ignoreUnknown = true)
-data class LiveMatchesResponse(
-    val success: Boolean? = null,
-    val data: LiveMatchesData? = null
-)
-
-@JsonIgnoreProperties(ignoreUnknown = true)
-data class LiveMatchesData(
-    val match: List<MatchState> = emptyList()
-)
-
-@JsonIgnoreProperties(ignoreUnknown = true)
-data class MatchEventsResponse(
-    val success: Boolean? = null,
-    val data: MatchEventsData? = null
-)
-
-@JsonIgnoreProperties(ignoreUnknown = true)
-data class MatchEventsData(
-    val event: List<MatchEvent> = emptyList()
-)
