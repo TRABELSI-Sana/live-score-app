@@ -580,9 +580,40 @@ function lineFromFormation(formation?: string): number[] {
     return cleaned.split("-").map((n) => Number(n)).filter((n) => Number.isFinite(n) && n > 0);
 }
 
-function splitPlayersByFormation(players: LineupPlayer[], formation?: string): LineupPlayer[][] {
-    const lines = lineFromFormation(formation);
+function splitPlayersForPitch(players: LineupPlayer[], formation?: string): LineupPlayer[][] {
     if (players.length === 0) return [];
+
+    const playersWithGrid = players
+        .map((player) => {
+            const raw = (player.grid ?? "").trim();
+            const match = raw.match(/^(\d+):(\d+)$/);
+            if (!match) return null;
+            return {
+                player,
+                row: Number(match[1]),
+                col: Number(match[2]),
+            };
+        })
+        .filter((entry): entry is { player: LineupPlayer; row: number; col: number } => entry !== null)
+        .sort((a, b) => (a.row - b.row) || (a.col - b.col));
+
+    if (playersWithGrid.length > 0) {
+        const grouped = new Map<number, LineupPlayer[]>();
+        playersWithGrid.forEach(({ player, row }) => {
+            if (!grouped.has(row)) grouped.set(row, []);
+            grouped.get(row)!.push(player);
+        });
+
+        const lines = Array.from(grouped.entries())
+            .sort((a, b) => a[0] - b[0])
+            .map(([, linePlayers]) => linePlayers);
+
+        const noGridPlayers = players.filter((p) => !p.grid);
+        if (noGridPlayers.length > 0) lines.unshift(noGridPlayers);
+        return lines;
+    }
+
+    const lines = lineFromFormation(formation);
     if (lines.length === 0) return [players];
 
     const out: LineupPlayer[][] = [];
@@ -771,7 +802,7 @@ export default function App() {
 
     const renderLineupTeam = (side: "home" | "away", team?: TeamLineup) => {
         if (!team) return null;
-        const lines = splitPlayersByFormation(team.players, team.formation);
+        const lines = splitPlayersForPitch(team.players, team.formation);
         return (
             <div className={`lineupTeam ${side === "away" ? "lineupTeamAway" : ""}`}>
                 <div className="lineupTeamHeader">

@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.selim.livescores.domain.Competition
+import com.selim.livescores.domain.MatchEvent
 import com.selim.livescores.domain.MatchState
 import com.selim.livescores.domain.MatchStatus
 import com.selim.livescores.domain.Scores
@@ -55,6 +56,25 @@ class LiveScorePoller(
         }
     }
 
+    private fun refreshEventsForMatch(state: MatchState) {
+        val fixtureId = state.fixtureId ?: state.id ?: return
+        val json = guardedApiCall { api.getFixtureEventsJson(fixtureId) } ?: return
+        val resp = try {
+            objectMapper.readValue(json, ApiFootballFixtureEventsResponse::class.java)
+        } catch (_: Exception) {
+            return
+        }
+        if (resp.hasTokenError()) {
+            disableApiFor(Duration.ofHours(24))
+            return
+        }
+
+        val homeId = state.home?.id
+        val awayId = state.away?.id
+        val mapped = resp.response.map { it.toMatchEvent(fixtureId, homeId, awayId) }
+        matchService.replaceEvents(state.matchKey, mapped)
+    }
+
     @Scheduled(fixedDelay = 60_000)
     fun pollLiveMatches() {
         val previousLiveKeys = matchService.getLiveMatchKeys()
@@ -87,19 +107,28 @@ class LiveScorePoller(
         val newFinishedKeys = finishedMatches.map { it.matchKey }.distinct()
 
         if (newLiveKeys.isEmpty() && newFinishedKeys.isEmpty()) {
-            previousLiveKeys.forEach { matchService.markAsFinished(it) }
+            previousLiveKeys.forEach {
+                val finished = matchService.markAsFinished(it)
+                if (finished != null) refreshEventsForMatch(finished)
+            }
             matchService.replaceLiveMatchKeys(emptyList())
             matchService.publishLiveBoard()
             return
         }
 
         liveMatches.forEach { matchService.upsertFromProvider(it, previousBoardKeys) }
-        finishedMatches.forEach { matchService.upsertFromProvider(it, previousBoardKeys) }
+        finishedMatches.forEach {
+            val updated = matchService.upsertFromProvider(it, previousBoardKeys)
+            refreshEventsForMatch(updated)
+        }
 
         matchService.replaceLiveMatchKeys(newLiveKeys)
 
         val disappearedFromLive = previousLiveKeys.filter { it !in newLiveKeys.toSet() }
-        disappearedFromLive.forEach { matchService.markAsFinished(it) }
+        disappearedFromLive.forEach {
+            val finished = matchService.markAsFinished(it)
+            if (finished != null) refreshEventsForMatch(finished)
+        }
 
         val boardKeys = (newLiveKeys + newFinishedKeys + previousBoardKeys + disappearedFromLive).distinct()
         matchService.replaceBoardMatchKeys(boardKeys)
@@ -187,6 +216,67 @@ data class ApiFootballTeam(
 data class ApiFootballGoals(
     val home: Int? = null,
     val away: Int? = null
+)
+
+@JsonIgnoreProperties(ignoreUnknown = true)
+data class ApiFootballFixtureEventsResponse(
+    val response: List<ApiFootballFixtureEvent> = emptyList(),
+    val errors: JsonNode? = null
+) {
+    fun hasTokenError(): Boolean = errors?.path("token")?.isMissingNode == false
+}
+
+@JsonIgnoreProperties(ignoreUnknown = true)
+data class ApiFootballFixtureEvent(
+    val time: ApiFootballEventTime? = null,
+    val team: ApiFootballEventTeam? = null,
+    val player: ApiFootballEventPlayer? = null,
+    val type: String? = null,
+    val detail: String? = null,
+) {
+    fun toMatchEvent(fixtureId: Long, homeTeamId: Long?, awayTeamId: Long?): MatchEvent {
+        val elapsed = time?.elapsed
+        val extra = time?.extra
+        val minute = when {
+            elapsed == null -> null
+            extra == null || extra <= 0 -> elapsed.toString()
+            else -> "$elapsed+$extra"
+        }
+
+        val side = when (team?.id) {
+            homeTeamId -> "h"
+            awayTeamId -> "a"
+            else -> null
+        }
+
+        val eventType = (detail ?: type ?: "EVENT").trim().replace(' ', '_').uppercase()
+
+        return MatchEvent(
+            id = listOf(fixtureId.toString(), elapsed?.toString() ?: "", type ?: "", player?.id?.toString() ?: "").joinToString("-"),
+            event = eventType,
+            time = minute,
+            player = player?.name,
+            homeAway = side,
+            matchId = fixtureId.toString()
+        )
+    }
+}
+
+@JsonIgnoreProperties(ignoreUnknown = true)
+data class ApiFootballEventTime(
+    val elapsed: Int? = null,
+    val extra: Int? = null
+)
+
+@JsonIgnoreProperties(ignoreUnknown = true)
+data class ApiFootballEventTeam(
+    val id: Long? = null
+)
+
+@JsonIgnoreProperties(ignoreUnknown = true)
+data class ApiFootballEventPlayer(
+    val id: Long? = null,
+    val name: String? = null
 )
 
 fun mapApiStatus(short: String?): String {

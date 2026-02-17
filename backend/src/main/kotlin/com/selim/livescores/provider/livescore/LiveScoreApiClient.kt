@@ -40,6 +40,12 @@ class LiveScoreApiClient(
         if (!tryConsumeQuota()) throw QuotaExceededException()
         return client.get().uri("/fixtures/lineups?fixture=$fixtureId").retrieve().body(String::class.java)!!
     }
+
+    fun getFixtureEventsJson(fixtureId: Long): String {
+        if (!tryConsumeQuota()) throw QuotaExceededException()
+        return client.get().uri("/fixtures/events?fixture=$fixtureId").retrieve().body(String::class.java)!!
+    }
+
     fun getCompetitionTableJson(competitionId: Int): String {
         if (!tryConsumeQuota()) throw QuotaExceededException()
         val season = seasonFromDate(LocalDate.now(ZoneId.of("UTC")))
