@@ -86,6 +86,21 @@ function eventMinuteAndSideKey(event: MatchEvent): string {
     return `${eventSortKey(event)}|${eventSide(event).slice(0, 1)}`;
 }
 
+function normalizePlayerKey(name?: string): string {
+    return (name ?? "")
+        .normalize("NFD")
+        .replace(/\p{M}/gu, "")
+        .toLowerCase()
+        .replace(/[^a-z0-9]/g, "");
+}
+
+function dedupBucket(event: MatchEvent): number {
+    const sortKey = eventSortKey(event);
+    if (!Number.isFinite(sortKey) || sortKey === Number.MAX_SAFE_INTEGER) return -1;
+    const minute = Math.floor(sortKey / 100);
+    return Math.floor(minute / 2);
+}
+
 function compactGoalEvents(goalEvents: MatchEvent[]): MatchEvent[] {
     const namedKeys = new Set(
         goalEvents
@@ -93,10 +108,32 @@ function compactGoalEvents(goalEvents: MatchEvent[]): MatchEvent[] {
             .map((event) => eventMinuteAndSideKey(event))
     );
 
-    return goalEvents.filter((event) => {
+    const withoutUnnamedDuplicates = goalEvents.filter((event) => {
         if (hasKnownPlayer(event)) return true;
         return !namedKeys.has(eventMinuteAndSideKey(event));
     });
+
+    const byNamedPlayerBucket = new Map<string, MatchEvent>();
+    const unnamedEvents: MatchEvent[] = [];
+
+    for (const event of withoutUnnamedDuplicates) {
+        const playerKey = normalizePlayerKey(event.player);
+        const sideKey = eventSide(event).slice(0, 1);
+        const bucket = dedupBucket(event);
+
+        if (!playerKey || !sideKey || bucket < 0) {
+            unnamedEvents.push(event);
+            continue;
+        }
+
+        const key = `${playerKey}|${sideKey}|${bucket}`;
+        const prev = byNamedPlayerBucket.get(key);
+        if (!prev || eventSortKey(event) >= eventSortKey(prev)) {
+            byNamedPlayerBucket.set(key, event);
+        }
+    }
+
+    return [...byNamedPlayerBucket.values(), ...unnamedEvents].sort((a, b) => eventSortKey(a) - eventSortKey(b));
 }
 
 function formatEventPlayer(event: MatchEvent): string {
