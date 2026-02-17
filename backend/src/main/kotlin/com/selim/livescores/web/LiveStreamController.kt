@@ -2,6 +2,7 @@ package com.selim.livescores.web
 
 import com.selim.livescores.domain.MatchState
 import com.selim.livescores.service.MatchService
+import com.selim.livescores.service.LineupsService
 import com.selim.livescores.service.StandingsService
 import com.selim.livescores.sse.SseHub
 import org.springframework.http.MediaType
@@ -16,7 +17,8 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter
 class LiveStreamController(
     private val sseHub: SseHub,
     private val matchService: MatchService,
-    private val standingsService: StandingsService
+    private val standingsService: StandingsService,
+    private val lineupsService: LineupsService
 ) {
     @GetMapping(value = ["/live"], produces = [MediaType.TEXT_EVENT_STREAM_VALUE])
     fun live(): SseEmitter = sseHub.subscribe("live-board")
@@ -27,4 +29,9 @@ class LiveStreamController(
     @GetMapping("/competitions/{competitionId}/table", produces = [MediaType.APPLICATION_JSON_VALUE])
     fun table(@PathVariable competitionId: Int): String =
         standingsService.getCompetitionTableJson(competitionId)
+
+
+    @GetMapping("/matches/{matchId}/lineups", produces = [MediaType.APPLICATION_JSON_VALUE])
+    fun lineups(@PathVariable matchId: Long): String =
+        lineupsService.getFixtureLineupsJson(matchId)
 }
