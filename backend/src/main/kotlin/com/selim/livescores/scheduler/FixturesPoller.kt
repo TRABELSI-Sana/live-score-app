@@ -18,6 +18,7 @@ class FixturesPoller(
 
 ) {
     @Scheduled(cron = "0 5 6 * * *")
+    @Scheduled(fixedDelayString = "\${apifootball.fixtures-refresh-ms:900000}")
     fun pollFixturesToday() {
         val ids = api.competitionIdsList()
         if (ids.isEmpty()) return
@@ -32,10 +33,13 @@ class FixturesPoller(
 
             resp.response.forEach { wrapper ->
                 val mapped = wrapper.toMatchState(defaultStatus = MatchStatus.NOT_STARTED)
+                val normalizedStatus = MatchStatus.normalize(mapped.status)
+                val score = if (normalizedStatus == MatchStatus.NOT_STARTED) "" else mapped.scores?.score.orEmpty()
+
                 plannedStates += mapped.copy(
-                    status = MatchStatus.NOT_STARTED,
-                    time = null,
-                    scores = mapped.scores?.copy(score = ""),
+                    status = normalizedStatus,
+                    time = if (normalizedStatus == MatchStatus.NOT_STARTED) null else mapped.time,
+                    scores = mapped.scores?.copy(score = score),
                     lastEvents = emptyList()
                 )
             }
