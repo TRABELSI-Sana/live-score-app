@@ -10,6 +10,10 @@ object MatchStatus {
 
     private val LIVE = setOf(IN_PLAY, ADDED_TIME, HALF_TIME_BREAK, "HALF TIME")
     private val FINISHED_ALIASES = setOf(FINISHED, "FT", "AFTER EXTRA TIME", "AET", "PENALTIES", "PEN")
+    private val API_FOOTBALL_LIVE = setOf("1H", "2H", "ET", "LIVE")
+    private val API_FOOTBALL_BREAK = setOf("HT", "BT")
+    private val API_FOOTBALL_ADDED = setOf("P", "SUSP", "INT")
+    private val API_FOOTBALL_FINISHED = setOf("FT", "AET", "PEN")
 
     fun normalize(status: String?): String {
         val normalized = status
@@ -21,6 +25,10 @@ object MatchStatus {
             ?: return UNKNOWN
 
         return when {
+            normalized in API_FOOTBALL_LIVE -> IN_PLAY
+            normalized in API_FOOTBALL_BREAK -> HALF_TIME_BREAK
+            normalized in API_FOOTBALL_ADDED -> ADDED_TIME
+            normalized in API_FOOTBALL_FINISHED -> FINISHED
             normalized in LIVE -> when (normalized) {
                 "HALF TIME" -> HALF_TIME_BREAK
                 else -> normalized

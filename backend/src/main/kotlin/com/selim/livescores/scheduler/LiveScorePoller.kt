@@ -2,127 +2,56 @@ package com.selim.livescores.scheduler
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import com.fasterxml.jackson.databind.ObjectMapper
-import com.selim.livescores.domain.MatchEvent
+import com.selim.livescores.domain.Competition
 import com.selim.livescores.domain.MatchState
 import com.selim.livescores.domain.MatchStatus
-import com.selim.livescores.repository.redis.EventDedupStore
+import com.selim.livescores.domain.Scores
+import com.selim.livescores.domain.Team
 import com.selim.livescores.provider.livescore.LiveScoreApiClient
 import com.selim.livescores.service.MatchService
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
-
 import java.time.Duration
 import java.time.Instant
-import java.util.concurrent.atomic.AtomicInteger
 
-/**
- * Polls live-score-api.com and updates Redis + pushes SSE.
- *
- * Strategy (starter plan 14,500 req/day):
- * - live matches every 60s
- * - events for live matches every 90s
- */
 @Component
 class LiveScorePoller(
     private val api: LiveScoreApiClient,
     private val objectMapper: ObjectMapper,
     private val matchService: MatchService,
-    private val dedup: EventDedupStore,
 ) {
 
-    private val eventsCursor = AtomicInteger(0)
-
     @Volatile private var apiDisabledUntil: Instant? = null
-    @Volatile private var apiDisabledReason: String? = null
 
     private fun isApiDisabled(now: Instant = Instant.now()): Boolean {
         val until = apiDisabledUntil ?: return false
         return now.isBefore(until)
     }
 
-    private fun disableApiFor(duration: Duration, reason: String) {
+    private fun disableApiFor(duration: Duration) {
         apiDisabledUntil = Instant.now().plus(duration)
-        apiDisabledReason = reason
     }
 
     private fun clearApiDisable() {
         apiDisabledUntil = null
-        apiDisabledReason = null
     }
 
     private inline fun <T> guardedApiCall(block: () -> T): T? {
         if (isApiDisabled()) return null
         return try {
             val res = block()
-            // If we succeed after a previous disable, clear it.
             if (apiDisabledUntil != null) clearApiDisable()
             res
-        } catch (e: LiveScoreApiClient.QuotaExceededException) {
-            // When the provider says quota exceeded, stop hitting it for a while.
-            disableApiFor(Duration.ofHours(6), "quota_exceeded")
+        } catch (_: LiveScoreApiClient.QuotaExceededException) {
+            disableApiFor(Duration.ofHours(8))
             null
-        } catch (e: org.springframework.web.client.HttpClientErrorException.Unauthorized) {
-            // Bad key/secret or access not enabled. Pause long to avoid hammering.
-            disableApiFor(Duration.ofHours(24), "unauthorized")
+        } catch (_: org.springframework.web.client.HttpClientErrorException.Unauthorized) {
+            disableApiFor(Duration.ofHours(24))
             null
-        } catch (e: Exception) {
-            // Network / parsing / transient errors: short pause.
-            disableApiFor(Duration.ofMinutes(5), "transient_error")
+        } catch (_: Exception) {
+            disableApiFor(Duration.ofMinutes(5))
             null
         }
-    }
-
-    private fun stableEventKey(matchKey: String, e: MatchEvent): String =
-        listOf(matchKey, e.time, e.event, e.homeAway)
-            .joinToString(separator = "|") { keyPart(it) }
-
-    private fun keyPart(value: String?): String = (value ?: "").trim().lowercase()
-
-    private fun hasSameEventInState(state: MatchState, matchKey: String, stableId: String): Boolean =
-        state.lastEvents.any { stableEventKey(matchKey, it) == stableId }
-
-    private fun isUpgrade(state: MatchState, matchKey: String, stableId: String, incoming: MatchEvent): Boolean =
-        state.lastEvents.any {
-            stableEventKey(matchKey, it) == stableId &&
-                it.player.isNullOrBlank() &&
-                !incoming.player.isNullOrBlank()
-        }
-
-    private fun shouldAcceptEvent(
-        state: MatchState,
-        matchKey: String,
-        stableId: String,
-        incoming: MatchEvent,
-        isNewByDedup: Boolean
-    ): Boolean {
-        val hasSame = hasSameEventInState(state, matchKey, stableId)
-        val isUpgrade = isUpgrade(state, matchKey, stableId, incoming)
-        return isNewByDedup || !hasSame || isUpgrade
-    }
-
-    private fun <T> List<T>.chunkFromCursor(max: Int): List<T> {
-        if (this.isEmpty()) return emptyList()
-        if (max <= 0) return emptyList()
-        val start = (eventsCursor.getAndIncrement() % this.size).coerceAtLeast(0)
-        val end = (start + max).coerceAtMost(this.size)
-        return if (start < end) this.subList(start, end) else this.take(max)
-    }
-
-    private fun refreshFinishedEvents(state: MatchState) {
-        val providerId = state.id ?: return
-        val json = guardedApiCall { api.getMatchEventsJson(providerId) } ?: return
-        val resp = try {
-            objectMapper.readValue(json, MatchEventsResponse::class.java)
-        } catch (e: Exception) {
-            disableApiFor(Duration.ofMinutes(10), "json_parse_error")
-            return
-        }
-        if (resp.success != true) return
-
-        val events = resp.data?.event.orEmpty()
-            .filter { !it.event.isNullOrBlank() && it.event != "." }
-
-        matchService.replaceEvents(state.matchKey, events)
     }
 
     @Scheduled(fixedDelay = 60_000)
@@ -132,149 +61,131 @@ class LiveScorePoller(
 
         val json = guardedApiCall { api.getLiveMatchesJson() } ?: return
         val resp = try {
-            objectMapper.readValue(json, LiveMatchesResponse::class.java)
-        } catch (e: Exception) {
-            // Bad payload / schema change => pause a bit and exit.
-            disableApiFor(Duration.ofMinutes(10), "json_parse_error")
+            objectMapper.readValue(json, ApiFootballFixturesResponse::class.java)
+        } catch (_: Exception) {
+            disableApiFor(Duration.ofMinutes(10))
             return
         }
-        if (resp.success != true) return
 
-        // Normalize keys BEFORE we build the live/board key lists, otherwise we may keep both
-        // `ls-<match_id>` and `ls-<fixture_id>` and render duplicates.
-        val providerMatches = resp.data?.match.orEmpty()
-            .map { matchService.normalizeForKeys(it, previousBoardKeys) }
+        val allowedCompetitions = api.competitionIdsList().toSet()
+        val providerMatches = resp.response
+            .asSequence()
+            .filter { allowedCompetitions.isEmpty() || (it.league?.id?.toInt() in allowedCompetitions) }
+            .map { it.toMatchState() }
+            .toList()
 
-        // Live = à poller (events), Finished = à afficher sans polling
         val liveMatches = providerMatches.filter { MatchStatus.isLive(it.status) }
         val finishedMatches = providerMatches.filter { MatchStatus.isFinished(it.status) }
 
-        fun String?.ok() = !this.isNullOrBlank()
+        val newLiveKeys = liveMatches.map { it.matchKey }.distinct()
+        val newFinishedKeys = finishedMatches.map { it.matchKey }.distinct()
 
-        val newLiveKeys = liveMatches.map { it.matchKey }.filter { it.ok() }.distinct()
-        val newFinishedKeys = finishedMatches.map { it.matchKey }.filter { it.ok() }.distinct()
-
-        // Si aucun match renvoyé du provider => on freeze les anciens live (FT) mais on garde le board
         if (newLiveKeys.isEmpty() && newFinishedKeys.isEmpty()) {
             previousLiveKeys.forEach { matchService.markAsFinished(it) }
             matchService.replaceLiveMatchKeys(emptyList())
-            // ne pas vider le board : on garde l’existant
             matchService.publishLiveBoard()
             return
         }
 
-        // Upsert les live + finished (important: score final + status)
         liveMatches.forEach { matchService.upsertFromProvider(it, previousBoardKeys) }
-        finishedMatches.forEach { match ->
-            val updated = matchService.upsertFromProvider(match, previousBoardKeys)
-            // Always refresh final events for finished matches to avoid stale scorers/cards from older live snapshots.
-            refreshFinishedEvents(updated)
-        }
+        finishedMatches.forEach { matchService.upsertFromProvider(it, previousBoardKeys) }
 
-        // Mettre à jour les live keys (pour pollEvents)
         matchService.replaceLiveMatchKeys(newLiveKeys)
 
-        // Si un match était live avant mais n’est plus live maintenant => freeze FT
         val disappearedFromLive = previousLiveKeys.filter { it !in newLiveKeys.toSet() }
-        disappearedFromLive.forEach {
-            val updated = matchService.markAsFinished(it)
-            if (updated != null) {
-                refreshFinishedEvents(updated)
-            }
-        }
+        disappearedFromLive.forEach { matchService.markAsFinished(it) }
 
-        // Normaliser ceux explicitement FINISHED (au cas où)
-        newFinishedKeys.forEach { matchService.markAsFinished(it) }
-
-        // Construire board keys: live + finished + anciens board + nouveaux finis
         val boardKeys = (newLiveKeys + newFinishedKeys + previousBoardKeys + disappearedFromLive).distinct()
         matchService.replaceBoardMatchKeys(boardKeys)
 
         matchService.publishLiveBoard()
     }
-
-    @Scheduled(fixedDelay = 60_000)
-    fun pollEvents() {
-        val liveMatches = matchService.getLiveMatches()
-            .filter { MatchStatus.isLive(it.status) }
-
-        if (liveMatches.isEmpty()) return
-        if (isApiDisabled()) return
-
-        // ✅ Optimization: do not poll events for ALL live matches every tick.
-        // Pick a rotating slice to reduce requests and smooth quota usage.
-        // Target: every live match gets polled about every ~5 minutes (cap to avoid spikes).
-        val maxPerTick = ((liveMatches.size + 4) / 5).coerceIn(8, 20)
-        val toPoll = liveMatches.chunkFromCursor(max = minOf(liveMatches.size, maxPerTick))
-
-        var anyUpdate = false
-
-        toPoll.forEach { state ->
-            val providerId = state.id ?: return@forEach
-
-            val json = guardedApiCall { api.getMatchEventsJson(providerId) } ?: return@forEach
-            val resp = try {
-                objectMapper.readValue(json, MatchEventsResponse::class.java)
-            } catch (e: Exception) {
-                disableApiFor(Duration.ofMinutes(10), "json_parse_error")
-                return@forEach
-            }
-            if (resp.success != true) return@forEach
-
-            val matchKey = state.matchKey
-            val newEvents = mutableListOf<MatchEvent>()
-
-            resp.data?.event.orEmpty()
-                .filter { !it.event.isNullOrBlank() && it.event != "." }
-                .forEach { e ->
-                    // Provider `id` is not stable between polls; use a composite stable key.
-                    // Important: do NOT include player name in the stable key, because provider may first send "" then later send the real name.
-                    val stableId = stableEventKey(matchKey, e)
-
-                    // 🔧 Prod fix: our Redis dedup store can get out of sync with the match state (different TTLs / restarts),
-                    // and it also blocks "enrichment" updates (player empty -> player name later).
-                    // Allow the event through if:
-                    //  - it's new according to dedup OR
-                    //  - the current state doesn't contain this event yet (dedup desync) OR
-                    //  - the current state has the same event but with blank player, and the provider now sends a player name (upgrade).
-                    val isNewByDedup = dedup.isNew(matchKey, stableId)
-
-                    if (!shouldAcceptEvent(state, matchKey, stableId, e, isNewByDedup)) return@forEach
-
-                    newEvents.add(e)
-                }
-
-            if (newEvents.isNotEmpty()) {
-                matchService.appendEvents(matchKey, newEvents)
-                anyUpdate = true
-            }
-        }
-
-        if (anyUpdate) {
-            matchService.publishLiveBoard()
-        }
-    }
-
 }
 
 @JsonIgnoreProperties(ignoreUnknown = true)
-data class LiveMatchesResponse(
-    val success: Boolean? = null,
-    val data: LiveMatchesData? = null
+data class ApiFootballFixturesResponse(
+    val response: List<ApiFootballFixtureWrapper> = emptyList()
 )
 
 @JsonIgnoreProperties(ignoreUnknown = true)
-data class LiveMatchesData(
-    val match: List<MatchState> = emptyList()
+data class ApiFootballFixtureWrapper(
+    val fixture: ApiFootballFixture? = null,
+    val league: ApiFootballLeague? = null,
+    val teams: ApiFootballTeams? = null,
+    val goals: ApiFootballGoals? = null
+) {
+    fun toMatchState(defaultStatus: String? = null): MatchState {
+        val fixtureData = fixture
+        val score = listOf(goals?.home, goals?.away).all { it != null }
+            .let { hasBoth -> if (hasBoth) "${goals?.home} - ${goals?.away}" else "" }
+
+        val date = fixtureData?.date?.take(10)
+        return MatchState(
+            id = fixtureData?.id,
+            fixtureId = fixtureData?.id,
+            fixtureDate = date,
+            scheduled = fixtureData?.date,
+            status = mapApiStatus(fixtureData?.status?.short ?: defaultStatus),
+            time = fixtureData?.status?.elapsed?.toString(),
+            competition = Competition(
+                id = league?.id,
+                name = league?.name,
+                country = league?.country
+            ),
+            home = Team(teams?.home?.id, teams?.home?.name, teams?.home?.logo),
+            away = Team(teams?.away?.id, teams?.away?.name, teams?.away?.logo),
+            scores = Scores(score = score),
+            lastEvents = emptyList()
+        )
+    }
+}
+
+@JsonIgnoreProperties(ignoreUnknown = true)
+data class ApiFootballFixture(
+    val id: Long? = null,
+    val date: String? = null,
+    val status: ApiFootballFixtureStatus? = null
 )
 
 @JsonIgnoreProperties(ignoreUnknown = true)
-data class MatchEventsResponse(
-    val success: Boolean? = null,
-    val data: MatchEventsData? = null
+data class ApiFootballFixtureStatus(
+    val short: String? = null,
+    val elapsed: Int? = null
 )
 
 @JsonIgnoreProperties(ignoreUnknown = true)
-data class MatchEventsData(
-    val event: List<MatchEvent> = emptyList()
+data class ApiFootballLeague(
+    val id: Long? = null,
+    val name: String? = null,
+    val country: String? = null
 )
+
+@JsonIgnoreProperties(ignoreUnknown = true)
+data class ApiFootballTeams(
+    val home: ApiFootballTeam? = null,
+    val away: ApiFootballTeam? = null
+)
+
+@JsonIgnoreProperties(ignoreUnknown = true)
+data class ApiFootballTeam(
+    val id: Long? = null,
+    val name: String? = null,
+    val logo: String? = null
+)
+
+@JsonIgnoreProperties(ignoreUnknown = true)
+data class ApiFootballGoals(
+    val home: Int? = null,
+    val away: Int? = null
+)
+
+fun mapApiStatus(short: String?): String {
+    return when ((short ?: "").trim().uppercase()) {
+        "NS", "TBD" -> MatchStatus.NOT_STARTED
+        "1H", "2H", "ET", "LIVE" -> MatchStatus.IN_PLAY
+        "HT", "BT" -> MatchStatus.HALF_TIME_BREAK
+        "P", "SUSP", "INT" -> MatchStatus.ADDED_TIME
+        "FT", "AET", "PEN" -> MatchStatus.FINISHED
+        else -> MatchStatus.normalize(short)
+    }
+}

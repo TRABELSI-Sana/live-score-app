@@ -8,8 +8,10 @@ const UPCOMING_STATUSES = new Set(["NOT STARTED", "SCHEDULED"]);
 function normalizeMatchStatus(status?: string): string {
     if (!status) return "UNKNOWN";
     const normalized = status.trim().toUpperCase().replace(/[_-]/g, " ").replace(/\s+/g, " ");
+    if (["NS", "TBD"].includes(normalized)) return "NOT STARTED";
+    if (["1H", "2H", "ET", "LIVE"].includes(normalized)) return "IN PLAY";
+    if (["HT", "BT", "HALF TIME"].includes(normalized)) return "HALF TIME BREAK";
     if (["FT", "AET", "AFTER EXTRA TIME", "PEN", "PENALTIES"].includes(normalized)) return "FINISHED";
-    if (normalized === "HALF TIME") return "HALF TIME BREAK";
     return normalized;
 }
 
@@ -36,39 +38,9 @@ function parseScore(score?: string): { home: number; away: number } | undefined 
     return { home, away };
 }
 
-function scoreFromEvents(events: MatchEvent[] = []): { home: number; away: number } | undefined {
-    if (events.length === 0) return undefined;
-    let home = 0;
-    let away = 0;
-
-    for (const event of events) {
-        if (!isGoalEvent(event.event)) continue;
-        const side = eventSide(event);
-        if (side === "h") home += 1;
-        if (side === "a") away += 1;
-    }
-
-    if (home === 0 && away === 0) return undefined;
-    return { home, away };
-}
-
 function resolveDisplayScore(match: MatchState): string {
     const providerScore = parseScore(match.scores?.score);
-    const eventScore = scoreFromEvents(match.lastEvents);
-
-    if (!providerScore && !eventScore) return "0 : 0";
-    if (!providerScore && eventScore) return `${eventScore.home} : ${eventScore.away}`;
-    if (!eventScore && providerScore) return `${providerScore.home} : ${providerScore.away}`;
-
-    if (!providerScore || !eventScore) return "0 : 0";
-    const providerTotal = providerScore.home + providerScore.away;
-    const eventTotal = eventScore.home + eventScore.away;
-
-    // Provider sometimes lags on final score while event feed already has the last goal.
-    if (eventTotal > providerTotal) {
-        return `${eventScore.home} : ${eventScore.away}`;
-    }
-
+    if (!providerScore) return "0 : 0";
     return `${providerScore.home} : ${providerScore.away}`;
 }
 
