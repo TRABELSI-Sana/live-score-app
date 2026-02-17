@@ -28,6 +28,8 @@ class FixturesPoller(
         ids.forEach { compId ->
             val json = api.getFixturesByLeagueOnDateJson(compId, today)
             val resp = objectMapper.readValue(json, ApiFootballFixturesResponse::class.java)
+            if (resp.hasTokenError()) return@forEach
+
             resp.response.forEach { wrapper ->
                 val mapped = wrapper.toMatchState(defaultStatus = MatchStatus.NOT_STARTED)
                 plannedStates += mapped.copy(

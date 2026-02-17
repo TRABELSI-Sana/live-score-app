@@ -1,6 +1,7 @@
 package com.selim.livescores.scheduler
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties
+import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.selim.livescores.domain.Competition
 import com.selim.livescores.domain.MatchState
@@ -67,6 +68,11 @@ class LiveScorePoller(
             return
         }
 
+        if (resp.hasTokenError()) {
+            disableApiFor(Duration.ofHours(24))
+            return
+        }
+
         val allowedCompetitions = api.competitionIdsList().toSet()
         val providerMatches = resp.response
             .asSequence()
@@ -104,8 +110,12 @@ class LiveScorePoller(
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 data class ApiFootballFixturesResponse(
-    val response: List<ApiFootballFixtureWrapper> = emptyList()
-)
+    val response: List<ApiFootballFixtureWrapper> = emptyList(),
+    val errors: JsonNode? = null,
+    val results: Int? = null
+) {
+    fun hasTokenError(): Boolean = errors?.path("token")?.isMissingNode == false
+}
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 data class ApiFootballFixtureWrapper(
@@ -181,11 +191,11 @@ data class ApiFootballGoals(
 
 fun mapApiStatus(short: String?): String {
     return when ((short ?: "").trim().uppercase()) {
-        "NS", "TBD" -> MatchStatus.NOT_STARTED
+        "NS", "TBD", "PST" -> MatchStatus.NOT_STARTED
         "1H", "2H", "ET", "LIVE" -> MatchStatus.IN_PLAY
         "HT", "BT" -> MatchStatus.HALF_TIME_BREAK
         "P", "SUSP", "INT" -> MatchStatus.ADDED_TIME
-        "FT", "AET", "PEN" -> MatchStatus.FINISHED
+        "FT", "AET", "PEN", "CANC", "ABD", "AWD", "WO" -> MatchStatus.FINISHED
         else -> MatchStatus.normalize(short)
     }
 }
