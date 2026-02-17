@@ -98,7 +98,9 @@ function dedupBucket(event: MatchEvent): number {
     const sortKey = eventSortKey(event);
     if (!Number.isFinite(sortKey) || sortKey === Number.MAX_SAFE_INTEGER) return -1;
     const minute = Math.floor(sortKey / 100);
-    return Math.floor(minute / 2);
+    // Provider jitter often shifts the same scorer event by +1 minute (ex: 49' then 50').
+    // A 3-minute bucket absorbs this noise while keeping clearly distinct goals (ex: 60' and 75').
+    return Math.floor(minute / 3);
 }
 
 function compactGoalEvents(goalEvents: MatchEvent[]): MatchEvent[] {
