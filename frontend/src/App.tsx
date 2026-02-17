@@ -25,7 +25,7 @@ function normalizeEventType(value?: string): string {
 
 function isGoalEvent(event?: string): boolean {
     const normalized = normalizeEventType(event);
-    return normalized === "GOAL" || normalized === "GOALPENALTY" || normalized === "PENALTY" || normalized === "OWNGOAL" || normalized === "GOALP";
+    return normalized === "GOAL" || normalized === "NORMALGOAL" || normalized === "GOALPENALTY" || normalized === "PENALTY" || normalized === "OWNGOAL" || normalized === "GOALP";
 }
 
 function parseScore(score?: string): { home: number; away: number } | undefined {
@@ -52,7 +52,7 @@ function isRedCardEvent(event?: string): boolean {
 function formatEventIcon(event?: MatchEvent): string {
     if (!event) return "•";
     const type = normalizeEventType(event.event);
-    if (type === "GOAL" || type === "GOALPENALTY" || type === "PENALTY" || type === "GOALP") return "⚽️";
+    if (type === "GOAL" || type === "NORMALGOAL" || type === "GOALPENALTY" || type === "PENALTY" || type === "GOALP") return "⚽️";
     if (type === "OWNGOAL") return "🥅";
     if (type === "YELLOWCARD" || type === "YELLOW") return "🟨";
     if (type === "REDCARD" || type === "RED") return "🟥";
