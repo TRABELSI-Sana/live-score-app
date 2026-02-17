@@ -77,6 +77,32 @@ function eventSortKey(event: MatchEvent): number {
     return base * 100 + (Number.isFinite(added) ? added : 0);
 }
 
+
+function hasKnownPlayer(event: MatchEvent): boolean {
+    return Boolean(event.player?.trim());
+}
+
+function eventMinuteAndSideKey(event: MatchEvent): string {
+    return `${eventSortKey(event)}|${eventSide(event).slice(0, 1)}`;
+}
+
+function compactGoalEvents(goalEvents: MatchEvent[]): MatchEvent[] {
+    const namedKeys = new Set(
+        goalEvents
+            .filter((event) => hasKnownPlayer(event))
+            .map((event) => eventMinuteAndSideKey(event))
+    );
+
+    return goalEvents.filter((event) => {
+        if (hasKnownPlayer(event)) return true;
+        return !namedKeys.has(eventMinuteAndSideKey(event));
+    });
+}
+
+function formatEventPlayer(event: MatchEvent): string {
+    return event.player?.trim() || "Buteur";
+}
+
 function parseMatchTimeValue(value?: string): number | undefined {
     if (!value) return undefined;
     const trimmed = value.trim();
@@ -833,14 +859,15 @@ export default function App() {
         const scoreText = isUpcoming ? localScheduled ?? "--:--" : resolveDisplayScore(match);
         const displayStatus = statusLabel(match.status, match.time, localScheduled);
         const sortedEvents = [...(match.lastEvents ?? [])].sort((a, b) => eventSortKey(a) - eventSortKey(b));
-        const goalEvents = sortedEvents.filter((event) => isGoalEvent(event.event));
+        const rawGoalEvents = sortedEvents.filter((event) => isGoalEvent(event.event));
+        const goalEvents = compactGoalEvents(rawGoalEvents);
         const cardEvents = sortedEvents.filter((event) => isRedCardEvent(event.event));
         const homeGoals = goalEvents.filter((event) => eventSide(event).startsWith("h"));
         const awayGoals = goalEvents.filter((event) => eventSide(event).startsWith("a"));
         const homeCards = cardEvents.filter((event) => eventSide(event).startsWith("h"));
         const awayCards = cardEvents.filter((event) => eventSide(event).startsWith("a"));
         const eventSummary = goalEvents
-            .map((event) => `${event.player ?? "Joueur"} ${formatEventMinute(event.time)}`)
+            .map((event) => `${formatEventPlayer(event)} ${formatEventMinute(event.time)}`)
             .join(" · ");
 
         const renderTeam = (
@@ -887,7 +914,7 @@ export default function App() {
                     <div className={`eventList ${side === "away" ? "eventListRight" : ""}`}>
                         {goals.map((event, idx) => (
                             <span key={`goal-${idx}`} className="eventBadge eventGoal">
-                                ⚽ {event.player ?? "Joueur"} {formatEventMinute(event.time)}
+                                ⚽ {formatEventPlayer(event)} {formatEventMinute(event.time)}
                             </span>
                         ))}
                     </div>
@@ -896,7 +923,7 @@ export default function App() {
                     <div className={`eventList ${side === "away" ? "eventListRight" : ""}`}>
                         {cards.map((event, idx) => (
                             <span key={`red-${idx}`} className="eventBadge eventRed">
-                                {formatEventIcon(event)} {event.player ?? "Joueur"} {formatEventMinute(event.time)}
+                                {formatEventIcon(event)} {formatEventPlayer(event)} {formatEventMinute(event.time)}
                             </span>
                         ))}
                     </div>
