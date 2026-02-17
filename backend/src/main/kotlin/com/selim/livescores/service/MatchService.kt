@@ -3,10 +3,12 @@ package com.selim.livescores.service
 import com.selim.livescores.domain.MatchEvent
 import com.selim.livescores.domain.MatchState
 import com.selim.livescores.domain.MatchStatus
-import com.selim.livescores.repository.redis.MatchStateStore
+import com.selim.livescores.repository.redis.BoardMatchesStore
 import com.selim.livescores.repository.redis.LiveMatchesStore
+import com.selim.livescores.repository.redis.MatchStateStore
+import com.selim.livescores.sse.SseEvents
 import com.selim.livescores.sse.SseHub
-import org.springframework.data.redis.core.StringRedisTemplate
+import com.selim.livescores.sse.SseTopics
 import org.springframework.stereotype.Service
 import java.time.LocalDate
 
@@ -14,75 +16,53 @@ import java.time.LocalDate
 class MatchService(
     private val matchStateStore: MatchStateStore,
     private val liveMatchesStore: LiveMatchesStore,
+    private val boardMatchesStore: BoardMatchesStore,
     private val sseHub: SseHub,
-    private val redis: StringRedisTemplate,
     private val standingsService: StandingsService
 ) {
-    /**
-     * Exposed for pollers: compute the stable key for a provider match (fixtures vs live) before we build key lists.
-     */
-    fun normalizeForKeys(providerMatch: MatchState, boardKeysHint: List<String>? = null): MatchState =
-        normalizeProviderMatch(providerMatch, boardKeysHint)
-
-    private val BOARD_KEYS = "livescores:board-keys"
+    companion object {
+        private const val KEEP_LAST_EVENTS = 30
+    }
 
     fun getLiveMatches(): List<MatchState> =
         liveMatchesStore.getAll()
-            .mapNotNull { matchStateStore.get(it) }
-            .sortedBy { it.scheduled ?: "" }
+            .mapNotNull(matchStateStore::get)
+            .sortedBy { it.scheduled.orEmpty() }
 
     fun getLiveMatchKeys(): List<String> = liveMatchesStore.getAll().toList()
 
     fun getBoardMatches(): List<MatchState> {
-        val raw = getBoardMatchKeys()
-            .mapNotNull { matchStateStore.get(it) }
-
         val today = LocalDate.now().toString()
-        val filtered = raw.filter { m ->
-            if (m.status == MatchStatus.NOT_STARTED) {
-                val date = m.fixtureDate?.trim()
-                date.isNullOrBlank() || date == today
-            } else {
-                true
+        return getBoardMatchKeys()
+            .mapNotNull(matchStateStore::get)
+            .filter { state ->
+                state.status != MatchStatus.NOT_STARTED ||
+                    state.fixtureDate.isNullOrBlank() ||
+                    state.fixtureDate?.trim() == today
             }
-        }
-
-        return filtered
-            .sortedWith(compareBy<MatchState>({ it.competition?.name ?: "" }, { it.scheduled ?: "" }))
+            .sortedWith(compareBy({ it.competition?.name.orEmpty() }, { it.scheduled.orEmpty() }))
     }
 
-    fun getBoardMatchKeys(): List<String> =
-        redis.opsForList().range(BOARD_KEYS, 0, -1) ?: emptyList()
+    fun getBoardMatchKeys(): List<String> = boardMatchesStore.getAll()
 
     fun replaceBoardMatchKeys(keys: List<String>) {
-        redis.delete(BOARD_KEYS)
-        val distinct = keys.filter { it.isNotBlank() }.distinct()
-        if (distinct.isNotEmpty()) {
-            redis.opsForList().rightPushAll(BOARD_KEYS, distinct)
-        }
+        boardMatchesStore.replaceAll(keys)
     }
 
-
-
-    /**
-     * Freeze last known state as FINISHED so it stays visible on the board,
-     * but we stop polling events for it (poller filters by status).
-     */
     fun markAsFinished(matchKey: String): MatchState? {
         val current = matchStateStore.get(matchKey) ?: return null
         if (current.status == MatchStatus.FINISHED) return current
+
         val updated = current.copy(status = MatchStatus.FINISHED, time = "FT")
         matchStateStore.put(updated)
-        // publish per-match state update too (optional, harmless)
-        sseHub.publish(matchKey, "state", updated)
+        sseHub.publish(matchKey, SseEvents.STATE, updated)
         return updated
     }
 
     fun getOrInitState(matchKey: String): MatchState {
-        val existing = matchStateStore.get(matchKey)
-        if (existing != null) return existing
+        matchStateStore.get(matchKey)?.let { return it }
 
-        val placeholder = MatchState(
+        return MatchState(
             id = matchKey.removePrefix("ls-").toLongOrNull(),
             scheduled = null,
             status = MatchStatus.UNKNOWN,
@@ -92,104 +72,77 @@ class MatchService(
             away = null,
             scores = null,
             lastEvents = emptyList()
-        )
-        matchStateStore.put(placeholder)
-        return placeholder
+        ).also(matchStateStore::put)
     }
 
     fun upsertFromProvider(providerMatch: MatchState, boardKeysHint: List<String>? = null): MatchState {
         val normalized = normalizeProviderMatch(providerMatch, boardKeysHint)
-        val key = normalized.matchKey
-        val current = matchStateStore.get(key)
-
-        val mergedEvents = when {
-            current == null -> providerMatch.lastEvents
-            current.lastEvents.isEmpty() && providerMatch.lastEvents.isNotEmpty() -> providerMatch.lastEvents
-            else -> current.lastEvents
-        }
+        val current = matchStateStore.get(normalized.matchKey)
 
         val merged = normalized.copy(
-            lastEvents = mergedEvents
+            lastEvents = when {
+                current == null -> providerMatch.lastEvents
+                current.lastEvents.isEmpty() && providerMatch.lastEvents.isNotEmpty() -> providerMatch.lastEvents
+                else -> current.lastEvents
+            }
         )
 
-        val scoresChanged = current?.scores != merged.scores
-        if (scoresChanged) {
-            merged.competition?.id?.let { standingsService.invalidateCompetition(it) }
+        if (current?.scores != merged.scores) {
+            merged.competition?.id?.let(standingsService::invalidateCompetition)
         }
 
         matchStateStore.put(merged)
-        sseHub.publish(key, "state", merged)
+        sseHub.publish(merged.matchKey, SseEvents.STATE, merged)
         return merged
     }
 
-    /**
-     * The provider can return live matches without a `fixture_id`.
-     * If we already have the fixture version in Redis (from fixtures/today), we attach it so the key stays stable.
-     */
     private fun normalizeProviderMatch(providerMatch: MatchState, boardKeysHint: List<String>? = null): MatchState {
-        if (providerMatch.fixtureId != null) return providerMatch.copy(status = MatchStatus.normalize(providerMatch.status))
+        if (providerMatch.fixtureId != null) return providerMatch.withNormalizedStatus()
 
         val compId = providerMatch.competition?.id
         val homeId = providerMatch.home?.id
         val awayId = providerMatch.away?.id
-        val sched = providerMatch.scheduled?.trim()
+        val scheduled = providerMatch.scheduled?.trim()
 
-        if (compId == null || homeId == null || awayId == null || sched.isNullOrBlank()) {
-            return providerMatch.copy(status = MatchStatus.normalize(providerMatch.status))
+        if (compId == null || homeId == null || awayId == null || scheduled.isNullOrBlank()) {
+            return providerMatch.withNormalizedStatus()
         }
 
-        // Try to find a planned match already stored for today.
-        val keys = boardKeysHint ?: getBoardMatchKeys()
-
-        val existing = keys
+        val existing = (boardKeysHint ?: getBoardMatchKeys())
             .asSequence()
-            .mapNotNull { matchStateStore.get(it) }
-            .firstOrNull { m ->
-                m.fixtureId != null &&
-                    m.competition?.id == compId &&
-                    m.home?.id == homeId &&
-                    m.away?.id == awayId &&
-                    (m.scheduled?.trim() == sched)
+            .mapNotNull(matchStateStore::get)
+            .firstOrNull { state ->
+                state.fixtureId != null &&
+                    state.competition?.id == compId &&
+                    state.home?.id == homeId &&
+                    state.away?.id == awayId &&
+                    state.scheduled?.trim() == scheduled
             }
 
         return if (existing?.fixtureId != null) {
             providerMatch.copy(
                 fixtureId = existing.fixtureId,
-                fixtureDate = existing.fixtureDate,
-                status = MatchStatus.normalize(providerMatch.status)
-            )
+                fixtureDate = existing.fixtureDate
+            ).withNormalizedStatus()
         } else {
-            providerMatch.copy(status = MatchStatus.normalize(providerMatch.status))
+            providerMatch.withNormalizedStatus()
         }
-    }
-
-    /**
-     * Append newly ingested events.
-     *
-     * Provider behavior: same logical event can arrive first with empty player, later with player filled.
-     * We must (1) de-duplicate, (2) allow enrichment updates, and (3) never drop scorers (GOAL) when trimming.
-     */
-    fun appendEvents(matchKey: String, newEvents: List<MatchEvent>, keepLast: Int = 30): MatchState {
-        if (newEvents.isEmpty()) return getOrInitState(matchKey)
-
-        val current = getOrInitState(matchKey)
-        val merged = (current.lastEvents + newEvents).takeLast(keepLast)
-
-        if (merged == current.lastEvents) {
-            return current
-        }
-
-        val updated = current.copy(lastEvents = merged)
-        matchStateStore.put(updated)
-        sseHub.publish(matchKey, "state", updated)
-        return updated
     }
 
     fun replaceEvents(matchKey: String, events: List<MatchEvent>): MatchState {
         val current = getOrInitState(matchKey)
-        val updated = current.copy(lastEvents = events)
+        if (events.isEmpty()) return current
+
+        val mergedEvents = EventDeduplicator(matchKey).merge(
+            current = current.lastEvents,
+            incoming = events,
+            keepLast = KEEP_LAST_EVENTS
+        )
+        if (mergedEvents == current.lastEvents) return current
+
+        val updated = current.copy(lastEvents = mergedEvents)
         matchStateStore.put(updated)
-        sseHub.publish(matchKey, "state", updated)
+        sseHub.publish(matchKey, SseEvents.STATE, updated)
         return updated
     }
 
@@ -198,13 +151,10 @@ class MatchService(
     }
 
     fun publishLiveBoard() {
-        val board = getBoardMatches()
-        if (board.isNotEmpty()) {
-            sseHub.publish("live-board", "live", board)
-        } else {
-            // fallback for first boot / before board keys are set
-            sseHub.publish("live-board", "live", getLiveMatches())
-        }
+        val board = getBoardMatches().ifEmpty(::getLiveMatches)
+        sseHub.publish(SseTopics.LIVE_BOARD, SseEvents.LIVE, board)
     }
 
+    private fun MatchState.withNormalizedStatus(): MatchState =
+        copy(status = MatchStatus.normalize(status))
 }

@@ -116,7 +116,10 @@ class LiveScorePoller(
             return
         }
 
-        liveMatches.forEach { matchService.upsertFromProvider(it, previousBoardKeys) }
+        liveMatches.forEach {
+            val updated = matchService.upsertFromProvider(it, previousBoardKeys)
+            refreshEventsForMatch(updated)
+        }
         finishedMatches.forEach {
             val updated = matchService.upsertFromProvider(it, previousBoardKeys)
             refreshEventsForMatch(updated)
@@ -231,6 +234,7 @@ data class ApiFootballFixtureEvent(
     val time: ApiFootballEventTime? = null,
     val team: ApiFootballEventTeam? = null,
     val player: ApiFootballEventPlayer? = null,
+    val assist: ApiFootballEventPlayer? = null,
     val type: String? = null,
     val detail: String? = null,
 ) {
@@ -255,7 +259,8 @@ data class ApiFootballFixtureEvent(
             id = listOf(fixtureId.toString(), elapsed?.toString() ?: "", type ?: "", player?.id?.toString() ?: "").joinToString("-"),
             event = eventType,
             time = minute,
-            player = player?.name,
+            player = player?.name?.trim()?.takeIf { it.isNotEmpty() }
+                ?: assist?.name?.trim()?.takeIf { it.isNotEmpty() },
             homeAway = side,
             matchId = fixtureId.toString()
         )
