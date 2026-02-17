@@ -20,6 +20,7 @@ class LiveScoreApiClient(
     private val client = RestClient.builder()
         .baseUrl(baseUrl)
         .defaultHeader("x-apisports-key", key)
+        .defaultHeader("x-rapidapi-key", key)
         .build()
 
     fun getLiveMatchesJson(): String {
