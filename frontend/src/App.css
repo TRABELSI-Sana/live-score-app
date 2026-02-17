@@ -734,3 +734,80 @@ body {
     font-size: 0.8rem;
   }
 }
+
+.lineupModal {
+  width: min(980px, 100%);
+  max-height: 90vh;
+  overflow: auto;
+}
+
+.lineupGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.lineupTeam {
+  border: 1px solid #e5dbfb;
+  border-radius: 12px;
+  padding: 10px;
+  background: #fdfbff;
+}
+
+.lineupTeamHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+  color: #5c438f;
+  font-size: 0.85rem;
+}
+
+.pitch {
+  border-radius: 12px;
+  padding: 10px;
+  border: 1px solid #d2ecc8;
+  background:
+    radial-gradient(circle at center, rgba(255,255,255,0.25) 0, rgba(255,255,255,0.25) 90px, transparent 90px),
+    linear-gradient(180deg, #3f9f4d 0%, #2f8540 100%);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 280px;
+}
+
+.pitchLine {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.pitchPlayer {
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 10px;
+  padding: 5px 7px;
+  min-width: 74px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.pitchNumber {
+  font-size: 0.74rem;
+  color: #4f2a9c;
+  font-weight: 700;
+}
+
+.pitchName {
+  font-size: 0.7rem;
+  color: #2a1f45;
+  line-height: 1.1;
+}
+
+@media (max-width: 760px) {
+  .lineupGrid {
+    grid-template-columns: 1fr;
+  }
+}

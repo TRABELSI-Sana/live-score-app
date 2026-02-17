@@ -26,5 +26,5 @@ class StandingsService(
 
     private fun cacheKey(competitionId: Int) = cacheKey(competitionId.toString())
 
-    private fun cacheKey(competitionId: String) = "livescore:standings:$competitionId"
+    private fun cacheKey(competitionId: String) = "apifootball:standings:$competitionId"
 }

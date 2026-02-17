@@ -8,8 +8,10 @@ const UPCOMING_STATUSES = new Set(["NOT STARTED", "SCHEDULED"]);
 function normalizeMatchStatus(status?: string): string {
     if (!status) return "UNKNOWN";
     const normalized = status.trim().toUpperCase().replace(/[_-]/g, " ").replace(/\s+/g, " ");
+    if (["NS", "TBD"].includes(normalized)) return "NOT STARTED";
+    if (["1H", "2H", "ET", "LIVE"].includes(normalized)) return "IN PLAY";
+    if (["HT", "BT", "HALF TIME"].includes(normalized)) return "HALF TIME BREAK";
     if (["FT", "AET", "AFTER EXTRA TIME", "PEN", "PENALTIES"].includes(normalized)) return "FINISHED";
-    if (normalized === "HALF TIME") return "HALF TIME BREAK";
     return normalized;
 }
 
@@ -36,39 +38,9 @@ function parseScore(score?: string): { home: number; away: number } | undefined 
     return { home, away };
 }
 
-function scoreFromEvents(events: MatchEvent[] = []): { home: number; away: number } | undefined {
-    if (events.length === 0) return undefined;
-    let home = 0;
-    let away = 0;
-
-    for (const event of events) {
-        if (!isGoalEvent(event.event)) continue;
-        const side = eventSide(event);
-        if (side === "h") home += 1;
-        if (side === "a") away += 1;
-    }
-
-    if (home === 0 && away === 0) return undefined;
-    return { home, away };
-}
-
 function resolveDisplayScore(match: MatchState): string {
     const providerScore = parseScore(match.scores?.score);
-    const eventScore = scoreFromEvents(match.lastEvents);
-
-    if (!providerScore && !eventScore) return "0 : 0";
-    if (!providerScore && eventScore) return `${eventScore.home} : ${eventScore.away}`;
-    if (!eventScore && providerScore) return `${providerScore.home} : ${providerScore.away}`;
-
-    if (!providerScore || !eventScore) return "0 : 0";
-    const providerTotal = providerScore.home + providerScore.away;
-    const eventTotal = eventScore.home + eventScore.away;
-
-    // Provider sometimes lags on final score while event feed already has the last goal.
-    if (eventTotal > providerTotal) {
-        return `${eventScore.home} : ${eventScore.away}`;
-    }
-
+    if (!providerScore) return "0 : 0";
     return `${providerScore.home} : ${providerScore.away}`;
 }
 
@@ -257,6 +229,30 @@ type AiInsightResponse = {
     answer?: string;
     status?: string;
 };
+
+type LineupMatchRef = {
+    id?: number;
+    homeName?: string;
+    awayName?: string;
+};
+
+type LineupPlayer = {
+    name: string;
+    number?: string;
+    grid?: string;
+};
+
+type TeamLineup = {
+    teamName: string;
+    formation?: string;
+    players: LineupPlayer[];
+};
+
+type ParsedLineups = {
+    home?: TeamLineup;
+    away?: TeamLineup;
+};
+
 
 const ADSENSE_SCRIPT_SRC = "https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6754395387524937";
 
@@ -538,6 +534,102 @@ function tableRowsFromData(
     return { rows, groupName: resolvedGroupName };
 }
 
+
+function playersFromLineup(raw: unknown): LineupPlayer[] {
+    if (!Array.isArray(raw)) return [];
+    return raw
+        .map((entry) => {
+            const player = (entry as { player?: { name?: string; number?: number | string; grid?: string } })?.player;
+            const name = String(player?.name ?? "").trim();
+            if (!name) return null;
+            return {
+                name,
+                number: player?.number !== undefined ? String(player.number) : undefined,
+                grid: player?.grid ? String(player.grid) : undefined,
+            } as LineupPlayer;
+        })
+        .filter((entry): entry is LineupPlayer => entry !== null);
+}
+
+function parseLineupsPayload(data: unknown): ParsedLineups {
+    const response = (data as { response?: unknown[] })?.response;
+    if (!Array.isArray(response)) return {};
+
+    const mapped = response
+        .map((item) => {
+            const team = (item as { team?: { name?: string }; formation?: string; startXI?: unknown[] });
+            const teamName = String(team?.team?.name ?? "").trim();
+            if (!teamName) return null;
+            return {
+                teamName,
+                formation: team.formation ? String(team.formation) : undefined,
+                players: playersFromLineup(team.startXI),
+            } as TeamLineup;
+        })
+        .filter((entry): entry is TeamLineup => entry !== null);
+
+    return {
+        home: mapped[0],
+        away: mapped[1],
+    };
+}
+
+function lineFromFormation(formation?: string): number[] {
+    const cleaned = (formation ?? "").trim();
+    if (!cleaned) return [];
+    return cleaned.split("-").map((n) => Number(n)).filter((n) => Number.isFinite(n) && n > 0);
+}
+
+function splitPlayersForPitch(players: LineupPlayer[], formation?: string): LineupPlayer[][] {
+    if (players.length === 0) return [];
+
+    const playersWithGrid = players
+        .map((player) => {
+            const raw = (player.grid ?? "").trim();
+            const match = raw.match(/^(\d+):(\d+)$/);
+            if (!match) return null;
+            return {
+                player,
+                row: Number(match[1]),
+                col: Number(match[2]),
+            };
+        })
+        .filter((entry): entry is { player: LineupPlayer; row: number; col: number } => entry !== null)
+        .sort((a, b) => (a.row - b.row) || (a.col - b.col));
+
+    if (playersWithGrid.length > 0) {
+        const grouped = new Map<number, LineupPlayer[]>();
+        playersWithGrid.forEach(({ player, row }) => {
+            if (!grouped.has(row)) grouped.set(row, []);
+            grouped.get(row)!.push(player);
+        });
+
+        const lines = Array.from(grouped.entries())
+            .sort((a, b) => a[0] - b[0])
+            .map(([, linePlayers]) => linePlayers);
+
+        const noGridPlayers = players.filter((p) => !p.grid);
+        if (noGridPlayers.length > 0) lines.unshift(noGridPlayers);
+        return lines;
+    }
+
+    const lines = lineFromFormation(formation);
+    if (lines.length === 0) return [players];
+
+    const out: LineupPlayer[][] = [];
+    let index = 0;
+    lines.forEach((size) => {
+        out.push(players.slice(index, index + size));
+        index += size;
+    });
+
+    if (index < players.length) {
+        out.unshift(players.slice(index));
+    }
+
+    return out;
+}
+
 export default function App() {
     const {grouped} = useLiveBoard();
     const [rankingCompetition, setRankingCompetition] = useState<{
@@ -548,6 +640,9 @@ export default function App() {
     } | null>(null);
     const [rankingRows, setRankingRows] = useState<TableDisplayRow[]>([]);
     const [rankingStatus, setRankingStatus] = useState<"idle" | "loading" | "error">("idle");
+    const [lineupMatch, setLineupMatch] = useState<LineupMatchRef | null>(null);
+    const [lineups, setLineups] = useState<ParsedLineups>({});
+    const [lineupStatus, setLineupStatus] = useState<"idle" | "loading" | "error">("idle");
     const [aiSummary, setAiSummary] = useState<string>("Chargement du résumé IA...");
     const [aiStatus, setAiStatus] = useState<"loading" | "idle" | "error">("loading");
     const [searchTerm, setSearchTerm] = useState("");
@@ -677,6 +772,59 @@ export default function App() {
         };
     }, [rankingCompetition]);
 
+    useEffect(() => {
+        if (!lineupMatch?.id) {
+            setLineups({});
+            setLineupStatus("idle");
+            return;
+        }
+
+        let cancelled = false;
+        setLineupStatus("loading");
+
+        fetch(`/api/stream/matches/${lineupMatch.id}/lineups`)
+            .then((r) => (r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`))))
+            .then((data) => {
+                if (cancelled) return;
+                setLineups(parseLineupsPayload(data));
+                setLineupStatus("idle");
+            })
+            .catch(() => {
+                if (cancelled) return;
+                setLineups({});
+                setLineupStatus("error");
+            });
+
+        return () => {
+            cancelled = true;
+        };
+    }, [lineupMatch]);
+
+    const renderLineupTeam = (side: "home" | "away", team?: TeamLineup) => {
+        if (!team) return null;
+        const lines = splitPlayersForPitch(team.players, team.formation);
+        return (
+            <div className={`lineupTeam ${side === "away" ? "lineupTeamAway" : ""}`}>
+                <div className="lineupTeamHeader">
+                    <strong>{team.teamName}</strong>
+                    <span>{team.formation ?? "Formation --"}</span>
+                </div>
+                <div className="pitch">
+                    {lines.map((line, lineIdx) => (
+                        <div key={`${team.teamName}-${lineIdx}`} className="pitchLine">
+                            {line.map((player, playerIdx) => (
+                                <div key={`${team.teamName}-${lineIdx}-${playerIdx}`} className="pitchPlayer">
+                                    <span className="pitchNumber">{player.number ?? "-"}</span>
+                                    <span className="pitchName">{player.name}</span>
+                                </div>
+                            ))}
+                        </div>
+                    ))}
+                </div>
+            </div>
+        );
+    };
+
     const renderMatchCard = (match: (typeof allMatches)[number], variant: string) => {
         const status = normalizeMatchStatus(match.status);
         const isUpcoming = UPCOMING_STATUSES.has(status);
@@ -776,6 +924,20 @@ export default function App() {
                 </div>
                 <div className="matchRowMeta">
                     <span className="matchCompetition">{match.competition?.name ?? "LiveFoot"}</span>
+                    <button
+                        type="button"
+                        className="competitionLink"
+                        onClick={() =>
+                            setLineupMatch({
+                                id: match.id,
+                                homeName: match.home?.name,
+                                awayName: match.away?.name,
+                            })
+                        }
+                        disabled={!match.id}
+                    >
+                        Compos
+                    </button>
                     {eventSummary ? <span className="matchRowSummary">Buteurs : {eventSummary}</span> : null}
                 </div>
             </article>
@@ -1086,6 +1248,41 @@ export default function App() {
                         ) : null}
                         {rankingStatus === "idle" && rankingRows.length === 0 ? (
                             <div className="rankingStatus">Aucune donnée de classement.</div>
+                        ) : null}
+                    </div>
+                </div>
+            ) : null}
+            {lineupMatch ? (
+                <div
+                    className="modalBackdrop"
+                    onClick={() => setLineupMatch(null)}
+                    role="dialog"
+                    aria-modal="true"
+                >
+                    <div className="rankingModal lineupModal" onClick={(e) => e.stopPropagation()}>
+                        <button
+                            type="button"
+                            className="modalClose"
+                            aria-label="Fermer les compositions"
+                            onClick={() => setLineupMatch(null)}
+                        >
+                            ×
+                        </button>
+                        <div className="rankingTitle">
+                            Compositions - {(lineupMatch.homeName ?? "Home")} vs {(lineupMatch.awayName ?? "Away")}
+                        </div>
+                        {lineupStatus === "loading" ? <div className="rankingStatus">Chargement...</div> : null}
+                        {lineupStatus === "error" ? (
+                            <div className="rankingStatus rankingError">Compositions indisponibles.</div>
+                        ) : null}
+                        {lineupStatus === "idle" ? (
+                            <div className="lineupGrid">
+                                {renderLineupTeam("home", lineups.home)}
+                                {renderLineupTeam("away", lineups.away)}
+                                {!lineups.home && !lineups.away ? (
+                                    <div className="rankingStatus">Aucune composition disponible pour ce match.</div>
+                                ) : null}
+                            </div>
                         ) : null}
                     </div>
                 </div>

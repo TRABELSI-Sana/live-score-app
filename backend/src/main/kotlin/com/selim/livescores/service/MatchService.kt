@@ -34,8 +34,6 @@ class MatchService(
     fun getLiveMatchKeys(): List<String> = liveMatchesStore.getAll().toList()
 
     fun getBoardMatches(): List<MatchState> {
-        // Safety: the provider can expose the same match under multiple ids (fixtures vs live).
-        // De-duplicate for the UI so we don't render the same game twice.
         val raw = getBoardMatchKeys()
             .mapNotNull { matchStateStore.get(it) }
 
@@ -49,14 +47,7 @@ class MatchService(
             }
         }
 
-        val deduped = LinkedHashMap<String, MatchState>()
-        filtered.forEach { m ->
-            val k = identityKey(m)
-            val existing = deduped[k]
-            deduped[k] = if (existing == null) m else chooseBetter(existing, m)
-        }
-
-        return deduped.values
+        return filtered
             .sortedWith(compareBy<MatchState>({ it.competition?.name ?: "" }, { it.scheduled ?: "" }))
     }
 
@@ -182,9 +173,7 @@ class MatchService(
         if (newEvents.isEmpty()) return getOrInitState(matchKey)
 
         val current = getOrInitState(matchKey)
-
-        val deduplicator = EventDeduplicator(matchKey)
-        val merged = deduplicator.merge(current.lastEvents, newEvents, keepLast)
+        val merged = (current.lastEvents + newEvents).takeLast(keepLast)
 
         if (merged == current.lastEvents) {
             return current
@@ -218,39 +207,4 @@ class MatchService(
         }
     }
 
-    private fun identityKey(m: MatchState): String {
-        // Prefer fixtureId when present (stable across the day).
-        m.fixtureId?.let { return "fx:$it" }
-        val c = m.competition?.id?.toString() ?: "?"
-        val h = m.home?.id?.toString() ?: "?"
-        val a = m.away?.id?.toString() ?: "?"
-        val t = (m.scheduled ?: "").trim()
-        return "cmp:$c|h:$h|a:$a|t:$t"
-    }
-
-    private fun chooseBetter(a: MatchState, b: MatchState): MatchState {
-        val aFinished = MatchStatus.isFinished(a.status)
-        val bFinished = MatchStatus.isFinished(b.status)
-        if (aFinished != bFinished) return if (aFinished) a else b
-
-        val aLive = MatchStatus.isLive(a.status)
-        val bLive = MatchStatus.isLive(b.status)
-        if (aLive != bLive) return if (aLive) a else b
-
-        // Prefer the one that looks “more advanced” (later minute) or has richer data.
-        val aMin = TimeParser.parseMinute(a.time) ?: -1
-        val bMin = TimeParser.parseMinute(b.time) ?: -1
-        if (aMin != bMin) return if (aMin > bMin) a else b
-
-        val aEvents = a.lastEvents.size
-        val bEvents = b.lastEvents.size
-        if (aEvents != bEvents) return if (aEvents > bEvents) a else b
-
-        // Prefer one that has an id (live match id) if the other doesn't.
-        val aHasId = a.id != null
-        val bHasId = b.id != null
-        if (aHasId != bHasId) return if (aHasId) a else b
-
-        return a
-    }
 }
