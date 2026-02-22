@@ -255,15 +255,31 @@ data class ApiFootballFixtureEvent(
 
         val eventType = (detail ?: type ?: "EVENT").trim().replace(' ', '_').uppercase()
 
+        val resolvedPlayer = listOfNotNull(player?.name, assist?.name)
+            .asSequence()
+            .map { it.trim() }
+            .firstOrNull { candidate -> isUsablePlayerName(candidate, minute) }
+
         return MatchEvent(
             id = listOf(fixtureId.toString(), elapsed?.toString() ?: "", type ?: "", player?.id?.toString() ?: "").joinToString("-"),
             event = eventType,
             time = minute,
-            player = player?.name?.trim()?.takeIf { it.isNotEmpty() }
-                ?: assist?.name?.trim()?.takeIf { it.isNotEmpty() },
+            player = resolvedPlayer,
             homeAway = side,
             matchId = fixtureId.toString()
         )
+    }
+
+    private fun isUsablePlayerName(candidate: String, minute: String?): Boolean {
+        if (candidate.isBlank()) return false
+        val normalizedCandidate = candidate.replace("'", "").trim()
+        val minuteLike = Regex("^\d{1,3}(?:\+\d{1,2})?$")
+        if (minuteLike.matches(normalizedCandidate)) return false
+
+        val normalizedMinute = (minute ?: "").replace("'", "").trim()
+        if (normalizedMinute.isNotBlank() && normalizedCandidate == normalizedMinute) return false
+
+        return true
     }
 }
 

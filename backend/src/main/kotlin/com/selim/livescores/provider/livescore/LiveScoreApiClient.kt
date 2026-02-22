@@ -3,7 +3,10 @@ package com.selim.livescores.provider.livescore
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.data.redis.core.StringRedisTemplate
 import org.springframework.stereotype.Component
+import org.springframework.http.client.JdkClientHttpRequestFactory
 import org.springframework.web.client.RestClient
+import java.net.http.HttpClient
+import java.time.Duration
 import java.time.LocalDate
 import java.time.Month
 import java.time.ZoneId
@@ -17,10 +20,19 @@ class LiveScoreApiClient(
     @Value("\${apifootball.quota-per-day:7500}") private val quotaPerDay: Long
 ) {
 
+    private val requestFactory = JdkClientHttpRequestFactory(
+        HttpClient.newBuilder()
+            .connectTimeout(Duration.ofSeconds(5))
+            .build()
+    ).apply {
+        setReadTimeout(Duration.ofSeconds(10))
+    }
+
     private val client = RestClient.builder()
         .baseUrl(baseUrl)
         .defaultHeader("x-apisports-key", key)
         .defaultHeader("x-rapidapi-key", key)
+        .requestFactory(requestFactory)
         .build()
 
     fun getLiveMatchesJson(): String {

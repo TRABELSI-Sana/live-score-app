@@ -66,4 +66,30 @@ class ApiFootballMappingTest {
         assertEquals("FINISHED", mapApiStatus("PEN"))
         assertEquals("FINISHED", mapApiStatus("CANC"))
     }
+
+    @Test
+    fun `should ignore minute placeholder as player name`() {
+        val event = ApiFootballFixtureEvent(
+            time = ApiFootballEventTime(elapsed = 56),
+            player = ApiFootballEventPlayer(name = "56"),
+            type = "Goal"
+        )
+
+        val mapped = event.toMatchEvent(fixtureId = 123L, homeTeamId = null, awayTeamId = null)
+
+        assertEquals(null, mapped.player)
+    }
+
+    @Test
+    fun `should keep real player names`() {
+        val event = ApiFootballFixtureEvent(
+            time = ApiFootballEventTime(elapsed = 56),
+            player = ApiFootballEventPlayer(name = "Mbappé"),
+            type = "Goal"
+        )
+
+        val mapped = event.toMatchEvent(fixtureId = 123L, homeTeamId = null, awayTeamId = null)
+
+        assertEquals("Mbappé", mapped.player)
+    }
 }

@@ -78,8 +78,15 @@ function eventSortKey(event: MatchEvent): number {
 }
 
 
+function isMinutePlaceholderName(value?: string): boolean {
+    const raw = (value ?? "").trim().replace(/'/g, "");
+    if (!raw) return false;
+    return /^\d{1,3}(?:\+\d{1,2})?$/.test(raw);
+}
+
 function hasKnownPlayer(event: MatchEvent): boolean {
-    return Boolean(event.player?.trim());
+    const player = event.player?.trim();
+    return Boolean(player) && !isMinutePlaceholderName(player);
 }
 
 function eventMinuteAndSideKey(event: MatchEvent): string {
@@ -139,7 +146,9 @@ function compactGoalEvents(goalEvents: MatchEvent[]): MatchEvent[] {
 }
 
 function formatEventPlayer(event: MatchEvent): string {
-    return event.player?.trim() || "Buteur";
+    const player = event.player?.trim();
+    if (!player || isMinutePlaceholderName(player)) return "Buteur";
+    return player;
 }
 
 function parseMatchTimeValue(value?: string): number | undefined {
