@@ -22,8 +22,14 @@ class SseHub {
         }
 
         emitter.onCompletion(::removeEmitter)
-        emitter.onTimeout(::removeEmitter)
-        emitter.onError { removeEmitter() }
+        emitter.onTimeout {
+            removeEmitter()
+            emitter.complete()
+        }
+        emitter.onError {
+            removeEmitter()
+            emitter.complete()
+        }
         return emitter
     }
 
@@ -39,6 +45,7 @@ class SseHub {
                         .data(data)
                 )
             } catch (_: Exception) {
+                emitter.complete()
                 deadEmitters.add(emitter)
             }
         }

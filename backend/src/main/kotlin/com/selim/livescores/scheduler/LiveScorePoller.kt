@@ -273,7 +273,7 @@ data class ApiFootballFixtureEvent(
     private fun isUsablePlayerName(candidate: String, minute: String?): Boolean {
         if (candidate.isBlank()) return false
         val normalizedCandidate = candidate.replace("'", "").trim()
-        val minuteLike = Regex("^\d{1,3}(?:\+\d{1,2})?$")
+        val minuteLike = Regex("^\\d{1,3}(?:\\+\\d{1,2})?$")
         if (minuteLike.matches(normalizedCandidate)) return false
 
         val normalizedMinute = (minute ?: "").replace("'", "").trim()
