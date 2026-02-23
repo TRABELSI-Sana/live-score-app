@@ -536,6 +536,15 @@ body {
   background: #e8dcff;
 }
 
+.editorialList {
+  margin: 10px 0 0;
+  padding-left: 18px;
+  color: #4d3f75;
+  display: grid;
+  gap: 6px;
+  font-size: 0.84rem;
+}
+
 .empty {
   border: 1px dashed #dfd1fb;
   border-radius: 12px;

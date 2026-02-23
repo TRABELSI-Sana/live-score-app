@@ -1,9 +1,23 @@
 import "./App.css";
-import {useEffect, useRef, useState} from "react";
+import {useEffect, useState} from "react";
 import type {MatchEvent, MatchState} from "./hooks/useLiveBoard.ts";
 import {useLiveBoard} from "./hooks/useLiveBoard.ts";
 
 const UPCOMING_STATUSES = new Set(["NOT STARTED", "SCHEDULED"]);
+
+const MIN_MATCHES_FOR_ADS_SCRIPT = 6;
+const MIN_COMPETITIONS_FOR_ADS_SCRIPT = 2;
+
+function hasSufficientEditorialCoverage(matches: MatchState[]): boolean {
+    const distinctCompetitions = new Set(
+        matches
+            .map((match) => match.competition?.id ?? match.competition?.name)
+            .filter((value): value is string | number => value !== undefined && value !== null && String(value).trim() !== "")
+            .map((value) => String(value))
+    ).size;
+
+    return matches.length >= MIN_MATCHES_FOR_ADS_SCRIPT && distinctCompetitions >= MIN_COMPETITIONS_FOR_ADS_SCRIPT;
+}
 
 function normalizeMatchStatus(status?: string): string {
     if (!status) return "UNKNOWN";
@@ -26,6 +40,11 @@ function normalizeEventType(value?: string): string {
 function isGoalEvent(event?: string): boolean {
     const normalized = normalizeEventType(event);
     return normalized === "GOAL" || normalized === "NORMALGOAL" || normalized === "GOALPENALTY" || normalized === "PENALTY" || normalized === "OWNGOAL" || normalized === "GOALP";
+}
+
+function isGoalDisallowedEvent(event?: string): boolean {
+    const normalized = normalizeEventType(event);
+    return normalized.includes("GOALDISALLOWED") || normalized.includes("DISALLOWEDGOAL");
 }
 
 function parseScore(score?: string): { home: number; away: number } | undefined {
@@ -93,6 +112,13 @@ function eventMinuteAndSideKey(event: MatchEvent): string {
     return `${eventSortKey(event)}|${eventSide(event).slice(0, 1)}`;
 }
 
+function eventMinuteSidePlayerKey(event: MatchEvent): string {
+    const side = eventSide(event).slice(0, 1);
+    const minute = eventSortKey(event);
+    const player = normalizePlayerKey(event.player);
+    return `${minute}|${side}|${player}`;
+}
+
 function normalizePlayerKey(name?: string): string {
     return (name ?? "")
         .normalize("NFD")
@@ -143,6 +169,42 @@ function compactGoalEvents(goalEvents: MatchEvent[]): MatchEvent[] {
     }
 
     return [...byNamedPlayerBucket.values(), ...unnamedEvents].sort((a, b) => eventSortKey(a) - eventSortKey(b));
+}
+
+function removeDisallowedGoals(events: MatchEvent[]): MatchEvent[] {
+    const goalsByRichKey = new Map<string, number[]>();
+    const goalsByMinuteSideKey = new Map<string, number[]>();
+
+    for (let index = 0; index < events.length; index += 1) {
+        const event = events[index];
+        if (!isGoalEvent(event.event)) continue;
+
+        const richKey = eventMinuteSidePlayerKey(event);
+        const minuteSideKey = eventMinuteAndSideKey(event);
+        if (!goalsByRichKey.has(richKey)) goalsByRichKey.set(richKey, []);
+        goalsByRichKey.get(richKey)!.push(index);
+        if (!goalsByMinuteSideKey.has(minuteSideKey)) goalsByMinuteSideKey.set(minuteSideKey, []);
+        goalsByMinuteSideKey.get(minuteSideKey)!.push(index);
+    }
+
+    const canceledGoalIndexes = new Set<number>();
+
+    for (let index = 0; index < events.length; index += 1) {
+        const event = events[index];
+        if (!isGoalDisallowedEvent(event.event)) continue;
+
+        const richKey = eventMinuteSidePlayerKey(event);
+        const minuteSideKey = eventMinuteAndSideKey(event);
+
+        const withSamePlayer = (goalsByRichKey.get(richKey) ?? []).filter((goalIndex) => goalIndex < index);
+        const candidates = withSamePlayer.length > 0
+            ? withSamePlayer
+            : (goalsByMinuteSideKey.get(minuteSideKey) ?? []).filter((goalIndex) => goalIndex < index);
+        const goalToCancel = candidates.length > 0 ? candidates[candidates.length - 1] : undefined;
+        if (goalToCancel !== undefined) canceledGoalIndexes.add(goalToCancel);
+    }
+
+    return events.filter((event, index) => isGoalEvent(event.event) && !canceledGoalIndexes.has(index));
 }
 
 function formatEventPlayer(event: MatchEvent): string {
@@ -326,109 +388,6 @@ type ParsedLineups = {
     home?: TeamLineup;
     away?: TeamLineup;
 };
-
-
-const ADSENSE_SCRIPT_SRC = "https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6754395387524937";
-
-declare global {
-    interface Window {
-        adsbygoogle?: unknown[];
-        __adsenseScriptBlocked?: boolean;
-    }
-}
-
-function getInitialAdScriptStatus(): "ready" | "loading" | "blocked" {
-    if (typeof window === "undefined") return "loading";
-    if (window.__adsenseScriptBlocked) return "blocked";
-    if (Array.isArray(window.adsbygoogle)) return "ready";
-    return "loading";
-}
-
-function AdsenseInline() {
-    const adPushedRef = useRef(false);
-    const adElementRef = useRef<HTMLModElement | null>(null);
-    const [adScriptStatus, setAdScriptStatus] = useState<"ready" | "loading" | "blocked">(getInitialAdScriptStatus);
-
-    useEffect(() => {
-        if (adScriptStatus !== "loading") return;
-
-        const scriptId = "adsense-script";
-        const existingScript = document.getElementById(scriptId) as HTMLScriptElement | null;
-
-        const handleScriptLoad = () => setAdScriptStatus("ready");
-        const handleScriptError = () => {
-            window.__adsenseScriptBlocked = true;
-            setAdScriptStatus("blocked");
-        };
-
-        if (existingScript) {
-            if (existingScript.dataset.loaded === "true") {
-                queueMicrotask(() => handleScriptLoad());
-            } else {
-                existingScript.addEventListener("load", handleScriptLoad);
-                existingScript.addEventListener("error", handleScriptError);
-            }
-
-            return () => {
-                existingScript.removeEventListener("load", handleScriptLoad);
-                existingScript.removeEventListener("error", handleScriptError);
-            };
-        }
-
-        const script = document.createElement("script");
-        script.id = scriptId;
-        script.async = true;
-        script.crossOrigin = "anonymous";
-        script.src = ADSENSE_SCRIPT_SRC;
-        script.onload = () => {
-            script.dataset.loaded = "true";
-            handleScriptLoad();
-        };
-        script.onerror = handleScriptError;
-        document.head.appendChild(script);
-
-        return () => {
-            script.onload = null;
-            script.onerror = null;
-        };
-    }, [adScriptStatus]);
-
-    useEffect(() => {
-        if (adScriptStatus !== "ready") return;
-        if (adPushedRef.current) return;
-
-        const adElement = adElementRef.current;
-        const adStatus = adElement?.getAttribute("data-adsbygoogle-status");
-        if (adStatus === "done") {
-            adPushedRef.current = true;
-            return;
-        }
-
-        try {
-            (window.adsbygoogle = window.adsbygoogle || []).push({});
-            adPushedRef.current = true;
-        } catch {
-            // ignored: ad blockers or delayed script availability.
-        }
-    }, [adScriptStatus]);
-
-    if (adScriptStatus !== "ready") return null;
-
-    return (
-        <section className="adSection" aria-label="Annonce sponsorisée">
-            <span className="adLabel">Publicité</span>
-            <ins
-                ref={adElementRef}
-                className="adsbygoogle"
-                style={{ display: "block" }}
-                data-ad-client="ca-pub-6754395387524937"
-                data-ad-slot="8567185183"
-                data-ad-format="auto"
-                data-full-width-responsive="true"
-            />
-        </section>
-    );
-}
 
 
 function toNumber(value: unknown): number | undefined {
@@ -721,6 +680,7 @@ export default function App() {
     const [aiStatus, setAiStatus] = useState<"loading" | "idle" | "error">("loading");
     const [searchTerm, setSearchTerm] = useState("");
     const allMatches = grouped.flatMap((group) => group.list ?? []);
+    const showAdsenseScript = hasSufficientEditorialCoverage(allMatches);
     const normalizedSearch = searchTerm.trim().toLowerCase();
     const matchesSearch = (value: string) =>
         normalizedSearch.length === 0 || value.toLowerCase().includes(normalizedSearch);
@@ -907,14 +867,15 @@ export default function App() {
         const scoreText = isUpcoming ? localScheduled ?? "--:--" : resolveDisplayScore(match);
         const displayStatus = statusLabel(match.status, match.time, localScheduled);
         const sortedEvents = [...(match.lastEvents ?? [])].sort((a, b) => eventSortKey(a) - eventSortKey(b));
-        const rawGoalEvents = sortedEvents.filter((event) => isGoalEvent(event.event));
+        const rawGoalEvents = removeDisallowedGoals(sortedEvents);
         const goalEvents = compactGoalEvents(rawGoalEvents);
+        const namedGoalEvents = goalEvents.filter((event) => hasKnownPlayer(event));
         const cardEvents = sortedEvents.filter((event) => isRedCardEvent(event.event));
-        const homeGoals = goalEvents.filter((event) => eventSide(event).startsWith("h"));
-        const awayGoals = goalEvents.filter((event) => eventSide(event).startsWith("a"));
+        const homeGoals = namedGoalEvents.filter((event) => eventSide(event).startsWith("h"));
+        const awayGoals = namedGoalEvents.filter((event) => eventSide(event).startsWith("a"));
         const homeCards = cardEvents.filter((event) => eventSide(event).startsWith("h"));
         const awayCards = cardEvents.filter((event) => eventSide(event).startsWith("a"));
-        const eventSummary = goalEvents
+        const eventSummary = namedGoalEvents
             .map((event) => `${formatEventPlayer(event)} ${formatEventMinute(event.time)}`)
             .join(" · ");
 
@@ -1252,9 +1213,27 @@ export default function App() {
                             <a href="/terms.html">Conditions</a>
                         </div>
                     </div>
+                    <div className="sideCard">
+                        <h3>Analyse éditoriale</h3>
+                        <p>
+                            Notre rédaction agrège les scores en direct, les statuts de matchs, les affiches à venir
+                            et les classements pour offrir une lecture rapide mais utile de la journée football.
+                        </p>
+                        <ul className="editorialList">
+                            <li>Suivi minute par minute des matchs en cours.</li>
+                            <li>Vue par compétition pour comparer les affiches du jour.</li>
+                            <li>Accès rapide aux classements et compositions dès disponibilité.</li>
+                        </ul>
+                    </div>
                 </aside>
             </main>
-            <AdsenseInline />
+            {showAdsenseScript ? (
+                <script
+                    async
+                    src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6754395387524937"
+                    crossOrigin="anonymous"
+                ></script>
+            ) : null}
             <footer className="siteFooter">
                 <div className="footerLinks">
                     <a href="/about.html">À propos</a>
