@@ -1,18 +1,18 @@
 :root {
-  --bg: #f6f1ff;
-  --bg-soft: #efe6ff;
+  --bg: #ffffff;
+  --bg-soft: #f3f7ef;
   --panel: #ffffff;
-  --panel-tint: #faf7ff;
-  --text: #1f1538;
-  --muted: #6e6292;
-  --line: #dfd5f6;
-  --primary: #6f3bd2;
-  --primary-strong: #5625bb;
-  --primary-soft: #f0e8ff;
+  --panel-tint: #fbfdf8;
+  --text: #1d1d1d;
+  --muted: #6b6b6b;
+  --line: #e6e6e6;
+  --primary: #6a9e1f;
+  --primary-strong: #5a871a;
+  --primary-soft: #edf6df;
   --danger: #d72650;
   --warning: #ef9f28;
-  --live: #7a3cff;
-  --shadow: 0 16px 34px rgba(83, 43, 160, 0.14);
+  --live: #6a9e1f;
+  --shadow: 0 16px 34px rgba(106, 158, 31, 0.12);
 }
 
 * {
@@ -25,7 +25,7 @@ body {
   color: var(--text);
   font-size: 15px;
   line-height: 1.45;
-  background: radial-gradient(circle at top, #ffffff 0%, #f5eeff 56%, #efe6ff 100%);
+  background: #ffffff;
 }
 
 .page {
@@ -54,7 +54,7 @@ body {
   width: 38px;
   height: 38px;
   border-radius: 12px;
-  background: linear-gradient(145deg, #8f5cff, #6f3bd2);
+  background: linear-gradient(145deg, #78b024, #5a871a);
   color: #fff;
   display: grid;
   place-items: center;
@@ -63,7 +63,7 @@ body {
 }
 
 .brandText {
-  color: #27194a;
+  color: var(--text);
 }
 
 .searchBar {
@@ -73,9 +73,9 @@ body {
   gap: 8px;
   padding: 10px 14px;
   border-radius: 999px;
-  border: 1px solid #daccf5;
+  border: 1px solid var(--line);
   background: #fff;
-  box-shadow: inset 0 0 0 1px #f0e7ff;
+  box-shadow: inset 0 0 0 1px var(--primary-soft);
 }
 
 .searchBar input {
@@ -89,7 +89,7 @@ body {
 
 .searchBar input::placeholder,
 .searchIcon {
-  color: #8c7ab8;
+  color: var(--muted);
 }
 
 .layout {
@@ -116,7 +116,7 @@ body {
 
 .simpleIntro {
   padding: 20px;
-  background: linear-gradient(145deg, #ffffff, #f7f1ff);
+  background: linear-gradient(145deg, #ffffff, var(--bg-soft));
 }
 
 .simpleIntro h1 {
@@ -160,17 +160,17 @@ body {
   font-size: 0.8rem;
   background: var(--primary-soft);
   color: var(--primary);
-  border: 1px solid #d3c1fb;
+  border: 1px solid var(--line);
   font-weight: 600;
 }
 
 .introHighlights a:hover {
-  background: #e8dcff;
+  background: #e6f1cf;
 }
 
 .sectionBlock {
   padding: 14px;
-  background: linear-gradient(180deg, #fff, #fcfaff);
+  background: linear-gradient(180deg, #fff, var(--panel-tint));
 }
 
 
@@ -188,8 +188,8 @@ body {
   margin-top: 6px;
   padding: 10px;
   border-radius: 12px;
-  background: #fbf8ff;
-  border: 1px solid #e4d9fb;
+  background: var(--bg-soft);
+  border: 1px solid var(--line);
 }
 
 .seoChecklist h2 {
@@ -200,7 +200,7 @@ body {
 .seoChecklist ul {
   margin: 0;
   padding-left: 18px;
-  color: #6a5a90;
+  color: var(--muted);
   line-height: 1.5;
 }
 
@@ -213,17 +213,17 @@ body {
 
 .seoLinks a {
   text-decoration: none;
-  color: #4f2a9c;
-  border: 1px solid #d9c8fa;
+  color: var(--primary-strong);
+  border: 1px solid var(--line);
   border-radius: 999px;
   padding: 7px 10px;
-  background: #f5efff;
+  background: var(--primary-soft);
   font-size: 0.78rem;
   font-weight: 500;
 }
 
 .seoLinks a:hover {
-  background: #ece2ff;
+  background: #e6f1cf;
 }
 
 .sectionHeader {
@@ -256,14 +256,14 @@ body {
   align-items: center;
   gap: 10px;
   padding: 10px 4px;
-  border-bottom: 1px solid #ece3ff;
+  border-bottom: 1px solid var(--line);
 }
 
 .competitionTitle {
   font-size: 0.76rem;
   text-transform: uppercase;
   letter-spacing: 0.28px;
-  color: #7557b3;
+  color: var(--primary);
 }
 
 .competitionActions {
@@ -278,8 +278,8 @@ body {
 }
 
 .competitionLink {
-  border: 1px solid #baa0ef;
-  background: #f2eaff;
+  border: 1px solid var(--primary);
+  background: var(--primary-soft);
   color: var(--primary);
   border-radius: 999px;
   padding: 5px 10px;
@@ -289,7 +289,7 @@ body {
 }
 
 .competitionLink:hover {
-  background: #e8dcff;
+  background: #e6f1cf;
 }
 
 .matchGrid {
@@ -299,9 +299,9 @@ body {
 
 .matchRowCard {
   border-radius: 14px;
-  border: 1px solid #dfd5f6;
-  background: #fff;
-  color: #1f1538;
+  border: 1px solid var(--line);
+  background: var(--panel);
+  color: var(--text);
   padding: 12px;
   display: grid;
   gap: 10px;
@@ -320,7 +320,7 @@ body {
 }
 
 .matchTime {
-  color: #3f2378;
+  color: var(--primary-strong);
   font-size: 1.6rem;
   font-weight: 650;
   letter-spacing: -0.02em;
@@ -334,19 +334,19 @@ body {
 }
 
 .statusLive {
-  color: var(--live);
+  color: var(--primary);
 }
 
 .statusFinished {
-  color: #685786;
+  color: var(--muted);
 }
 
 .statusUpcoming {
-  color: #8474a5;
+  color: var(--muted);
 }
 
 .matchTag {
-  color: #5f4795;
+  color: var(--muted);
   font-size: 0.6rem;
   font-weight: 550;
 }
@@ -381,8 +381,8 @@ body {
   width: 24px;
   height: 24px;
   border-radius: 50%;
-  border: 1px solid #d8c9f8;
-  background: #f4efff;
+  border: 1px solid var(--line);
+  background: var(--bg-soft);
   object-fit: contain;
   flex: 0 0 auto;
 }
@@ -412,9 +412,9 @@ body {
 }
 
 .eventGoal {
-  color: #5e31b4;
-  background: #f1e8ff;
-  border: 1px solid #d7c2fb;
+  color: var(--primary-strong);
+  background: var(--primary-soft);
+  border: 1px solid var(--line);
 }
 
 .eventRed {
@@ -425,7 +425,7 @@ body {
 
 .matchScorePill {
   border-radius: 12px;
-  background: linear-gradient(145deg, #7b45df, #5b2db4);
+  background: linear-gradient(145deg, var(--primary), var(--primary-strong));
   color: #fff;
   font-weight: 600;
   font-size: 0.76rem;
@@ -436,8 +436,8 @@ body {
 }
 
 .matchScoreUpcoming {
-  background: #f3edff;
-  color: #5f4c88;
+  background: var(--bg-soft);
+  color: var(--muted);
 }
 
 .matchRowMeta {
@@ -445,34 +445,34 @@ body {
   flex-wrap: wrap;
   align-items: center;
   gap: 7px;
-  border-top: 1px dashed #e3daf9;
+  border-top: 1px dashed var(--line);
   padding-top: 8px;
 }
 
 .matchCompetition {
-  background: #f2eaff;
+  background: var(--primary-soft);
   border-radius: 999px;
   padding: 4px 8px;
-  color: #5d438f;
+  color: var(--primary-strong);
   font-size: 0.62rem;
   font-weight: 550;
 }
 
 .matchRowSummary {
   font-size: 0.72rem;
-  color: #6e6292;
+  color: var(--muted);
 }
 
 .sideCard {
   padding: 15px;
-  color: #58457f;
+  color: var(--muted);
   display: grid;
   gap: 10px;
 }
 
 .sideCard h3,
 .sideList div {
-  color: #231843;
+  color: var(--text);
   font-weight: 600;
 }
 
@@ -504,16 +504,17 @@ body {
 }
 
 .sideLabel {
-  color: #77639f;
+  color: var(--muted);
 }
 
 .sideHighlight {
   padding: 10px;
   border-radius: 12px;
-  border: 1px solid #e2d8fa;
-  background: #faf7ff;
+  border: 1px solid var(--line);
+  background: var(--bg-soft);
   display: grid;
   gap: 4px;
+  color: var(--muted);
 }
 
 .sideLinks {
@@ -523,9 +524,9 @@ body {
 
 .sideLinks a {
   text-decoration: none;
-  color: #5f33b8;
-  background: #f2eaff;
-  border: 1px solid #d8c7fa;
+  color: var(--primary-strong);
+  background: var(--primary-soft);
+  border: 1px solid var(--line);
   border-radius: 12px;
   padding: 8px 10px;
   font-size: 0.78rem;
@@ -533,23 +534,23 @@ body {
 }
 
 .sideLinks a:hover {
-  background: #e8dcff;
+  background: #e6f1cf;
 }
 
 .editorialList {
   margin: 10px 0 0;
   padding-left: 18px;
-  color: #4d3f75;
+  color: var(--muted);
   display: grid;
   gap: 6px;
   font-size: 0.84rem;
 }
 
 .empty {
-  border: 1px dashed #dfd1fb;
+  border: 1px dashed var(--line);
   border-radius: 12px;
   padding: 16px;
-  background: #fbf8ff;
+  background: var(--bg-soft);
 }
 
 .empty h2 {
@@ -559,20 +560,20 @@ body {
 
 .empty p {
   margin: 0;
-  color: #75669a;
+  color: var(--muted);
   font-size: 0.9rem;
 }
 
 .adSection {
   margin-top: 16px;
   padding: 10px 0;
-  border-top: 1px solid #eee4ff;
+  border-top: 1px solid var(--line);
 }
 
 .adLabel {
   display: inline-block;
   margin-bottom: 6px;
-  color: #7a6aa0;
+  color: var(--muted);
   font-size: 0.72rem;
   text-transform: uppercase;
   letter-spacing: 0.04em;
@@ -581,7 +582,7 @@ body {
 .siteFooter {
   margin-top: 24px;
   padding-top: 16px;
-  border-top: 1px solid #e4d9fb;
+  border-top: 1px solid var(--line);
   display: flex;
   justify-content: space-between;
   gap: 10px;
@@ -596,24 +597,24 @@ body {
 
 .footerLinks a {
   text-decoration: none;
-  color: #4f2a9c;
-  border: 1px solid #d9c8fa;
+  color: var(--primary-strong);
+  border: 1px solid var(--line);
   border-radius: 999px;
   padding: 7px 10px;
-  background: #f5efff;
+  background: var(--primary-soft);
   font-size: 0.74rem;
   font-weight: 500;
 }
 
 .footerNote {
-  color: #7a6aa0;
+  color: var(--muted);
   font-size: 0.82rem;
 }
 
 .modalBackdrop {
   position: fixed;
   inset: 0;
-  background: rgba(67, 43, 112, 0.28);
+  background: rgba(0, 0, 0, 0.35);
   display: grid;
   place-items: center;
   padding: 20px;
@@ -625,15 +626,15 @@ body {
   background: #fff;
   border-radius: 18px;
   padding: 18px;
-  color: #1f1538;
+  color: var(--text);
   position: relative;
-  border: 1px solid #dfd5f6;
+  border: 1px solid var(--line);
 }
 
 .modalClose {
   border: none;
-  background: #f2eaff;
-  color: #5a3d90;
+  background: var(--primary-soft);
+  color: var(--primary-strong);
   width: 34px;
   height: 34px;
   border-radius: 50%;
@@ -651,10 +652,10 @@ body {
 }
 
 .rankingStatus {
-  background: #f3edff;
+  background: var(--bg-soft);
   border-radius: 10px;
   padding: 8px;
-  color: #61468f;
+  color: var(--muted);
 }
 
 .rankingError {
@@ -670,13 +671,13 @@ body {
 
 .rankingTable th,
 .rankingTable td {
-  border-bottom: 1px solid #e5dbfb;
+  border-bottom: 1px solid var(--line);
   text-align: left;
   padding: 8px 6px;
 }
 
 .rankingTable th {
-  color: #6d54a0;
+  color: var(--primary-strong);
   font-size: 0.75rem;
   text-transform: uppercase;
 }
@@ -757,10 +758,10 @@ body {
 }
 
 .lineupTeam {
-  border: 1px solid #e5dbfb;
+  border: 1px solid var(--line);
   border-radius: 12px;
   padding: 10px;
-  background: #fdfbff;
+  background: var(--panel);
 }
 
 .lineupTeamHeader {
@@ -768,7 +769,7 @@ body {
   justify-content: space-between;
   align-items: center;
   margin-bottom: 8px;
-  color: #5c438f;
+  color: var(--primary-strong);
   font-size: 0.85rem;
 }
 
@@ -805,13 +806,13 @@ body {
 
 .pitchNumber {
   font-size: 0.74rem;
-  color: #4f2a9c;
+  color: var(--primary-strong);
   font-weight: 700;
 }
 
 .pitchName {
   font-size: 0.7rem;
-  color: #2a1f45;
+  color: var(--text);
   line-height: 1.1;
 }
 
@@ -819,4 +820,24 @@ body {
   .lineupGrid {
     grid-template-columns: 1fr;
   }
+}
+
+/* --- Ads placement (layout only; AdSense renders inside) --- */
+.adBlock {
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.6);
+  border: 1px solid var(--line);
+  padding: 14px;
+}
+
+.adBanner {
+  margin: 14px 0 18px;
+}
+
+.inFeedAd {
+  margin: 14px 0;
+}
+
+.adSideCard {
+  padding: 12px;
 }

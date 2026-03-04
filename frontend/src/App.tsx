@@ -1,7 +1,8 @@
 import "./App.css";
-import {useEffect, useState} from "react";
+import { Fragment, useEffect, useState } from "react";
 import type {MatchEvent, MatchState} from "./hooks/useLiveBoard.ts";
 import {useLiveBoard} from "./hooks/useLiveBoard.ts";
+import AdSenseUnit from "./components/AdSenseUnit";
 
 const UPCOMING_STATUSES = new Set(["NOT STARTED", "SCHEDULED"]);
 
@@ -1028,6 +1029,13 @@ export default function App() {
                             <a href="/contact.html">Contact</a>
                         </div>
                     </section>
+
+                    {/* Header/banner ad (only when we have enough content on screen) */}
+                    {showAdsenseScript ? (
+                        <div className="adBlock adBanner" aria-label="Publicité">
+                            <AdSenseUnit slot="8567185183" />
+                        </div>
+                    ) : null}
                     <div className="sectionBlock liveSection">
                         <div className="sectionHeader">
                             <h2>Matchs en cours</h2>
@@ -1042,34 +1050,43 @@ export default function App() {
                                 </p>
                             </div>
                         ) : (
-                            liveGroups.map((group) => (
-                                <div key={group.comp.id ?? group.comp.name} className="competitionBlock">
-                                    <div className="competitionHeader">
-                                        <span className="competitionTitle">{formatCompetitionLabel(group.comp)}</span>
-                                        <div className="competitionActions">
-                                            <span className="competitionCount">
-                                                {group.matches.length} match{group.matches.length > 1 ? "s" : ""}
-                                            </span>
-                                            {group.comp.id ? (
-                                                <button
-                                                    type="button"
-                                                    className="competitionLink"
-                                                    onClick={() =>
-                                                        setRankingCompetition({
-                                                            id: String(group.comp.id),
-                                                            name: group.comp.name,
-                                                        })
-                                                    }
-                                                >
-                                                    Classement
-                                                </button>
-                                            ) : null}
+                            liveGroups.map((group, index) => (
+                                <Fragment key={group.comp.id ?? group.comp.name}>
+                                    <div className="competitionBlock">
+                                        <div className="competitionHeader">
+                                            <span className="competitionTitle">{formatCompetitionLabel(group.comp)}</span>
+                                            <div className="competitionActions">
+                                                <span className="competitionCount">
+                                                    {group.matches.length} match{group.matches.length > 1 ? "s" : ""}
+                                                </span>
+                                                {group.comp.id ? (
+                                                    <button
+                                                        type="button"
+                                                        className="competitionLink"
+                                                        onClick={() =>
+                                                            setRankingCompetition({
+                                                                id: String(group.comp.id),
+                                                                name: group.comp.name,
+                                                            })
+                                                        }
+                                                    >
+                                                        Classement
+                                                    </button>
+                                                ) : null}
+                                            </div>
+                                        </div>
+                                        <div className="matchGrid">
+                                            {group.matches.map((match) => renderMatchCard(match, "EN COURS"))}
                                         </div>
                                     </div>
-                                    <div className="matchGrid">
-                                        {group.matches.map((match) => renderMatchCard(match, "EN COURS"))}
-                                    </div>
-                                </div>
+
+                                    {/* In-feed ad between competitions */}
+                                    {showAdsenseScript && index % 2 === 1 ? (
+                                        <div className="adBlock inFeedAd" aria-label="Publicité">
+                                            <AdSenseUnit slot="8567185183" />
+                                        </div>
+                                    ) : null}
+                                </Fragment>
                             ))
                         )}
                     </div>
@@ -1087,8 +1104,9 @@ export default function App() {
                                 </p>
                             </div>
                         ) : (
-                            upcomingGroups.map((group) => (
-                                <div key={group.comp.id ?? group.comp.name} className="competitionBlock">
+                            upcomingGroups.map((group, index) => (
+                                <Fragment key={group.comp.id ?? group.comp.name}>
+                                <div className="competitionBlock">
                                     <div className="competitionHeader">
                                         <span className="competitionTitle">{formatCompetitionLabel(group.comp)}</span>
                                         <div className="competitionActions">
@@ -1115,6 +1133,12 @@ export default function App() {
                                         {group.matches.map((match) => renderMatchCard(match, "À VENIR"))}
                                     </div>
                                 </div>
+                                {showAdsenseScript && index % 2 === 1 ? (
+                                    <div className="adBlock inFeedAd" aria-label="Publicité">
+                                        <AdSenseUnit slot="8567185183" />
+                                    </div>
+                                ) : null}
+                                </Fragment>
                             ))
                         )}
                     </div>
@@ -1131,8 +1155,9 @@ export default function App() {
                                 </p>
                             </div>
                         ) : (
-                            finishedGroups.map((group) => (
-                                <div key={group.comp.id ?? group.comp.name} className="competitionBlock">
+                            finishedGroups.map((group, index) => (
+                                <Fragment key={group.comp.id ?? group.comp.name}>
+                                <div className="competitionBlock">
                                     <div className="competitionHeader">
                                         <span className="competitionTitle">{formatCompetitionLabel(group.comp)}</span>
                                         <div className="competitionActions">
@@ -1159,6 +1184,12 @@ export default function App() {
                                         {group.matches.map((match) => renderMatchCard(match, "TERMINÉ"))}
                                     </div>
                                 </div>
+                                {showAdsenseScript && index % 2 === 1 ? (
+                                    <div className="adBlock inFeedAd" aria-label="Publicité">
+                                        <AdSenseUnit slot="8567185183" />
+                                    </div>
+                                ) : null}
+                                </Fragment>
                             ))
                         )}
                     </div>
@@ -1203,10 +1234,21 @@ export default function App() {
                             {aiStatus === "loading" ? <span className="statusText statusUpcoming">Analyse en cours…</span> : null}
                         </div>
                     </div>
+
+                    {/* Sidebar ad */}
+                    {showAdsenseScript ? (
+                        <div className="sideCard adSideCard" aria-label="Publicité">
+                            <AdSenseUnit slot="8567185183" />
+                        </div>
+                    ) : null}
                     <div className="sideCard">
                         <h3>Accès rapide</h3>
                         <p>Retrouvez les pages utiles et la documentation légale.</p>
                         <div className="sideLinks">
+                            <a href="/guides">Guides</a>
+                            <a href="/news">Articles</a>
+                            <a href="/teams">Équipes</a>
+                            <a href="/competitions">Compétitions</a>
                             <a href="/about.html">À propos</a>
                             <a href="/contact.html">Contact</a>
                             <a href="/privacy.html">Confidentialité</a>
@@ -1227,15 +1269,12 @@ export default function App() {
                     </div>
                 </aside>
             </main>
-            {showAdsenseScript ? (
-                <script
-                    async
-                    src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6754395387524937"
-                    crossOrigin="anonymous"
-                ></script>
-            ) : null}
             <footer className="siteFooter">
                 <div className="footerLinks">
+                    <a href="/guides">Guides</a>
+                    <a href="/news">Articles</a>
+                    <a href="/teams">Équipes</a>
+                    <a href="/competitions">Compétitions</a>
                     <a href="/about.html">À propos</a>
                     <a href="/privacy.html">Politique de confidentialité</a>
                     <a href="/terms.html">Conditions</a>
