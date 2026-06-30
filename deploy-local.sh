@@ -24,8 +24,7 @@ echo "✅ Using jar: ${JAR_PATH}"
 
 echo "==> 2) Build frontend"
 pushd "${FRONTEND_DIR}" >/dev/null
-# ⚠️ npm ci nécessite package-lock.json. Donc on utilise npm install.
-npm install
+npm ci
 npm run build
 popd >/dev/null
 

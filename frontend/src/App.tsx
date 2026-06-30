@@ -1,10 +1,13 @@
 import "./App.css";
-import { Fragment, useEffect, useState } from "react";
-import type {MatchEvent, MatchState} from "./hooks/useLiveBoard.ts";
-import {useLiveBoard} from "./hooks/useLiveBoard.ts";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import type { MatchState } from "./hooks/useLiveBoard";
+import { useLiveBoard } from "./hooks/useLiveBoard";
 import AdSenseUnit from "./components/AdSenseUnit";
-
-const UPCOMING_STATUSES = new Set(["NOT STARTED", "SCHEDULED"]);
+import CompetitionGroup from "./components/CompetitionGroup";
+import { UPCOMING_STATUSES, normalizeMatchStatus, isLiveStatus } from "./utils/matchStatus";
+import { buildCompetitionGroups, matchSortKey, resolveDisplayScore } from "./utils/matchSort";
+import { tableRowsFromData, type TableDisplayRow } from "./utils/tableData";
+import { parseLineupsPayload, splitPlayersForPitch, type ParsedLineups, type TeamLineup } from "./utils/lineups";
 
 const MIN_MATCHES_FOR_ADS_SCRIPT = 6;
 const MIN_COMPETITIONS_FOR_ADS_SCRIPT = 2;
@@ -16,351 +19,8 @@ function hasSufficientEditorialCoverage(matches: MatchState[]): boolean {
             .filter((value): value is string | number => value !== undefined && value !== null && String(value).trim() !== "")
             .map((value) => String(value))
     ).size;
-
     return matches.length >= MIN_MATCHES_FOR_ADS_SCRIPT && distinctCompetitions >= MIN_COMPETITIONS_FOR_ADS_SCRIPT;
 }
-
-function normalizeMatchStatus(status?: string): string {
-    if (!status) return "UNKNOWN";
-    const normalized = status.trim().toUpperCase().replace(/[_-]/g, " ").replace(/\s+/g, " ");
-    if (["NS", "TBD"].includes(normalized)) return "NOT STARTED";
-    if (["1H", "2H", "ET", "LIVE"].includes(normalized)) return "IN PLAY";
-    if (["HT", "BT", "HALF TIME"].includes(normalized)) return "HALF TIME BREAK";
-    if (["FT", "AET", "AFTER EXTRA TIME", "PEN", "PENALTIES"].includes(normalized)) return "FINISHED";
-    return normalized;
-}
-
-function eventSide(event: MatchEvent): string {
-    const side = (event.home_away ?? (event as MatchEvent & { homeAway?: string }).homeAway ?? "").toLowerCase();
-    return side;
-}
-function normalizeEventType(value?: string): string {
-    return (value ?? "").replace(/[\s_-]/g, "").toUpperCase();
-}
-
-function isGoalEvent(event?: string): boolean {
-    const normalized = normalizeEventType(event);
-    return normalized === "GOAL" || normalized === "NORMALGOAL" || normalized === "GOALPENALTY" || normalized === "PENALTY" || normalized === "OWNGOAL" || normalized === "GOALP";
-}
-
-function isGoalDisallowedEvent(event?: string): boolean {
-    const normalized = normalizeEventType(event);
-    return normalized.includes("GOALDISALLOWED") || normalized.includes("DISALLOWEDGOAL");
-}
-
-function parseScore(score?: string): { home: number; away: number } | undefined {
-    if (!score) return undefined;
-    const match = score.trim().match(/(\d+)\s*[-:]\s*(\d+)/);
-    if (!match) return undefined;
-    const home = Number(match[1]);
-    const away = Number(match[2]);
-    if (!Number.isFinite(home) || !Number.isFinite(away)) return undefined;
-    return { home, away };
-}
-
-function resolveDisplayScore(match: MatchState): string {
-    const providerScore = parseScore(match.scores?.score);
-    if (!providerScore) return "0 : 0";
-    return `${providerScore.home} : ${providerScore.away}`;
-}
-
-function isRedCardEvent(event?: string): boolean {
-    const normalized = normalizeEventType(event);
-    return normalized === "REDCARD" || normalized === "RED" || normalized === "SECONDYELLOW";
-}
-
-function formatEventIcon(event?: MatchEvent): string {
-    if (!event) return "•";
-    const type = normalizeEventType(event.event);
-    if (type === "GOAL" || type === "NORMALGOAL" || type === "GOALPENALTY" || type === "PENALTY" || type === "GOALP") return "⚽️";
-    if (type === "OWNGOAL") return "🥅";
-    if (type === "YELLOWCARD" || type === "YELLOW") return "🟨";
-    if (type === "REDCARD" || type === "RED") return "🟥";
-    if (type === "SECONDYELLOW") return "🟨🟥";
-    return "•";
-}
-
-function formatEventMinute(time?: string): string {
-    if (!time) return "--";
-    const trimmed = time.trim();
-    if (!trimmed) return "--";
-    return trimmed.endsWith("'") ? trimmed : `${trimmed}'`;
-}
-
-function eventSortKey(event: MatchEvent): number {
-    const time = (event.time ?? "").trim();
-    const match = time.match(/(\d+)(?:\+(\d+))?/);
-    if (!match) return Number.MAX_SAFE_INTEGER;
-    const base = Number(match[1]);
-    const added = match[2] ? Number(match[2]) : 0;
-    if (!Number.isFinite(base)) return Number.MAX_SAFE_INTEGER;
-    return base * 100 + (Number.isFinite(added) ? added : 0);
-}
-
-
-function isMinutePlaceholderName(value?: string): boolean {
-    const raw = (value ?? "").trim().replace(/'/g, "");
-    if (!raw) return false;
-    return /^\d{1,3}(?:\+\d{1,2})?$/.test(raw);
-}
-
-function hasKnownPlayer(event: MatchEvent): boolean {
-    const player = event.player?.trim();
-    return Boolean(player) && !isMinutePlaceholderName(player);
-}
-
-function eventMinuteAndSideKey(event: MatchEvent): string {
-    return `${eventSortKey(event)}|${eventSide(event).slice(0, 1)}`;
-}
-
-function eventMinuteSidePlayerKey(event: MatchEvent): string {
-    const side = eventSide(event).slice(0, 1);
-    const minute = eventSortKey(event);
-    const player = normalizePlayerKey(event.player);
-    return `${minute}|${side}|${player}`;
-}
-
-function normalizePlayerKey(name?: string): string {
-    return (name ?? "")
-        .normalize("NFD")
-        .replace(/\p{M}/gu, "")
-        .toLowerCase()
-        .replace(/[^a-z0-9]/g, "");
-}
-
-function dedupBucket(event: MatchEvent): number {
-    const sortKey = eventSortKey(event);
-    if (!Number.isFinite(sortKey) || sortKey === Number.MAX_SAFE_INTEGER) return -1;
-    const minute = Math.floor(sortKey / 100);
-    // Provider jitter often shifts the same scorer event by +1 minute (ex: 49' then 50').
-    // A 3-minute bucket absorbs this noise while keeping clearly distinct goals (ex: 60' and 75').
-    return Math.floor(minute / 3);
-}
-
-function compactGoalEvents(goalEvents: MatchEvent[]): MatchEvent[] {
-    const namedKeys = new Set(
-        goalEvents
-            .filter((event) => hasKnownPlayer(event))
-            .map((event) => eventMinuteAndSideKey(event))
-    );
-
-    const withoutUnnamedDuplicates = goalEvents.filter((event) => {
-        if (hasKnownPlayer(event)) return true;
-        return !namedKeys.has(eventMinuteAndSideKey(event));
-    });
-
-    const byNamedPlayerBucket = new Map<string, MatchEvent>();
-    const unnamedEvents: MatchEvent[] = [];
-
-    for (const event of withoutUnnamedDuplicates) {
-        const playerKey = normalizePlayerKey(event.player);
-        const sideKey = eventSide(event).slice(0, 1);
-        const bucket = dedupBucket(event);
-
-        if (!playerKey || !sideKey || bucket < 0) {
-            unnamedEvents.push(event);
-            continue;
-        }
-
-        const key = `${playerKey}|${sideKey}|${bucket}`;
-        const prev = byNamedPlayerBucket.get(key);
-        if (!prev || eventSortKey(event) >= eventSortKey(prev)) {
-            byNamedPlayerBucket.set(key, event);
-        }
-    }
-
-    return [...byNamedPlayerBucket.values(), ...unnamedEvents].sort((a, b) => eventSortKey(a) - eventSortKey(b));
-}
-
-function removeDisallowedGoals(events: MatchEvent[]): MatchEvent[] {
-    const goalsByRichKey = new Map<string, number[]>();
-    const goalsByMinuteSideKey = new Map<string, number[]>();
-
-    for (let index = 0; index < events.length; index += 1) {
-        const event = events[index];
-        if (!isGoalEvent(event.event)) continue;
-
-        const richKey = eventMinuteSidePlayerKey(event);
-        const minuteSideKey = eventMinuteAndSideKey(event);
-        if (!goalsByRichKey.has(richKey)) goalsByRichKey.set(richKey, []);
-        goalsByRichKey.get(richKey)!.push(index);
-        if (!goalsByMinuteSideKey.has(minuteSideKey)) goalsByMinuteSideKey.set(minuteSideKey, []);
-        goalsByMinuteSideKey.get(minuteSideKey)!.push(index);
-    }
-
-    const canceledGoalIndexes = new Set<number>();
-
-    for (let index = 0; index < events.length; index += 1) {
-        const event = events[index];
-        if (!isGoalDisallowedEvent(event.event)) continue;
-
-        const richKey = eventMinuteSidePlayerKey(event);
-        const minuteSideKey = eventMinuteAndSideKey(event);
-
-        const withSamePlayer = (goalsByRichKey.get(richKey) ?? []).filter((goalIndex) => goalIndex < index);
-        const candidates = withSamePlayer.length > 0
-            ? withSamePlayer
-            : (goalsByMinuteSideKey.get(minuteSideKey) ?? []).filter((goalIndex) => goalIndex < index);
-        const goalToCancel = candidates.length > 0 ? candidates[candidates.length - 1] : undefined;
-        if (goalToCancel !== undefined) canceledGoalIndexes.add(goalToCancel);
-    }
-
-    return events.filter((event, index) => isGoalEvent(event.event) && !canceledGoalIndexes.has(index));
-}
-
-function formatEventPlayer(event: MatchEvent): string {
-    const player = event.player?.trim();
-    if (!player || isMinutePlaceholderName(player)) return "Buteur";
-    return player;
-}
-
-function parseMatchTimeValue(value?: string): number | undefined {
-    if (!value) return undefined;
-    const trimmed = value.trim();
-    if (!trimmed) return undefined;
-    let parsed = Date.parse(trimmed);
-    if (Number.isNaN(parsed)) {
-        const normalized = trimmed.replace(" ", "T");
-        if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2})?$/.test(normalized)) {
-            parsed = Date.parse(`${normalized}Z`);
-        } else if (/^\d{2}:\d{2}(:\d{2})?$/.test(normalized)) {
-            const now = new Date();
-            const [hours, minutes, seconds] = normalized.split(":").map((part) => Number(part));
-            parsed = Date.UTC(
-                now.getUTCFullYear(),
-                now.getUTCMonth(),
-                now.getUTCDate(),
-                hours,
-                minutes,
-                Number.isFinite(seconds) ? seconds : 0
-            );
-        }
-    }
-    return Number.isNaN(parsed) ? undefined : parsed;
-}
-
-function matchSortKey(match: { scheduled?: string; time?: string }): number {
-    const scheduled = parseMatchTimeValue(match.scheduled);
-    if (scheduled !== undefined) return scheduled;
-    const time = (match.time ?? "").trim();
-    const minuteMatch = time.match(/(\d+)(?:\+(\d+))?/);
-    if (!minuteMatch) return Number.MAX_SAFE_INTEGER;
-    const base = Number(minuteMatch[1]);
-    const added = minuteMatch[2] ? Number(minuteMatch[2]) : 0;
-    if (!Number.isFinite(base)) return Number.MAX_SAFE_INTEGER;
-    return base * 100 + (Number.isFinite(added) ? added : 0);
-}
-
-function formatCompetitionLabel(comp?: { name?: string; country?: string }): string {
-    const name = comp?.name?.trim() || "Championnat";
-    const country = comp?.country?.trim();
-    return country ? `${name} — ${country}` : name;
-}
-
-function buildCompetitionGroups(
-    matches: MatchState[],
-    filter: (match: MatchState) => boolean
-): Array<{ comp: { id?: string; name?: string; country?: string }; matches: MatchState[] }> {
-    const map = new Map<string, { comp: { id?: string; name?: string; country?: string }; matches: MatchState[] }>();
-
-    for (const match of matches) {
-        if (!filter(match)) continue;
-        const comp = match.competition;
-        const key = String(comp?.id ?? comp?.name ?? "Other");
-        if (!map.has(key)) {
-            map.set(key, {
-                comp: {
-                    id: comp?.id ? String(comp.id) : undefined,
-                    name: comp?.name ?? "Other",
-                    country: comp?.country,
-                },
-                matches: [],
-            });
-        }
-        map.get(key)!.matches.push(match);
-    }
-
-    return Array.from(map.values())
-        .map((group) => ({
-            ...group,
-            matches: group.matches.sort((a, b) => matchSortKey(a) - matchSortKey(b)),
-        }))
-        .sort((a, b) => {
-            const aKey = a.matches[0] ? matchSortKey(a.matches[0]) : Number.MAX_SAFE_INTEGER;
-            const bKey = b.matches[0] ? matchSortKey(b.matches[0]) : Number.MAX_SAFE_INTEGER;
-            return aKey - bKey;
-        });
-}
-
-
-
-function statusLabel(status?: string, time?: string, scheduled?: string) {
-    const normalized = normalizeMatchStatus(status);
-    if (!status) return scheduled ?? "--:--";
-    if (normalized === "IN PLAY" || normalized === "ADDED TIME") return time ? `${time}'` : "EN COURS";
-    if (normalized === "HALF TIME BREAK") return "MT";
-    if (normalized === "FINISHED") return "TERMINÉ";
-    if (UPCOMING_STATUSES.has(normalized)) return scheduled ?? "À VENIR";
-    return normalized;
-}
-
-function formatLocalTime(value?: string): string | undefined {
-    if (!value) return value;
-    const trimmed = value.trim();
-    let parsed = Date.parse(trimmed);
-    if (Number.isNaN(parsed)) {
-        const normalized = trimmed.replace(" ", "T");
-        if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2})?$/.test(normalized)) {
-            parsed = Date.parse(`${normalized}Z`);
-        } else if (/^\d{2}:\d{2}(:\d{2})?$/.test(normalized)) {
-            const now = new Date();
-            const [hours, minutes, seconds] = normalized.split(":").map((part) => Number(part));
-            parsed = Date.UTC(
-                now.getUTCFullYear(),
-                now.getUTCMonth(),
-                now.getUTCDate(),
-                hours,
-                minutes,
-                Number.isFinite(seconds) ? seconds : 0
-            );
-        }
-    }
-    if (Number.isNaN(parsed)) return value;
-    return new Date(parsed).toLocaleTimeString("fr-FR", {
-        hour: "2-digit",
-        minute: "2-digit",
-    });
-}
-
-type TableRow = {
-    rank?: number | string;
-    position?: number | string;
-    rg?: number | string;
-    place?: number | string;
-    group?: string;
-    team?: { id?: number | string; name?: string };
-    club?: { id?: number | string; name?: string };
-    teamName?: string;
-    name?: string;
-    points?: number | string;
-    pts?: number | string;
-    all?: { played?: number | string; goals?: { for?: number | string; against?: number | string } };
-    played?: number | string;
-    matches?: number | string;
-    playedGames?: number | string;
-    goal_diff?: number | string;
-    goalDiff?: number | string;
-    goalsDiff?: number | string;
-    goals?: { for?: number | string; against?: number | string };
-};
-
-type TableDisplayRow = {
-    rank: string;
-    team: string;
-    points: string;
-    played: string;
-    diff: string;
-};
 
 type AiInsightResponse = {
     answer?: string;
@@ -373,299 +33,8 @@ type LineupMatchRef = {
     awayName?: string;
 };
 
-type LineupPlayer = {
-    name: string;
-    number?: string;
-    grid?: string;
-};
-
-type TeamLineup = {
-    teamName: string;
-    formation?: string;
-    players: LineupPlayer[];
-};
-
-type ParsedLineups = {
-    home?: TeamLineup;
-    away?: TeamLineup;
-};
-
-
-function toNumber(value: unknown): number | undefined {
-    const parsed = typeof value === "string" && value.trim() === "" ? NaN : Number(value);
-    return Number.isFinite(parsed) ? parsed : undefined;
-}
-
-function normalizeGroupName(value: unknown): string | undefined {
-    if (!value) return undefined;
-    return String(value)
-        .toLowerCase()
-        .replace(/^(group|groupe)\s*/i, "")
-        .trim();
-}
-
-function toId(value: unknown): string | undefined {
-    if (value === null || value === undefined) return undefined;
-    const normalized = String(value).trim();
-    return normalized === "" ? undefined : normalized;
-}
-
-function groupMatchesTeams(group: Record<string, unknown>, teamIds: string[]): boolean {
-    if (!Array.isArray(group?.standings)) return false;
-    return (group.standings as TableRow[]).some((row) => {
-        const teamId = toId(row.team?.id ?? row.club?.id);
-        return teamId ? teamIds.includes(teamId) : false;
-    });
-}
-
-function selectGroupStandings(
-    groups: Array<Record<string, unknown>>,
-    normalizedGroup?: string,
-    teamIds: string[] = []
-): { rows: TableRow[]; groupName?: string } {
-    if (normalizedGroup) {
-        const matchingGroup = groups.find(
-            (entry) => normalizeGroupName(entry?.name) === normalizedGroup
-        );
-        const standings = matchingGroup?.standings;
-        if (Array.isArray(standings)) {
-            return { rows: standings as TableRow[], groupName: String(matchingGroup?.name ?? "").trim() || undefined };
-        }
-    }
-    if (teamIds.length > 0) {
-        const matchingGroup = groups.find((entry) => groupMatchesTeams(entry, teamIds));
-        const standings = matchingGroup?.standings;
-        if (Array.isArray(standings)) {
-            return { rows: standings as TableRow[], groupName: String(matchingGroup?.name ?? "").trim() || undefined };
-        }
-    }
-    const fallback = groups.find((entry) => Array.isArray(entry?.standings))?.standings;
-    if (Array.isArray(fallback)) {
-        return { rows: fallback as TableRow[] };
-    }
-    return { rows: [] };
-}
-
-function extractTableRows(
-    data: unknown,
-    groupName?: string,
-    teamIds: string[] = []
-): { rows: TableRow[]; groupName?: string } {
-    const normalizedGroup = normalizeGroupName(groupName);
-    if (Array.isArray(data)) {
-        return { rows: data as TableRow[] };
-    }
-    const candidate = data as {
-        table?: unknown;
-        response?: unknown;
-        standings?: unknown;
-        data?: unknown;
-        stages?: unknown;
-    };
-    if (Array.isArray(candidate?.table)) {
-        return { rows: candidate.table as TableRow[] };
-    }
-    if (Array.isArray(candidate?.response)) {
-        const response = candidate.response as Array<Record<string, unknown>>;
-        const fromResponseTable = response.find((entry) => Array.isArray(entry?.table))?.table;
-        if (Array.isArray(fromResponseTable)) {
-            return { rows: fromResponseTable as TableRow[] };
-        }
-        const fromLeagueStandings = response
-            .map((entry) => (entry.league as { standings?: unknown })?.standings)
-            .find((standings) => Array.isArray(standings) && Array.isArray(standings[0]));
-        if (Array.isArray(fromLeagueStandings) && Array.isArray(fromLeagueStandings[0])) {
-            return { rows: fromLeagueStandings[0] as TableRow[] };
-        }
-    }
-    if (Array.isArray(candidate?.stages)) {
-        const stages = candidate.stages as Array<Record<string, unknown>>;
-        for (const stage of stages) {
-            const groups = stage.groups as Array<Record<string, unknown>> | undefined;
-            if (!Array.isArray(groups)) continue;
-            const selection = selectGroupStandings(groups, normalizedGroup, teamIds);
-            if (selection.rows.length > 0) {
-                return selection;
-            }
-        }
-    }
-    if (Array.isArray(candidate?.standings) && Array.isArray(candidate.standings[0])) {
-        return { rows: candidate.standings[0] as TableRow[] };
-    }
-    if (candidate?.data) {
-        const dataNode = candidate.data as {
-            table?: unknown;
-            groups?: unknown;
-            stages?: unknown;
-            standings?: unknown;
-        };
-        if (Array.isArray(dataNode?.table)) {
-            return { rows: dataNode.table as TableRow[] };
-        }
-        if (Array.isArray(dataNode?.groups)) {
-            const dataGroups = dataNode.groups as Array<Record<string, unknown>>;
-            const selection = selectGroupStandings(dataGroups, normalizedGroup, teamIds);
-            if (selection.rows.length > 0) {
-                return selection;
-            }
-        }
-        if (Array.isArray(dataNode?.stages)) {
-            const stages = dataNode.stages as Array<Record<string, unknown>>;
-            for (const stage of stages) {
-                const groups = stage.groups as Array<Record<string, unknown>> | undefined;
-                if (!Array.isArray(groups)) continue;
-                const selection = selectGroupStandings(groups, normalizedGroup, teamIds);
-                if (selection.rows.length > 0) {
-                    return selection;
-                }
-            }
-        }
-        if (Array.isArray(dataNode?.standings) && Array.isArray(dataNode.standings[0])) {
-            return { rows: dataNode.standings[0] as TableRow[] };
-        }
-    }
-    return { rows: [] };
-}
-
-function tableRowsFromData(
-    data: unknown,
-    groupName?: string,
-    teamIds: string[] = []
-): { rows: TableDisplayRow[]; groupName?: string } {
-    const { rows: list, groupName: resolvedGroupName } = extractTableRows(data, groupName, teamIds);
-
-    const rows = list.map((row, idx) => {
-        const rankRaw = row.rank ?? row.position ?? row.rg ?? row.place;
-        const rankNum = toNumber(rankRaw);
-        const rank = rankNum !== undefined ? String(rankNum) : String(rankRaw ?? idx + 1);
-        const team =
-            row.team?.name ??
-            row.club?.name ??
-            row.teamName ??
-            row.name ??
-            "Équipe";
-        const pointsRaw = row.points ?? row.pts;
-        const pointsNum = toNumber(pointsRaw);
-        const points = pointsNum !== undefined ? `${pointsNum}pts` : String(pointsRaw ?? "--");
-        const playedRaw = row.played ?? row.matches ?? row.playedGames ?? row.all?.played;
-        const playedNum = toNumber(playedRaw);
-        const played = playedNum !== undefined ? String(playedNum) : String(playedRaw ?? "--");
-        const diffRaw =
-            row.goal_diff ??
-            row.goalDiff ??
-            row.goalsDiff ??
-            (toNumber(row.goals?.for) !== undefined && toNumber(row.goals?.against) !== undefined
-                ? toNumber(row.goals?.for)! - toNumber(row.goals?.against)!
-                : undefined) ??
-            (toNumber(row.all?.goals?.for) !== undefined && toNumber(row.all?.goals?.against) !== undefined
-                ? toNumber(row.all?.goals?.for)! - toNumber(row.all?.goals?.against)!
-                : undefined);
-        const diffNum = toNumber(diffRaw);
-        const diff = diffNum !== undefined ? `${diffNum > 0 ? "+" : ""}${diffNum}` : String(diffRaw ?? "--");
-
-        return { rank, team, points, played, diff };
-    });
-    return { rows, groupName: resolvedGroupName };
-}
-
-
-function playersFromLineup(raw: unknown): LineupPlayer[] {
-    if (!Array.isArray(raw)) return [];
-    return raw
-        .map((entry) => {
-            const player = (entry as { player?: { name?: string; number?: number | string; grid?: string } })?.player;
-            const name = String(player?.name ?? "").trim();
-            if (!name) return null;
-            return {
-                name,
-                number: player?.number !== undefined ? String(player.number) : undefined,
-                grid: player?.grid ? String(player.grid) : undefined,
-            } as LineupPlayer;
-        })
-        .filter((entry): entry is LineupPlayer => entry !== null);
-}
-
-function parseLineupsPayload(data: unknown): ParsedLineups {
-    const response = (data as { response?: unknown[] })?.response;
-    if (!Array.isArray(response)) return {};
-
-    const mapped = response
-        .map((item) => {
-            const team = (item as { team?: { name?: string }; formation?: string; startXI?: unknown[] });
-            const teamName = String(team?.team?.name ?? "").trim();
-            if (!teamName) return null;
-            return {
-                teamName,
-                formation: team.formation ? String(team.formation) : undefined,
-                players: playersFromLineup(team.startXI),
-            } as TeamLineup;
-        })
-        .filter((entry): entry is TeamLineup => entry !== null);
-
-    return {
-        home: mapped[0],
-        away: mapped[1],
-    };
-}
-
-function lineFromFormation(formation?: string): number[] {
-    const cleaned = (formation ?? "").trim();
-    if (!cleaned) return [];
-    return cleaned.split("-").map((n) => Number(n)).filter((n) => Number.isFinite(n) && n > 0);
-}
-
-function splitPlayersForPitch(players: LineupPlayer[], formation?: string): LineupPlayer[][] {
-    if (players.length === 0) return [];
-
-    const playersWithGrid = players
-        .map((player) => {
-            const raw = (player.grid ?? "").trim();
-            const match = raw.match(/^(\d+):(\d+)$/);
-            if (!match) return null;
-            return {
-                player,
-                row: Number(match[1]),
-                col: Number(match[2]),
-            };
-        })
-        .filter((entry): entry is { player: LineupPlayer; row: number; col: number } => entry !== null)
-        .sort((a, b) => (a.row - b.row) || (a.col - b.col));
-
-    if (playersWithGrid.length > 0) {
-        const grouped = new Map<number, LineupPlayer[]>();
-        playersWithGrid.forEach(({ player, row }) => {
-            if (!grouped.has(row)) grouped.set(row, []);
-            grouped.get(row)!.push(player);
-        });
-
-        const lines = Array.from(grouped.entries())
-            .sort((a, b) => a[0] - b[0])
-            .map(([, linePlayers]) => linePlayers);
-
-        const noGridPlayers = players.filter((p) => !p.grid);
-        if (noGridPlayers.length > 0) lines.unshift(noGridPlayers);
-        return lines;
-    }
-
-    const lines = lineFromFormation(formation);
-    if (lines.length === 0) return [players];
-
-    const out: LineupPlayer[][] = [];
-    let index = 0;
-    lines.forEach((size) => {
-        out.push(players.slice(index, index + size));
-        index += size;
-    });
-
-    if (index < players.length) {
-        out.unshift(players.slice(index));
-    }
-
-    return out;
-}
-
 export default function App() {
-    const {grouped} = useLiveBoard();
+    const { grouped } = useLiveBoard();
     const [rankingCompetition, setRankingCompetition] = useState<{
         id?: string;
         name?: string;
@@ -677,42 +46,58 @@ export default function App() {
     const [lineupMatch, setLineupMatch] = useState<LineupMatchRef | null>(null);
     const [lineups, setLineups] = useState<ParsedLineups>({});
     const [lineupStatus, setLineupStatus] = useState<"idle" | "loading" | "error">("idle");
-    const [aiSummary, setAiSummary] = useState<string>("Chargement du résumé IA...");
+    const [aiSummary, setAiSummary] = useState<string>("Chargement du resume IA...");
     const [aiStatus, setAiStatus] = useState<"loading" | "idle" | "error">("loading");
     const [searchTerm, setSearchTerm] = useState("");
-    const allMatches = grouped.flatMap((group) => group.list ?? []);
-    const showAdsenseScript = hasSufficientEditorialCoverage(allMatches);
-    const normalizedSearch = searchTerm.trim().toLowerCase();
-    const matchesSearch = (value: string) =>
-        normalizedSearch.length === 0 || value.toLowerCase().includes(normalizedSearch);
-    const filteredMatches = allMatches.filter((match) => {
-        if (normalizedSearch.length === 0) return true;
-        const home = match.home?.name ?? "";
-        const away = match.away?.name ?? "";
-        const competition = match.competition?.name ?? "";
-        return [home, away, competition].some((entry) => matchesSearch(entry));
-    });
-    const liveMatches = filteredMatches.filter((match) => {
-        const status = normalizeMatchStatus(match.status);
-        return status === "IN PLAY" || status === "ADDED TIME" || status === "HALF TIME BREAK";
-    });
-    const upcomingMatches = filteredMatches.filter((match) => UPCOMING_STATUSES.has(normalizeMatchStatus(match.status)));
-    const finishedMatches = filteredMatches.filter((match) => normalizeMatchStatus(match.status) === "FINISHED");
-    const sortedLiveMatches = [...liveMatches].sort((a, b) => matchSortKey(a) - matchSortKey(b));
-    const liveGroups = buildCompetitionGroups(filteredMatches, (match) => {
-        const status = normalizeMatchStatus(match.status);
-        return status === "IN PLAY" || status === "ADDED TIME" || status === "HALF TIME BREAK";
-    });
-    const upcomingGroups = buildCompetitionGroups(filteredMatches, (match) => UPCOMING_STATUSES.has(normalizeMatchStatus(match.status)));
-    const finishedGroups = buildCompetitionGroups(filteredMatches, (match) => normalizeMatchStatus(match.status) === "FINISHED");
-    useEffect(() => {
-        const prompt =
-            "Fais un résumé ultra court (3 points max) des matchs en direct et des principales affiches à venir.";
-        const params = new URLSearchParams({
-            prompt,
-            maxMatches: "12",
-        });
 
+    const allMatches = useMemo(() => grouped.flatMap((group) => group.list ?? []), [grouped]);
+    const showAdsenseScript = useMemo(() => hasSufficientEditorialCoverage(allMatches), [allMatches]);
+
+    const filteredMatches = useMemo(() => {
+        const normalizedSearch = searchTerm.trim().toLowerCase();
+        if (normalizedSearch.length === 0) return allMatches;
+        return allMatches.filter((match) => {
+            const home = match.home?.name ?? "";
+            const away = match.away?.name ?? "";
+            const competition = match.competition?.name ?? "";
+            return [home, away, competition].some((entry) => entry.toLowerCase().includes(normalizedSearch));
+        });
+    }, [allMatches, searchTerm]);
+
+    const liveMatches = useMemo(
+        () => filteredMatches.filter((match) => isLiveStatus(match.status)),
+        [filteredMatches]
+    );
+    const upcomingMatches = useMemo(
+        () => filteredMatches.filter((match) => UPCOMING_STATUSES.has(normalizeMatchStatus(match.status))),
+        [filteredMatches]
+    );
+    const finishedMatches = useMemo(
+        () => filteredMatches.filter((match) => normalizeMatchStatus(match.status) === "FINISHED"),
+        [filteredMatches]
+    );
+    const sortedLiveMatches = useMemo(
+        () => [...liveMatches].sort((a, b) => matchSortKey(a) - matchSortKey(b)),
+        [liveMatches]
+    );
+
+    const liveGroups = useMemo(
+        () => buildCompetitionGroups(filteredMatches, (m) => isLiveStatus(m.status)),
+        [filteredMatches]
+    );
+    const upcomingGroups = useMemo(
+        () => buildCompetitionGroups(filteredMatches, (m) => UPCOMING_STATUSES.has(normalizeMatchStatus(m.status))),
+        [filteredMatches]
+    );
+    const finishedGroups = useMemo(
+        () => buildCompetitionGroups(filteredMatches, (m) => normalizeMatchStatus(m.status) === "FINISHED"),
+        [filteredMatches]
+    );
+
+    // AI Summary
+    useEffect(() => {
+        const prompt = "Fais un resume ultra court (3 points max) des matchs en direct et des principales affiches a venir.";
+        const params = new URLSearchParams({ prompt, maxMatches: "12" });
         setAiStatus("loading");
 
         const stream = new EventSource(`/api/ai/insights/stream?${params.toString()}`);
@@ -722,14 +107,14 @@ export default function App() {
                 const data = JSON.parse(evt.data) as AiInsightResponse;
                 const text = data.answer?.trim();
                 if (!text) {
-                    setAiSummary("Résumé IA indisponible pour le moment.");
+                    setAiSummary("Resume IA indisponible pour le moment.");
                     setAiStatus("error");
                     return;
                 }
                 setAiSummary(text);
                 setAiStatus(data.status === "ok" ? "idle" : "error");
             } catch {
-                setAiSummary("Le résumé IA est momentanément indisponible.");
+                setAiSummary("Le resume IA est momentanement indisponible.");
                 setAiStatus("error");
             } finally {
                 stream.close();
@@ -737,29 +122,27 @@ export default function App() {
         };
 
         const handleError = () => {
-            setAiSummary("Le résumé IA est momentanément indisponible.");
+            setAiSummary("Le resume IA est momentanement indisponible.");
             setAiStatus("error");
             stream.close();
         };
 
         stream.addEventListener("insight", handleInsight as EventListener);
-        stream.addEventListener("error", handleError);
         stream.onerror = handleError;
 
         return () => {
             stream.removeEventListener("insight", handleInsight as EventListener);
-            stream.removeEventListener("error", handleError);
             stream.close();
         };
     }, [grouped.length, liveMatches.length, upcomingMatches.length]);
 
+    // Ranking table
     useEffect(() => {
         if (!rankingCompetition) {
             setRankingRows([]);
             setRankingStatus("idle");
             return;
         }
-
         if (!rankingCompetition.id) {
             setRankingRows([]);
             setRankingStatus("error");
@@ -798,15 +181,13 @@ export default function App() {
         };
 
         loadTable();
-
         return () => {
             cancelled = true;
-            if (retryTimer) {
-                clearTimeout(retryTimer);
-            }
+            if (retryTimer) clearTimeout(retryTimer);
         };
     }, [rankingCompetition]);
 
+    // Lineups
     useEffect(() => {
         if (!lineupMatch?.id) {
             setLineups({});
@@ -830,10 +211,16 @@ export default function App() {
                 setLineupStatus("error");
             });
 
-        return () => {
-            cancelled = true;
-        };
+        return () => { cancelled = true; };
     }, [lineupMatch]);
+
+    const handleShowRanking = useCallback((ref: { id?: string; name?: string }) => {
+        setRankingCompetition(ref);
+    }, []);
+
+    const handleShowLineup = useCallback((ref: { id?: number; homeName?: string; awayName?: string }) => {
+        setLineupMatch(ref);
+    }, []);
 
     const renderLineupTeam = (side: "home" | "away", team?: TeamLineup) => {
         if (!team) return null;
@@ -860,134 +247,11 @@ export default function App() {
         );
     };
 
-    const renderMatchCard = (match: (typeof allMatches)[number], variant: string) => {
-        const status = normalizeMatchStatus(match.status);
-        const isUpcoming = UPCOMING_STATUSES.has(status);
-        const isFinished = status === "FINISHED";
-        const localScheduled = formatLocalTime(match.scheduled);
-        const scoreText = isUpcoming ? localScheduled ?? "--:--" : resolveDisplayScore(match);
-        const displayStatus = statusLabel(match.status, match.time, localScheduled);
-        const sortedEvents = [...(match.lastEvents ?? [])].sort((a, b) => eventSortKey(a) - eventSortKey(b));
-        const rawGoalEvents = removeDisallowedGoals(sortedEvents);
-        const goalEvents = compactGoalEvents(rawGoalEvents);
-        const namedGoalEvents = goalEvents.filter((event) => hasKnownPlayer(event));
-        const cardEvents = sortedEvents.filter((event) => isRedCardEvent(event.event));
-        const homeGoals = namedGoalEvents.filter((event) => eventSide(event).startsWith("h"));
-        const awayGoals = namedGoalEvents.filter((event) => eventSide(event).startsWith("a"));
-        const homeCards = cardEvents.filter((event) => eventSide(event).startsWith("h"));
-        const awayCards = cardEvents.filter((event) => eventSide(event).startsWith("a"));
-        const eventSummary = namedGoalEvents
-            .map((event) => `${formatEventPlayer(event)} ${formatEventMinute(event.time)}`)
-            .join(" · ");
-
-        const renderTeam = (
-            side: "home" | "away",
-            team: { name?: string; logo?: string } | undefined,
-            goals: MatchEvent[],
-            cards: MatchEvent[]
-        ) => (
-            <div className={`teamBlock ${side === "away" ? "teamBlockAway" : ""}`}>
-                <div className={`matchRowTeam ${side === "away" ? "matchRowTeamRight" : ""}`}>
-                    {side === "away" ? null : (
-                        team?.logo ? (
-                            <img
-                                className="teamLogo"
-                                src={team.logo}
-                                alt={team?.name ?? "Équipe"}
-                                loading="lazy"
-                                onError={(e) => {
-                                    (e.currentTarget as HTMLImageElement).style.display = "none";
-                                }}
-                            />
-                        ) : (
-                            <span className="teamLogoPlaceholder"/>
-                        )
-                    )}
-                    <span>{team?.name ?? "Équipe"}</span>
-                    {side === "away" ? (
-                        team?.logo ? (
-                            <img
-                                className="teamLogo"
-                                src={team.logo}
-                                alt={team?.name ?? "Équipe"}
-                                loading="lazy"
-                                onError={(e) => {
-                                    (e.currentTarget as HTMLImageElement).style.display = "none";
-                                }}
-                            />
-                        ) : (
-                            <span className="teamLogoPlaceholder"/>
-                        )
-                    ) : null}
-                </div>
-                {goals.length > 0 ? (
-                    <div className={`eventList ${side === "away" ? "eventListRight" : ""}`}>
-                        {goals.map((event, idx) => (
-                            <span key={`goal-${idx}`} className="eventBadge eventGoal">
-                                ⚽ {formatEventPlayer(event)} {formatEventMinute(event.time)}
-                            </span>
-                        ))}
-                    </div>
-                ) : null}
-                {cards.length > 0 ? (
-                    <div className={`eventList ${side === "away" ? "eventListRight" : ""}`}>
-                        {cards.map((event, idx) => (
-                            <span key={`red-${idx}`} className="eventBadge eventRed">
-                                {formatEventIcon(event)} {formatEventPlayer(event)} {formatEventMinute(event.time)}
-                            </span>
-                        ))}
-                    </div>
-                ) : null}
-            </div>
-        );
-
-        return (
-            <article key={match.id ?? `${match.home?.name}-${match.away?.name}`} className="matchRowCard">
-                <div className="matchRowMain">
-                    <div className="matchRowTime">
-                        <span className="matchTime">{localScheduled ?? match.time ?? "--:--"}</span>
-                        <span
-                            className={`statusText ${
-                                isUpcoming ? "statusUpcoming" : isFinished ? "statusFinished" : "statusLive"
-                            }`}
-                        >
-                            {displayStatus}
-                        </span>
-                        <span className="matchTag">{variant}</span>
-                    </div>
-                    {renderTeam("home", match.home, homeGoals, homeCards)}
-                    <div className={`matchScorePill ${isUpcoming ? "matchScoreUpcoming" : ""}`}>{scoreText}</div>
-                    {renderTeam("away", match.away, awayGoals, awayCards)}
-                </div>
-                <div className="matchRowMeta">
-                    <span className="matchCompetition">{match.competition?.name ?? "LiveFoot"}</span>
-                    <button
-                        type="button"
-                        className="competitionLink"
-                        onClick={() =>
-                            setLineupMatch({
-                                id: match.id,
-                                homeName: match.home?.name,
-                                awayName: match.away?.name,
-                            })
-                        }
-                        disabled={!match.id}
-                    >
-                        Compos
-                    </button>
-                    {eventSummary ? <span className="matchRowSummary">Buteurs : {eventSummary}</span> : null}
-                </div>
-            </article>
-        );
-    };
-
     return (
         <div className="page">
             <header className="topBar">
                 <div className="brand">
-                    <span className="brandIcon" aria-hidden="true">
-                        LF
-                    </span>
+                    <span className="brandIcon" aria-hidden="true">LF</span>
                     <span className="brandText">LiveFoot</span>
                 </div>
                 <label className="searchBar">
@@ -1007,35 +271,35 @@ export default function App() {
                     <section className="sectionBlock seoIntro" aria-labelledby="seo-intro-title">
                         <h1 id="seo-intro-title">LiveFoot — Scores de football en direct</h1>
                         <p>
-                            Suivez les matchs du jour en temps réel : score, buteurs, cartons, temps additionnel et
-                            état de la rencontre.
+                            Suivez les matchs du jour en temps reel : score, buteurs, cartons, temps additionnel et
+                            etat de la rencontre.
                         </p>
                         <p>
-                            Nos tableaux regroupent les compétitions populaires (Ligue 1, Premier League, Bundesliga,
+                            Nos tableaux regroupent les competitions populaires (Ligue 1, Premier League, Bundesliga,
                             Serie A, Liga) avec un affichage lisible sur mobile et desktop.
                         </p>
                         <div className="seoChecklist">
                             <h2>Pourquoi LiveFoot ?</h2>
                             <ul>
-                                <li>Mises à jour continues des scores et statuts de match.</li>
-                                <li>Événements clés : buts, cartons rouges, moments décisifs.</li>
-                                <li>Classements de compétition accessibles rapidement.</li>
+                                <li>Mises a jour continues des scores et statuts de match.</li>
+                                <li>Evenements cles : buts, cartons rouges, moments decisifs.</li>
+                                <li>Classements de competition accessibles rapidement.</li>
                             </ul>
                         </div>
                         <div className="seoLinks">
-                            <a href="/about.html">À propos</a>
-                            <a href="/privacy.html">Politique de confidentialité</a>
+                            <a href="/about.html">A propos</a>
+                            <a href="/privacy.html">Politique de confidentialite</a>
                             <a href="/terms.html">Conditions</a>
                             <a href="/contact.html">Contact</a>
                         </div>
                     </section>
 
-                    {/* Header/banner ad (only when we have enough content on screen) */}
                     {showAdsenseScript ? (
-                        <div className="adBlock adBanner" aria-label="Publicité">
+                        <div className="adBlock adBanner" aria-label="Publicite">
                             <AdSenseUnit slot="8567185183" />
                         </div>
                     ) : null}
+
                     <div className="sectionBlock liveSection">
                         <div className="sectionHeader">
                             <h2>Matchs en cours</h2>
@@ -1045,163 +309,77 @@ export default function App() {
                             <div className="empty">
                                 <h2>Aucun match en cours</h2>
                                 <p>
-                                    Revenez plus tard pour suivre les prochaines rencontres en direct. Vous pouvez déjà
-                                    parcourir les matchs à venir et les compétitions à l&apos;affiche.
+                                    Revenez plus tard pour suivre les prochaines rencontres en direct. Vous pouvez deja
+                                    parcourir les matchs a venir et les competitions a l&apos;affiche.
                                 </p>
                             </div>
                         ) : (
-                            liveGroups.map((group, index) => (
-                                <Fragment key={group.comp.id ?? group.comp.name}>
-                                    <div className="competitionBlock">
-                                        <div className="competitionHeader">
-                                            <span className="competitionTitle">{formatCompetitionLabel(group.comp)}</span>
-                                            <div className="competitionActions">
-                                                <span className="competitionCount">
-                                                    {group.matches.length} match{group.matches.length > 1 ? "s" : ""}
-                                                </span>
-                                                {group.comp.id ? (
-                                                    <button
-                                                        type="button"
-                                                        className="competitionLink"
-                                                        onClick={() =>
-                                                            setRankingCompetition({
-                                                                id: String(group.comp.id),
-                                                                name: group.comp.name,
-                                                            })
-                                                        }
-                                                    >
-                                                        Classement
-                                                    </button>
-                                                ) : null}
-                                            </div>
-                                        </div>
-                                        <div className="matchGrid">
-                                            {group.matches.map((match) => renderMatchCard(match, "EN COURS"))}
-                                        </div>
-                                    </div>
-
-                                    {/* In-feed ad between competitions */}
-                                    {showAdsenseScript && index % 2 === 1 ? (
-                                        <div className="adBlock inFeedAd" aria-label="Publicité">
-                                            <AdSenseUnit slot="8567185183" />
-                                        </div>
-                                    ) : null}
-                                </Fragment>
-                            ))
+                            <CompetitionGroup
+                                groups={liveGroups}
+                                variant="EN COURS"
+                                showAds={showAdsenseScript}
+                                onShowRanking={handleShowRanking}
+                                onShowLineup={handleShowLineup}
+                            />
                         )}
                     </div>
+
                     <div className="sectionBlock">
                         <div className="sectionHeader">
-                            <h2>Matchs à venir</h2>
+                            <h2>Matchs a venir</h2>
                             <span>{upcomingMatches.length} matchs</span>
                         </div>
                         {upcomingGroups.length === 0 ? (
                             <div className="empty">
-                                <h2>Aucun match à venir</h2>
+                                <h2>Aucun match a venir</h2>
                                 <p>
-                                    Les prochains matchs seront affichés ici avec leurs horaires et informations de
+                                    Les prochains matchs seront affiches ici avec leurs horaires et informations de
                                     diffusion.
                                 </p>
                             </div>
                         ) : (
-                            upcomingGroups.map((group, index) => (
-                                <Fragment key={group.comp.id ?? group.comp.name}>
-                                <div className="competitionBlock">
-                                    <div className="competitionHeader">
-                                        <span className="competitionTitle">{formatCompetitionLabel(group.comp)}</span>
-                                        <div className="competitionActions">
-                                            <span className="competitionCount">
-                                                {group.matches.length} match{group.matches.length > 1 ? "s" : ""}
-                                            </span>
-                                            {group.comp.id ? (
-                                                <button
-                                                    type="button"
-                                                    className="competitionLink"
-                                                    onClick={() =>
-                                                        setRankingCompetition({
-                                                            id: String(group.comp.id),
-                                                            name: group.comp.name,
-                                                        })
-                                                    }
-                                                >
-                                                    Classement
-                                                </button>
-                                            ) : null}
-                                        </div>
-                                    </div>
-                                    <div className="matchGrid">
-                                        {group.matches.map((match) => renderMatchCard(match, "À VENIR"))}
-                                    </div>
-                                </div>
-                                {showAdsenseScript && index % 2 === 1 ? (
-                                    <div className="adBlock inFeedAd" aria-label="Publicité">
-                                        <AdSenseUnit slot="8567185183" />
-                                    </div>
-                                ) : null}
-                                </Fragment>
-                            ))
+                            <CompetitionGroup
+                                groups={upcomingGroups}
+                                variant="A VENIR"
+                                showAds={showAdsenseScript}
+                                onShowRanking={handleShowRanking}
+                                onShowLineup={handleShowLineup}
+                            />
                         )}
                     </div>
+
                     <div className="sectionBlock">
                         <div className="sectionHeader">
-                            <h2>Matchs terminés</h2>
+                            <h2>Matchs termines</h2>
                             <span>{finishedMatches.length} matchs</span>
                         </div>
                         {finishedGroups.length === 0 ? (
                             <div className="empty">
-                                <h2>Aucun match terminé</h2>
+                                <h2>Aucun match termine</h2>
                                 <p>
-                                    Les résultats finaux apparaîtront ici avec les scores et les événements marquants.
+                                    Les resultats finaux apparaitront ici avec les scores et les evenements marquants.
                                 </p>
                             </div>
                         ) : (
-                            finishedGroups.map((group, index) => (
-                                <Fragment key={group.comp.id ?? group.comp.name}>
-                                <div className="competitionBlock">
-                                    <div className="competitionHeader">
-                                        <span className="competitionTitle">{formatCompetitionLabel(group.comp)}</span>
-                                        <div className="competitionActions">
-                                            <span className="competitionCount">
-                                                {group.matches.length} match{group.matches.length > 1 ? "s" : ""}
-                                            </span>
-                                            {group.comp.id ? (
-                                                <button
-                                                    type="button"
-                                                    className="competitionLink"
-                                                    onClick={() =>
-                                                        setRankingCompetition({
-                                                            id: String(group.comp.id),
-                                                            name: group.comp.name,
-                                                        })
-                                                    }
-                                                >
-                                                    Classement
-                                                </button>
-                                            ) : null}
-                                        </div>
-                                    </div>
-                                    <div className="matchGrid">
-                                        {group.matches.map((match) => renderMatchCard(match, "TERMINÉ"))}
-                                    </div>
-                                </div>
-                                {showAdsenseScript && index % 2 === 1 ? (
-                                    <div className="adBlock inFeedAd" aria-label="Publicité">
-                                        <AdSenseUnit slot="8567185183" />
-                                    </div>
-                                ) : null}
-                                </Fragment>
-                            ))
+                            <CompetitionGroup
+                                groups={finishedGroups}
+                                variant="TERMINE"
+                                showAds={showAdsenseScript}
+                                onShowRanking={handleShowRanking}
+                                onShowLineup={handleShowLineup}
+                            />
                         )}
                     </div>
                 </section>
+
                 <aside className="sideColumn">
                     <div className="sideCard">
                         <div className="sideCardHeader">
-                            <h3>IA — Résumé automatique</h3>
+                            <h3>IA — Resume automatique</h3>
                             <span className="sideBadge">BETA</span>
                         </div>
                         <p>
-                            Nous générons un aperçu automatique des matchs clés du jour pour vous aider à repérer
+                            Nous generons un apercu automatique des matchs cles du jour pour vous aider a reperer
                             rapidement les scores importants.
                         </p>
                         <div className="sideList">
@@ -1210,11 +388,11 @@ export default function App() {
                                 <strong>{liveMatches.length}</strong>
                             </div>
                             <div>
-                                <span className="sideLabel">Matchs à venir</span>
+                                <span className="sideLabel">Matchs a venir</span>
                                 <strong>{upcomingMatches.length}</strong>
                             </div>
                             <div>
-                                <span className="sideLabel">Matchs terminés</span>
+                                <span className="sideLabel">Matchs termines</span>
                                 <strong>{finishedMatches.length}</strong>
                             </div>
                         </div>
@@ -1229,59 +407,62 @@ export default function App() {
                             </div>
                         ) : null}
                         <div className="sideHighlight">
-                            <span className="sideLabel">Résumé IA</span>
+                            <span className="sideLabel">Resume IA</span>
                             <p>{aiSummary}</p>
                             {aiStatus === "loading" ? <span className="statusText statusUpcoming">Analyse en cours…</span> : null}
                         </div>
                     </div>
 
-                    {/* Sidebar ad */}
                     {showAdsenseScript ? (
-                        <div className="sideCard adSideCard" aria-label="Publicité">
+                        <div className="sideCard adSideCard" aria-label="Publicite">
                             <AdSenseUnit slot="8567185183" />
                         </div>
                     ) : null}
+
                     <div className="sideCard">
-                        <h3>Accès rapide</h3>
-                        <p>Retrouvez les pages utiles et la documentation légale.</p>
+                        <h3>Acces rapide</h3>
+                        <p>Retrouvez les pages utiles et la documentation legale.</p>
                         <div className="sideLinks">
                             <a href="/guides">Guides</a>
                             <a href="/news">Articles</a>
-                            <a href="/teams">Équipes</a>
-                            <a href="/competitions">Compétitions</a>
-                            <a href="/about.html">À propos</a>
+                            <a href="/teams">Equipes</a>
+                            <a href="/competitions">Competitions</a>
+                            <a href="/about.html">A propos</a>
                             <a href="/contact.html">Contact</a>
-                            <a href="/privacy.html">Confidentialité</a>
+                            <a href="/privacy.html">Confidentialite</a>
                             <a href="/terms.html">Conditions</a>
                         </div>
                     </div>
+
                     <div className="sideCard">
-                        <h3>Analyse éditoriale</h3>
+                        <h3>Analyse editoriale</h3>
                         <p>
-                            Notre rédaction agrège les scores en direct, les statuts de matchs, les affiches à venir
-                            et les classements pour offrir une lecture rapide mais utile de la journée football.
+                            Notre redaction agrege les scores en direct, les statuts de matchs, les affiches a venir
+                            et les classements pour offrir une lecture rapide mais utile de la journee football.
                         </p>
                         <ul className="editorialList">
                             <li>Suivi minute par minute des matchs en cours.</li>
-                            <li>Vue par compétition pour comparer les affiches du jour.</li>
-                            <li>Accès rapide aux classements et compositions dès disponibilité.</li>
+                            <li>Vue par competition pour comparer les affiches du jour.</li>
+                            <li>Acces rapide aux classements et compositions des disponibilite.</li>
                         </ul>
                     </div>
                 </aside>
             </main>
+
             <footer className="siteFooter">
                 <div className="footerLinks">
                     <a href="/guides">Guides</a>
                     <a href="/news">Articles</a>
-                    <a href="/teams">Équipes</a>
-                    <a href="/competitions">Compétitions</a>
-                    <a href="/about.html">À propos</a>
-                    <a href="/privacy.html">Politique de confidentialité</a>
+                    <a href="/teams">Equipes</a>
+                    <a href="/competitions">Competitions</a>
+                    <a href="/about.html">A propos</a>
+                    <a href="/privacy.html">Politique de confidentialite</a>
                     <a href="/terms.html">Conditions</a>
                     <a href="/contact.html">Contact</a>
                 </div>
-                <span className="footerNote">© 2005-2026 LiveFoot - Tous droits réservés.</span>
+                <span className="footerNote">&copy; 2005-2026 LiveFoot - Tous droits reserves.</span>
             </footer>
+
             {rankingCompetition ? (
                 <div
                     className="modalBackdrop"
@@ -1296,7 +477,7 @@ export default function App() {
                             aria-label="Fermer le classement"
                             onClick={() => setRankingCompetition(null)}
                         >
-                            ×
+                            &times;
                         </button>
                         <div className="rankingTitle">
                             {rankingCompetition.name
@@ -1307,9 +488,7 @@ export default function App() {
                                   }`
                                 : "Classement"}
                         </div>
-                        {rankingStatus === "loading" ? (
-                            <div className="rankingStatus">Chargement...</div>
-                        ) : null}
+                        {rankingStatus === "loading" ? <div className="rankingStatus">Chargement...</div> : null}
                         {rankingStatus === "error" ? (
                             <div className="rankingStatus rankingError">
                                 Classement indisponible pour le moment.
@@ -1340,11 +519,12 @@ export default function App() {
                             </table>
                         ) : null}
                         {rankingStatus === "idle" && rankingRows.length === 0 ? (
-                            <div className="rankingStatus">Aucune donnée de classement.</div>
+                            <div className="rankingStatus">Aucune donnee de classement.</div>
                         ) : null}
                     </div>
                 </div>
             ) : null}
+
             {lineupMatch ? (
                 <div
                     className="modalBackdrop"
@@ -1359,10 +539,10 @@ export default function App() {
                             aria-label="Fermer les compositions"
                             onClick={() => setLineupMatch(null)}
                         >
-                            ×
+                            &times;
                         </button>
                         <div className="rankingTitle">
-                            Compositions - {(lineupMatch.homeName ?? "Home")} vs {(lineupMatch.awayName ?? "Away")}
+                            Compositions - {lineupMatch.homeName ?? "Home"} vs {lineupMatch.awayName ?? "Away"}
                         </div>
                         {lineupStatus === "loading" ? <div className="rankingStatus">Chargement...</div> : null}
                         {lineupStatus === "error" ? (

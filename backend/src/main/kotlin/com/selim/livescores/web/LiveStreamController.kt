@@ -21,8 +21,9 @@ class LiveStreamController(
     private val standingsService: StandingsService,
     private val lineupsService: LineupsService
 ) {
-    @GetMapping(value = ["/live"], produces = [MediaType.TEXT_EVENT_STREAM_VALUE])
-    fun live(): SseEmitter = sseHub.subscribe(SseTopics.LIVE_BOARD)
+
+    @GetMapping(value = ["/lives"], produces = [MediaType.TEXT_EVENT_STREAM_VALUE])
+    fun lives(): SseEmitter = sseHub.subscribe(SseTopics.LIVE_BOARD)
 
     @GetMapping("/board")
     fun board(): List<MatchState> = matchService.getBoardMatches()

@@ -23,8 +23,8 @@ class AiInsightsService(
     @Value("\${app.ai.max-concurrent-requests:1}")
     maxConcurrentRequests: Int
 ) {
-    private val aiCallExecutor = Executors.newCachedThreadPool()
-    private val aiSlots = Semaphore(maxConcurrentRequests.coerceAtLeast(10))
+    private val aiCallExecutor = Executors.newFixedThreadPool(2)
+    private val aiSlots = Semaphore(maxConcurrentRequests.coerceIn(1, 10))
 
     fun suggestions(): AiSuggestionsResponse = AiSuggestionsResponse(
         suggestions = listOf(

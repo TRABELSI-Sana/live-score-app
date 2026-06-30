@@ -13,7 +13,7 @@ services:
       - SPRING_AI_OLLAMA_BASE_URL=http://ollama:11434
       - APP_AI_TIMEOUT_SECONDS=120
       - APP_AI_MAX_CONCURRENT_REQUESTS=1
-      - APIFOOTBALL_KEY=${APIFOOTBALL_KEY:-81c9d306d8d84c8c22cbd42a154a996a}
+      - APIFOOTBALL_KEY=${APIFOOTBALL_KEY}
     depends_on:
       - redis
 

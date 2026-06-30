@@ -37,32 +37,32 @@ class LiveScoreApiClient(
 
     fun getLiveMatchesJson(): String {
         if (!tryConsumeQuota()) throw QuotaExceededException()
-        return client.get().uri("/fixtures?live=all").retrieve().body(String::class.java)!!
+        return client.get().uri("/fixtures?live=all").retrieve().body(String::class.java) ?: throw IllegalStateException("Empty response from API-Football")
     }
 
     fun getFixturesByLeagueOnDateJson(competitionId: Int, date: LocalDate): String {
         if (!tryConsumeQuota()) throw QuotaExceededException()
         val season = seasonFromDate(date)
         val uri = "/fixtures?league=$competitionId&season=$season&date=$date"
-        return client.get().uri(uri).retrieve().body(String::class.java)!!
+        return client.get().uri(uri).retrieve().body(String::class.java) ?: throw IllegalStateException("Empty response from API-Football")
     }
 
 
     fun getFixtureLineupsJson(fixtureId: Long): String {
         if (!tryConsumeQuota()) throw QuotaExceededException()
-        return client.get().uri("/fixtures/lineups?fixture=$fixtureId").retrieve().body(String::class.java)!!
+        return client.get().uri("/fixtures/lineups?fixture=$fixtureId").retrieve().body(String::class.java) ?: throw IllegalStateException("Empty response from API-Football")
     }
 
     fun getFixtureEventsJson(fixtureId: Long): String {
         if (!tryConsumeQuota()) throw QuotaExceededException()
-        return client.get().uri("/fixtures/events?fixture=$fixtureId").retrieve().body(String::class.java)!!
+        return client.get().uri("/fixtures/events?fixture=$fixtureId").retrieve().body(String::class.java) ?: throw IllegalStateException("Empty response from API-Football")
     }
 
     fun getCompetitionTableJson(competitionId: Int): String {
         if (!tryConsumeQuota()) throw QuotaExceededException()
         val season = seasonFromDate(LocalDate.now(ZoneId.of("UTC")))
         val uri = "/standings?league=$competitionId&season=$season"
-        return client.get().uri(uri).retrieve().body(String::class.java)!!
+        return client.get().uri(uri).retrieve().body(String::class.java) ?: throw IllegalStateException("Empty response from API-Football")
     }
 
     fun competitionIdsList(): List<Int> =

@@ -15,7 +15,7 @@ import java.util.concurrent.Executors
 class AiController(
     private val aiInsightsService: AiInsightsService
 ) {
-    private val aiStreamExecutor = Executors.newCachedThreadPool()
+    private val aiStreamExecutor = Executors.newFixedThreadPool(4)
 
     @GetMapping("/suggestions")
     fun suggestions(): AiSuggestionsResponse = aiInsightsService.suggestions()

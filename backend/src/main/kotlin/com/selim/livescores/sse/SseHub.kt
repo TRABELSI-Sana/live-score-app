@@ -35,7 +35,7 @@ class SseHub {
 
     fun publish(channel: String, eventName: String, data: Any) {
         val channelEmitters = emittersByChannel[channel] ?: return
-        val deadEmitters = mutableListOf<SseEmitter>()
+        var deadEmitters: MutableList<SseEmitter>? = null
 
         channelEmitters.forEach { emitter ->
             try {
@@ -44,14 +44,15 @@ class SseHub {
                         .name(eventName)
                         .data(data)
                 )
-            } catch (_: Exception) {
+            } catch (_: java.io.IOException) {
                 emitter.complete()
-                deadEmitters.add(emitter)
+                (deadEmitters ?: mutableListOf<SseEmitter>().also { deadEmitters = it }).add(emitter)
             }
         }
 
-        if (deadEmitters.isNotEmpty()) {
-            channelEmitters.removeAll(deadEmitters.toSet())
+        val dead = deadEmitters
+        if (dead != null && dead.isNotEmpty()) {
+            channelEmitters.removeAll(dead.toSet())
             if (channelEmitters.isEmpty()) {
                 emittersByChannel.remove(channel, channelEmitters)
             }

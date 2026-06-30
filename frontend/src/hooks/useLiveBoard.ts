@@ -51,7 +51,7 @@ export function useLiveBoard() {
     }, []);
 
     useEffect(() => {
-        const es = new EventSource("/api/stream/live");
+        const es = new EventSource("/api/stream/lives");
 
         es.addEventListener("connected", () => setConnected(true));
 

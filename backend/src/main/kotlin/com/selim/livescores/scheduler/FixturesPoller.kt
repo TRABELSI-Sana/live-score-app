@@ -2,14 +2,17 @@ package com.selim.livescores.scheduler
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.selim.livescores.domain.MatchStatus
+import com.selim.livescores.provider.dto.ApiFootballFixturesResponse
 import com.selim.livescores.provider.livescore.LiveScoreApiClient
 import com.selim.livescores.service.MatchService
+import org.slf4j.LoggerFactory
 import org.springframework.data.redis.core.StringRedisTemplate
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
 import java.time.Duration
 import java.time.Instant
 import java.time.LocalDate
+import java.util.concurrent.atomic.AtomicReference
 
 @Component
 class FixturesPoller(
@@ -17,28 +20,28 @@ class FixturesPoller(
     private val objectMapper: ObjectMapper,
     private val matchService: MatchService,
     private val redisTemplate: StringRedisTemplate
-
 ) {
-    @Volatile private var apiDisabledUntil: Instant? = null
+    private val logger = LoggerFactory.getLogger(FixturesPoller::class.java)
+    private val apiDisabledUntil = AtomicReference<Instant?>(null)
 
     private fun isApiDisabled(now: Instant = Instant.now()): Boolean {
-        val until = apiDisabledUntil ?: return false
+        val until = apiDisabledUntil.get() ?: return false
         return now.isBefore(until)
     }
 
     private fun disableApiFor(duration: Duration) {
-        apiDisabledUntil = Instant.now().plus(duration)
+        apiDisabledUntil.set(Instant.now().plus(duration))
     }
 
     private fun clearApiDisable() {
-        apiDisabledUntil = null
+        apiDisabledUntil.set(null)
     }
 
     private inline fun <T> guardedApiCall(block: () -> T): T? {
         if (isApiDisabled()) return null
         return try {
             val response = block()
-            if (apiDisabledUntil != null) clearApiDisable()
+            if (apiDisabledUntil.get() != null) clearApiDisable()
             response
         } catch (_: LiveScoreApiClient.QuotaExceededException) {
             disableApiFor(Duration.ofHours(8))
@@ -101,6 +104,6 @@ class FixturesPoller(
             connection.serverCommands().flushDb()
             null
         }
-        println("🧹 Redis flushed at 03:00")
+        logger.info("Redis flushed at 03:00 (daily reset)")
     }
 }
