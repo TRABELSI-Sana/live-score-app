@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { getConsent } from "./CookieConsent";
 
 declare global {
   interface Window {
@@ -7,20 +8,12 @@ declare global {
 }
 
 type AdSenseUnitProps = {
-  /** Your ad slot id from AdSense */
   slot: string;
-  /** Optional extra className for layout */
   className?: string;
-  /** Default: auto */
   format?: string;
-  /** Default: true */
   fullWidthResponsive?: boolean;
 };
 
-/**
- * Minimal AdSense unit for React/Vite.
- * IMPORTANT: Only render after your site is approved and only on pages with enough content.
- */
 export default function AdSenseUnit({
   slot,
   className,
@@ -28,14 +21,15 @@ export default function AdSenseUnit({
   fullWidthResponsive = true,
 }: AdSenseUnitProps) {
   useEffect(() => {
-    // AdSense requires calling push() after the <ins> exists in the DOM.
-    // Wrap in try/catch to avoid crashing the app if AdSense is blocked.
+    if (getConsent() !== "accepted") return;
     try {
       (window.adsbygoogle = window.adsbygoogle || []).push({});
     } catch {
       // noop
     }
   }, [slot]);
+
+  if (getConsent() !== "accepted") return null;
 
   return (
     <ins

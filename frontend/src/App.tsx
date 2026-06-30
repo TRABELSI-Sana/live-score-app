@@ -4,6 +4,7 @@ import type { MatchState } from "./hooks/useLiveBoard";
 import { useLiveBoard } from "./hooks/useLiveBoard";
 import AdSenseUnit from "./components/AdSenseUnit";
 import CompetitionGroup from "./components/CompetitionGroup";
+import CookieConsent from "./components/CookieConsent";
 import { UPCOMING_STATUSES, normalizeMatchStatus, isLiveStatus } from "./utils/matchStatus";
 import { buildCompetitionGroups, matchSortKey, resolveDisplayScore } from "./utils/matchSort";
 import { tableRowsFromData, type TableDisplayRow } from "./utils/tableData";
@@ -560,6 +561,8 @@ export default function App() {
                     </div>
                 </div>
             ) : null}
+
+            <CookieConsent />
         </div>
     );
 }
