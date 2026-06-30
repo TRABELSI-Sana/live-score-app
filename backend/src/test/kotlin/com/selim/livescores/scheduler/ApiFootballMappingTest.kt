@@ -1,6 +1,11 @@
 package com.selim.livescores.scheduler
 
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
+import com.selim.livescores.domain.MatchStatus
+import com.selim.livescores.provider.dto.ApiFootballEventPlayer
+import com.selim.livescores.provider.dto.ApiFootballEventTime
+import com.selim.livescores.provider.dto.ApiFootballFixtureEvent
+import com.selim.livescores.provider.dto.ApiFootballFixturesResponse
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -60,11 +65,11 @@ class ApiFootballMappingTest {
 
     @Test
     fun `should map short statuses to internal statuses`() {
-        assertEquals("NOT STARTED", mapApiStatus("NS"))
-        assertEquals("IN PLAY", mapApiStatus("2H"))
-        assertEquals("HALF TIME BREAK", mapApiStatus("HT"))
-        assertEquals("FINISHED", mapApiStatus("PEN"))
-        assertEquals("FINISHED", mapApiStatus("CANC"))
+        assertEquals("NOT STARTED", MatchStatus.normalize("NS"))
+        assertEquals("IN PLAY", MatchStatus.normalize("2H"))
+        assertEquals("HALF TIME BREAK", MatchStatus.normalize("HT"))
+        assertEquals("FINISHED", MatchStatus.normalize("PEN"))
+        assertEquals("FINISHED", MatchStatus.normalize("CANC"))
     }
 
     @Test
