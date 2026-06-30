@@ -73,8 +73,7 @@ class LiveScoreApiClient(
             .mapNotNull { it.toIntOrNull() }
 
     fun seasonFromDate(date: LocalDate): Int {
-        // Saison Europe classique: démarre en juillet.
-        return if (date.month.value >= Month.JULY.value) date.year else date.year - 1
+        return if (date.month.value >= Month.JUNE.value) date.year else date.year - 1
     }
 
     private fun tryConsumeQuota(): Boolean {
