@@ -70,13 +70,22 @@ export function useLiveBoard() {
         return () => es.close();
     }, []);
 
+    const deduped = useMemo(() => {
+        const seen = new Map<string, MatchState>();
+        for (const m of matches) {
+            const key = m.id != null ? String(m.id) : `${m.home?.name}-${m.away?.name}-${m.scheduled}`;
+            seen.set(key, m);
+        }
+        return Array.from(seen.values());
+    }, [matches]);
+
     const grouped = useMemo(() => {
         const map = new Map<
             string,
             { comp: { id?: string; name: string; country?: string }; list: MatchState[] }
         >();
 
-        for (const m of matches) {
+        for (const m of deduped) {
             const c = m.competition;
             const key = String(c?.id ?? c?.name ?? "Other");
 
@@ -98,7 +107,7 @@ export function useLiveBoard() {
             comp,
             list: list.sort((a, b) => (a.scheduled ?? "").localeCompare(b.scheduled ?? "")),
         }));
-    }, [matches]);
+    }, [deduped]);
     return { connected, matches, grouped };
 
 }
