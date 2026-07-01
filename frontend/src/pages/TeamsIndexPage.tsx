@@ -1,10 +1,16 @@
 import { Link } from "react-router-dom";
 import { teams } from "../content/teams";
 import AdSlot from "../components/ads/AdSlot";
+import Seo from "../components/Seo";
 
 export default function TeamsIndexPage() {
   return (
     <div className="site-container content-page">
+      <Seo
+        title="Equipes de football"
+        description="Decouvrez les clubs et equipes couverts par LiveFoot : historique, palmares, statistiques et resultats en direct."
+        path="/teams"
+      />
       <div className="content-page-header">
         <h1 className="content-page-title">Equipes de football</h1>
         <p className="content-page-desc">

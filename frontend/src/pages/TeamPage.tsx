@@ -1,6 +1,7 @@
 import { Link, useParams } from "react-router-dom";
 import { getBySlug } from "../content/teams";
 import AdSlot from "../components/ads/AdSlot";
+import Seo from "../components/Seo";
 
 function renderBody(body: string) {
   const blocks = body.split(/\n\n+/).map((b) => b.trim()).filter(Boolean);
@@ -31,12 +32,18 @@ export default function TeamPage() {
     "@type": "SportsTeam",
     name: team.name,
     sport: "Soccer",
-    url: `/teams/${team.slug}`,
+    url: `https://livefoot.online/teams/${team.slug}`,
+    description: team.description || `Suivez ${team.name} en direct sur LiveFoot`,
   };
 
   return (
     <div className="site-container content-page">
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+      <Seo
+        title={`${team.name} – Resultats et infos`}
+        description={team.description || `Suivez ${team.name} en direct : resultats, statistiques, analyse et historique sur LiveFoot.`}
+        path={`/teams/${team.slug}`}
+        jsonLd={jsonLd}
+      />
 
       <div className="content-page-header">
         <h1 className="content-page-title">{team.name}</h1>

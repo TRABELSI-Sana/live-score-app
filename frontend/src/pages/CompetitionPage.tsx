@@ -1,6 +1,7 @@
 import { Link, useParams } from "react-router-dom";
 import { getBySlug } from "../content/competitions";
 import AdSlot from "../components/ads/AdSlot";
+import Seo from "../components/Seo";
 
 function renderBody(body: string) {
   const blocks = body.split(/\n\n+/).map((b) => b.trim()).filter(Boolean);
@@ -31,12 +32,18 @@ export default function CompetitionPage() {
     "@type": "SportsOrganization",
     name: comp.name,
     sport: "Soccer",
-    url: `/competitions/${comp.slug}`,
+    url: `https://livefoot.online/competitions/${comp.slug}`,
+    description: comp.description || `Suivez ${comp.name} en direct sur LiveFoot`,
   };
 
   return (
     <div className="site-container content-page">
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+      <Seo
+        title={`${comp.name} – Resultats en direct`}
+        description={comp.description || `Suivez ${comp.name} en direct : classement, resultats, calendrier et statistiques sur LiveFoot.`}
+        path={`/competitions/${comp.slug}`}
+        jsonLd={jsonLd}
+      />
 
       <div className="content-page-header">
         <h1 className="content-page-title">{comp.name}</h1>

@@ -1,10 +1,16 @@
 import { Link } from "react-router-dom";
 import { competitions } from "../content/competitions";
 import AdSlot from "../components/ads/AdSlot";
+import Seo from "../components/Seo";
 
 export default function CompetitionsIndexPage() {
   return (
     <div className="site-container content-page">
+      <Seo
+        title="Competitions de football"
+        description="Toutes les competitions couvertes par LiveFoot : Ligue 1, Premier League, Liga, Serie A, Champions League. Format, enjeux et classements."
+        path="/competitions"
+      />
       <div className="content-page-header">
         <h1 className="content-page-title">Competitions de football</h1>
         <p className="content-page-desc">

@@ -1,10 +1,16 @@
 import { Link } from "react-router-dom";
 import { guides } from "../content/guides";
 import AdSlot from "../components/ads/AdSlot";
+import Seo from "../components/Seo";
 
 export default function GuidesIndexPage() {
   return (
     <div className="site-container content-page">
+      <Seo
+        title="Guides football"
+        description="Guides editoriaux pour comprendre les regles du football, les tactiques, les formats de competitions et les statistiques avancees."
+        path="/guides"
+      />
       <div className="content-page-header">
         <h1 className="content-page-title">Guides football</h1>
         <p className="content-page-desc">

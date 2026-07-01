@@ -1,10 +1,16 @@
 import { Link } from "react-router-dom";
 import { articles } from "../content/articles";
 import AdSlot from "../components/ads/AdSlot";
+import Seo from "../components/Seo";
 
 export default function ArticlesIndexPage() {
   return (
     <div className="site-container content-page">
+      <Seo
+        title="Actualites et analyses football"
+        description="Articles editoriaux pour comprendre les scores, les statistiques et les tendances du football. Analyses tactiques et decryptages."
+        path="/news"
+      />
       <div className="content-page-header">
         <h1 className="content-page-title">Actualites & analyses</h1>
         <p className="content-page-desc">

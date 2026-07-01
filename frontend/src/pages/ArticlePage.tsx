@@ -1,6 +1,7 @@
 import { Link, useParams } from "react-router-dom";
 import { getBySlug } from "../content/articles";
 import AdSlot from "../components/ads/AdSlot";
+import Seo from "../components/Seo";
 
 function renderBody(body: string) {
   const blocks = body.split(/\n\n+/).map((b) => b.trim()).filter(Boolean);
@@ -31,16 +32,23 @@ export default function ArticlePage() {
     "@context": "https://schema.org",
     "@type": "Article",
     headline: article.title,
+    description: article.description,
     dateModified: article.updatedAt,
     datePublished: article.updatedAt,
     author: { "@type": "Organization", name: "LiveFoot" },
     publisher: { "@type": "Organization", name: "LiveFoot" },
-    mainEntityOfPage: { "@type": "WebPage", "@id": `/news/${article.slug}` },
+    mainEntityOfPage: { "@type": "WebPage", "@id": `https://livefoot.online/news/${article.slug}` },
   };
 
   return (
     <div className="site-container content-page">
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+      <Seo
+        title={article.title || "Article"}
+        description={article.description || "Analyse football sur LiveFoot"}
+        path={`/news/${article.slug}`}
+        type="article"
+        jsonLd={jsonLd}
+      />
 
       <div className="content-page-header">
         <h1 className="content-page-title">{article.title}</h1>

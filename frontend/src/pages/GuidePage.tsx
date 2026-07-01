@@ -1,6 +1,7 @@
 import { Link, useParams } from "react-router-dom";
 import { getGuideBySlug } from "../content/guides";
 import AdSlot from "../components/ads/AdSlot";
+import Seo from "../components/Seo";
 
 function renderBody(body: string) {
   const blocks = body.split(/\n\n+/).map((b) => b.trim()).filter(Boolean);
@@ -26,8 +27,27 @@ export default function GuidePage() {
     );
   }
 
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    headline: guide.title,
+    description: guide.description,
+    dateModified: guide.updatedAt,
+    datePublished: guide.updatedAt,
+    author: { "@type": "Organization", name: "LiveFoot" },
+    publisher: { "@type": "Organization", name: "LiveFoot" },
+    mainEntityOfPage: { "@type": "WebPage", "@id": `https://livefoot.online/guides/${guide.slug}` },
+  };
+
   return (
     <div className="site-container content-page">
+      <Seo
+        title={guide.title}
+        description={guide.description}
+        path={`/guides/${guide.slug}`}
+        type="article"
+        jsonLd={jsonLd}
+      />
       <div className="content-page-header">
         <h1 className="content-page-title">{guide.title}</h1>
         <p className="content-page-desc">{guide.description}</p>
