@@ -1,19 +1,14 @@
 import { Link, useParams } from "react-router-dom";
 import { getGuideBySlug } from "../content/guides";
+import AdSlot from "../components/ads/AdSlot";
 
 function renderBody(body: string) {
-  const blocks = body
-    .split(/\n\n+/)
-    .map((b) => b.trim())
-    .filter(Boolean);
-
+  const blocks = body.split(/\n\n+/).map((b) => b.trim()).filter(Boolean);
   return blocks.map((block, idx) => {
-    // Very light “markdown-like” formatting: list items starting with "-" or "1)" stay as <p>.
-    return (
-      <p key={idx} style={{ lineHeight: 1.65, marginTop: 0 }}>
-        {block}
-      </p>
-    );
+    if (block.startsWith("### ")) return <h3 key={idx}>{block.slice(4)}</h3>;
+    if (block.startsWith("## ")) return <h2 key={idx}>{block.slice(3)}</h2>;
+    if (block.startsWith("# ")) return <h1 key={idx}>{block.slice(2)}</h1>;
+    return <p key={idx}>{block}</p>;
   });
 }
 
@@ -23,39 +18,43 @@ export default function GuidePage() {
 
   if (!guide) {
     return (
-      <div style={{ maxWidth: 900, margin: "0 auto", padding: 20 }}>
-        <h1>Guide introuvable</h1>
-        <p>
-          Le contenu demandé n’existe pas (ou a été déplacé). Retourne vers la liste des guides.
-        </p>
-        <Link to="/guides">Voir tous les guides</Link>
+      <div className="site-container content-page">
+        <h1 className="content-page-title">Guide introuvable</h1>
+        <p>Le contenu demande n'existe pas ou a ete deplace.</p>
+        <Link to="/guides">Voir tous les guides →</Link>
       </div>
     );
   }
 
   return (
-    <div style={{ maxWidth: 900, margin: "0 auto", padding: 20 }}>
-      <header style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 16 }}>
-        <div>
-          <h1 style={{ margin: 0 }}>{guide.title}</h1>
-          <p style={{ marginTop: 8, marginBottom: 0, opacity: 0.85 }}>{guide.description}</p>
-          <small style={{ opacity: 0.75 }}>Mis à jour : {guide.updatedAt}</small>
-        </div>
-        <nav style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-          <Link to="/guides">← Guides</Link>
-          <Link to="/">Scores</Link>
-        </nav>
-      </header>
+    <div className="site-container content-page">
+      <div className="content-page-header">
+        <h1 className="content-page-title">{guide.title}</h1>
+        <p className="content-page-desc">{guide.description}</p>
+        <span className="content-page-meta">Mis a jour : {guide.updatedAt}</span>
+      </div>
 
-      <main style={{ marginTop: 18 }}>{renderBody(guide.body)}</main>
-
-      <footer style={{ marginTop: 28, paddingTop: 14, borderTop: "1px solid rgba(0,0,0,.12)" }}>
-        <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-          <a href="/privacy.html">Politique de confidentialité</a>
-          <a href="/terms.html">Conditions</a>
-          <a href="/contact.html">Contact</a>
+      <div className="page-grid">
+        <div className="page-main">
+          <div className="article-body">
+            {renderBody(guide.body)}
+          </div>
+          <AdSlot variant="in-feed" slot="8567185183" />
         </div>
-      </footer>
+
+        <aside className="page-sidebar">
+          <AdSlot variant="sidebar" slot="8567185183" />
+          <div className="sidebar-card">
+            <h3 className="sidebar-card-title">Guides</h3>
+            <div className="sidebar-links">
+              <Link to="/guides" className="sidebar-link">Tous les guides</Link>
+              <Link to="/news" className="sidebar-link">Articles</Link>
+              <Link to="/en-direct" className="sidebar-link">Scores en direct</Link>
+            </div>
+          </div>
+          <AdSlot variant="sidebar" slot="8567185183" />
+        </aside>
+      </div>
     </div>
   );
 }

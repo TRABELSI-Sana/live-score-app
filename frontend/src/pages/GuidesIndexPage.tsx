@@ -1,42 +1,47 @@
 import { Link } from "react-router-dom";
 import { guides } from "../content/guides";
+import AdSlot from "../components/ads/AdSlot";
 
 export default function GuidesIndexPage() {
   return (
-    <div style={{ maxWidth: 980, margin: "0 auto", padding: 20 }}>
-      <header style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 16 }}>
-        <div>
-          <h1 style={{ margin: 0 }}>Guides & contenus éditoriaux</h1>
-          <p style={{ marginTop: 8 }}>
-            Ici, tu as du contenu “éditeur” (guides, explications, FAQ) pour compléter les scores.
-          </p>
-        </div>
-        <nav style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-          <Link to="/">← Retour aux scores</Link>
-          <a href="/about.html">À propos</a>
-          <a href="/privacy.html">Confidentialité</a>
-          <a href="/terms.html">Conditions</a>
-          <a href="/contact.html">Contact</a>
-        </nav>
-      </header>
+    <div className="site-container content-page">
+      <div className="content-page-header">
+        <h1 className="content-page-title">Guides football</h1>
+        <p className="content-page-desc">
+          Guides editoriaux pour comprendre les regles, tactiques, formats de competitions et statistiques.
+        </p>
+      </div>
 
-      <section style={{ marginTop: 18 }}>
-        <h2 style={{ marginBottom: 8 }}>Tous les guides</h2>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 14 }}>
-          {guides.map((g) => (
-            <article
-              key={g.slug}
-              style={{ border: "1px solid rgba(0,0,0,.12)", borderRadius: 14, padding: 14 }}
-            >
-              <h3 style={{ marginTop: 0, marginBottom: 8 }}>
-                <Link to={`/guides/${g.slug}`}>{g.title}</Link>
-              </h3>
-              <p style={{ marginTop: 0 }}>{g.description}</p>
-              <small style={{ opacity: 0.75 }}>Mis à jour : {g.updatedAt}</small>
-            </article>
-          ))}
+      <div className="page-grid">
+        <div className="page-main">
+          <div className="content-grid">
+            {guides.map((g) => (
+              <article key={g.slug} className="content-card">
+                <h2 className="content-card-title">{g.title}</h2>
+                <p className="content-card-desc">{g.description}</p>
+                <span className="content-card-meta">Mis a jour : {g.updatedAt}</span>
+                <Link to={`/guides/${g.slug}`} className="content-card-link">
+                  Lire le guide →
+                </Link>
+              </article>
+            ))}
+          </div>
         </div>
-      </section>
+
+        <aside className="page-sidebar">
+          <AdSlot variant="sidebar" slot="8567185183" />
+          <div className="sidebar-card">
+            <h3 className="sidebar-card-title">Explorer</h3>
+            <div className="sidebar-links">
+              <Link to="/news" className="sidebar-link">Articles</Link>
+              <Link to="/teams" className="sidebar-link">Equipes</Link>
+              <Link to="/competitions" className="sidebar-link">Competitions</Link>
+              <Link to="/en-direct" className="sidebar-link">Scores en direct</Link>
+            </div>
+          </div>
+          <AdSlot variant="sidebar" slot="8567185183" />
+        </aside>
+      </div>
     </div>
   );
 }

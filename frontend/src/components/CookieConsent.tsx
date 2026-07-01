@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 
 const CONSENT_KEY = "cookie_consent";
+const CONSENT_DATE_KEY = "cookie_consent_date";
 
 export type ConsentValue = "accepted" | "refused" | null;
 
@@ -17,6 +18,7 @@ export function getConsent(): ConsentValue {
 function setConsent(value: "accepted" | "refused") {
     try {
         localStorage.setItem(CONSENT_KEY, value);
+        localStorage.setItem(CONSENT_DATE_KEY, new Date().toISOString());
     } catch {
         // localStorage unavailable
     }
@@ -57,20 +59,29 @@ export default function CookieConsent() {
     if (!visible) return null;
 
     return (
-        <div className="cookieConsent">
-            <div className="cookieConsentInner">
-                <p>
-                    Ce site utilise des cookies pour afficher des publicites personnalisees et ameliorer votre experience.
-                    Vous pouvez accepter ou refuser leur utilisation.
-                </p>
-                <div className="cookieConsentActions">
-                    <button type="button" className="cookieBtn cookieBtnAccept" onClick={handleAccept}>
+        <div className="cookie-consent" role="dialog" aria-label="Consentement aux cookies">
+            <div className="cookie-consent-inner">
+                <div className="cookie-consent-text">
+                    <p className="cookie-consent-title">Nous respectons votre vie privee</p>
+                    <p>
+                        LiveFoot utilise des cookies publicitaires (Google AdSense) pour financer ce service gratuit.
+                        Aucun cookie publicitaire n'est depose sans votre accord.
+                    </p>
+                    <p className="cookie-consent-links">
+                        <a href="/privacy.html">Politique de confidentialite</a>
+                        {" · "}
+                        <a href="https://policies.google.com/technologies/partner-sites" target="_blank" rel="noopener noreferrer">
+                            Comment Google utilise vos donnees
+                        </a>
+                    </p>
+                </div>
+                <div className="cookie-consent-actions">
+                    <button type="button" className="cookie-btn cookie-btn--accept" onClick={handleAccept}>
                         Accepter
                     </button>
-                    <button type="button" className="cookieBtn cookieBtnRefuse" onClick={handleRefuse}>
+                    <button type="button" className="cookie-btn cookie-btn--refuse" onClick={handleRefuse}>
                         Refuser
                     </button>
-                    <a href="/privacy.html" className="cookieLink">Politique de confidentialite</a>
                 </div>
             </div>
         </div>

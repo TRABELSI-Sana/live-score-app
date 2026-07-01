@@ -1,44 +1,47 @@
 import { Link } from "react-router-dom";
 import { teams } from "../content/teams";
+import AdSlot from "../components/ads/AdSlot";
 
 export default function TeamsIndexPage() {
   return (
-    <div style={{ maxWidth: 980, margin: "0 auto", padding: 20 }}>
-      <header style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 16 }}>
-        <div>
-          <h1 style={{ margin: 0 }}>Équipes</h1>
-          <p style={{ marginTop: 8, marginBottom: 0, opacity: 0.85 }}>
-            Pages éditoriales pour contextualiser les résultats (forme, style, objectifs).
-          </p>
-        </div>
-        <nav style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-          <Link to="/">Scores</Link>
-          <Link to="/news">Articles</Link>
-          <Link to="/competitions">Compétitions</Link>
-        </nav>
-      </header>
+    <div className="site-container content-page">
+      <div className="content-page-header">
+        <h1 className="content-page-title">Equipes de football</h1>
+        <p className="content-page-desc">
+          Decouvrez les clubs et equipes couverts par LiveFoot : historique, palmares et actualites.
+        </p>
+      </div>
 
-      <main style={{ marginTop: 18 }}>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 12 }}>
-          {teams.map((t) => (
-            <article key={t.slug} style={{ border: "1px solid rgba(0,0,0,.12)", borderRadius: 12, padding: 14 }}>
-              <h2 style={{ marginTop: 0, fontSize: 18 }}>{t.name}</h2>
-              <small style={{ opacity: 0.7 }}>Mis à jour : {t.updatedAt}</small>
-              <div style={{ marginTop: 10 }}>
-                <Link to={`/teams/${t.slug}`}>Voir la page →</Link>
-              </div>
-            </article>
-          ))}
+      <div className="page-grid">
+        <div className="page-main">
+          <div className="content-grid">
+            {teams.map((t) => (
+              <article key={t.slug} className="content-card">
+                <h2 className="content-card-title">{t.name}</h2>
+                <p className="content-card-desc">{t.description}</p>
+                <span className="content-card-meta">Mis a jour : {t.updatedAt}</span>
+                <Link to={`/teams/${t.slug}`} className="content-card-link">
+                  Voir l'equipe →
+                </Link>
+              </article>
+            ))}
+          </div>
         </div>
-      </main>
 
-      <footer style={{ marginTop: 28, paddingTop: 14, borderTop: "1px solid rgba(0,0,0,.12)" }}>
-        <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-          <a href="/privacy.html">Politique de confidentialité</a>
-          <a href="/terms.html">Conditions</a>
-          <a href="/contact.html">Contact</a>
-        </div>
-      </footer>
+        <aside className="page-sidebar">
+          <AdSlot variant="sidebar" slot="8567185183" />
+          <div className="sidebar-card">
+            <h3 className="sidebar-card-title">Explorer</h3>
+            <div className="sidebar-links">
+              <Link to="/competitions" className="sidebar-link">Competitions</Link>
+              <Link to="/news" className="sidebar-link">Articles</Link>
+              <Link to="/guides" className="sidebar-link">Guides</Link>
+              <Link to="/en-direct" className="sidebar-link">Scores en direct</Link>
+            </div>
+          </div>
+          <AdSlot variant="sidebar" slot="8567185183" />
+        </aside>
+      </div>
     </div>
   );
 }

@@ -1,44 +1,47 @@
 import { Link } from "react-router-dom";
 import { competitions } from "../content/competitions";
+import AdSlot from "../components/ads/AdSlot";
 
 export default function CompetitionsIndexPage() {
   return (
-    <div style={{ maxWidth: 980, margin: "0 auto", padding: 20 }}>
-      <header style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 16 }}>
-        <div>
-          <h1 style={{ margin: 0 }}>Compétitions</h1>
-          <p style={{ marginTop: 8, marginBottom: 0, opacity: 0.85 }}>
-            Contexte éditorial: format, enjeux, et lecture des classements.
-          </p>
-        </div>
-        <nav style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-          <Link to="/">Scores</Link>
-          <Link to="/news">Articles</Link>
-          <Link to="/teams">Équipes</Link>
-        </nav>
-      </header>
+    <div className="site-container content-page">
+      <div className="content-page-header">
+        <h1 className="content-page-title">Competitions de football</h1>
+        <p className="content-page-desc">
+          Format, enjeux et classements des principales competitions couvertes par LiveFoot.
+        </p>
+      </div>
 
-      <main style={{ marginTop: 18 }}>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 12 }}>
-          {competitions.map((c) => (
-            <article key={c.slug} style={{ border: "1px solid rgba(0,0,0,.12)", borderRadius: 12, padding: 14 }}>
-              <h2 style={{ marginTop: 0, fontSize: 18 }}>{c.name}</h2>
-              <small style={{ opacity: 0.7 }}>Mis à jour : {c.updatedAt}</small>
-              <div style={{ marginTop: 10 }}>
-                <Link to={`/competitions/${c.slug}`}>Voir la page →</Link>
-              </div>
-            </article>
-          ))}
+      <div className="page-grid">
+        <div className="page-main">
+          <div className="content-grid">
+            {competitions.map((c) => (
+              <article key={c.slug} className="content-card">
+                <h2 className="content-card-title">{c.name}</h2>
+                <p className="content-card-desc">{c.description}</p>
+                <span className="content-card-meta">Mis a jour : {c.updatedAt}</span>
+                <Link to={`/competitions/${c.slug}`} className="content-card-link">
+                  Voir la competition →
+                </Link>
+              </article>
+            ))}
+          </div>
         </div>
-      </main>
 
-      <footer style={{ marginTop: 28, paddingTop: 14, borderTop: "1px solid rgba(0,0,0,.12)" }}>
-        <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-          <a href="/privacy.html">Politique de confidentialité</a>
-          <a href="/terms.html">Conditions</a>
-          <a href="/contact.html">Contact</a>
-        </div>
-      </footer>
+        <aside className="page-sidebar">
+          <AdSlot variant="sidebar" slot="8567185183" />
+          <div className="sidebar-card">
+            <h3 className="sidebar-card-title">Explorer</h3>
+            <div className="sidebar-links">
+              <Link to="/teams" className="sidebar-link">Equipes</Link>
+              <Link to="/news" className="sidebar-link">Articles</Link>
+              <Link to="/guides" className="sidebar-link">Guides</Link>
+              <Link to="/en-direct" className="sidebar-link">Scores en direct</Link>
+            </div>
+          </div>
+          <AdSlot variant="sidebar" slot="8567185183" />
+        </aside>
+      </div>
     </div>
   );
 }
