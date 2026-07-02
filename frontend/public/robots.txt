@@ -1,4 +1,3 @@
 User-agent: *
 Allow: /
 Sitemap: https://livefoot.online/sitemap.xml
-Sitemap: https://livefoot.tn/sitemap-tn.xml

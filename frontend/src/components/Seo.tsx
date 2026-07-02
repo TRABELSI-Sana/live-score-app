@@ -31,7 +31,7 @@ export default function Seo({ title, description, path, type = "website", jsonLd
   const url = `${base}${path}`;
   const altUrl = `${alternate}${path}`;
   const fullTitle = `${title} | LiveFoot`;
-  const ogImage = `${base}/og-image.png`;
+  const ogImage = `${base}/og-image.svg`;
 
   return (
     <Helmet>
