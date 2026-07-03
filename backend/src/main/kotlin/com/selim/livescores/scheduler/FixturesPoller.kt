@@ -62,10 +62,11 @@ class FixturesPoller(
         if (ids.isEmpty()) return
 
         val today = LocalDate.now()
+        val tomorrow = today.plusDays(1)
         val plannedStates = mutableListOf<com.selim.livescores.domain.MatchState>()
 
         ids.forEach { compId ->
-            val json = guardedApiCall { api.getFixturesByLeagueOnDateJson(compId, today) } ?: return@forEach
+            val json = guardedApiCall { api.getFixturesByLeagueOnDateRangeJson(compId, today, tomorrow) } ?: return@forEach
             val resp = try {
                 objectMapper.readValue(json, ApiFootballFixturesResponse::class.java)
             } catch (_: Exception) {

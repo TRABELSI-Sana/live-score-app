@@ -47,6 +47,13 @@ class LiveScoreApiClient(
         return client.get().uri(uri).retrieve().body(String::class.java) ?: throw IllegalStateException("Empty response from API-Football")
     }
 
+    fun getFixturesByLeagueOnDateRangeJson(competitionId: Int, from: LocalDate, to: LocalDate): String {
+        if (!tryConsumeQuota()) throw QuotaExceededException()
+        val season = seasonFromDate(from)
+        val uri = "/fixtures?league=$competitionId&season=$season&from=$from&to=$to"
+        return client.get().uri(uri).retrieve().body(String::class.java) ?: throw IllegalStateException("Empty response from API-Football")
+    }
+
 
     fun getFixtureLineupsJson(fixtureId: Long): String {
         if (!tryConsumeQuota()) throw QuotaExceededException()

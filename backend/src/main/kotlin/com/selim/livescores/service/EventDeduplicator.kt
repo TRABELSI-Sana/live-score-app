@@ -10,9 +10,14 @@ class EventDeduplicator(private val matchKey: String) {
         // Merge current + new, de-dupe with enrichment updates
         val mergedMap = LinkedHashMap<String, MatchEvent>()
         (current + incoming).forEach { e ->
-            val (noPlayerKey, candidateKey) = keysFor(e)
+            val (baseKey, noPlayerKey, candidateKey) = keysFor(e)
             // If we already have an older "no player" placeholder, let the richer event overwrite it.
-            val k = if (candidateKey != noPlayerKey && mergedMap.containsKey(noPlayerKey)) noPlayerKey else candidateKey
+            // Also check the base key (without side) to handle side-missing duplicates.
+            val k = when {
+                candidateKey != noPlayerKey && mergedMap.containsKey(noPlayerKey) -> noPlayerKey
+                candidateKey != baseKey && mergedMap.containsKey(baseKey) -> baseKey
+                else -> candidateKey
+            }
 
             val existing = mergedMap[k]
             if (existing == null || isBetter(e, existing)) {
@@ -79,10 +84,13 @@ class EventDeduplicator(private val matchKey: String) {
         val noAccents = java.text.Normalizer
             .normalize(raw, java.text.Normalizer.Form.NFD)
             .replace(Regex("\\p{Mn}+"), "")
-        return noAccents
-            .lowercase()
-            // keep only letters/digits, normalize punctuation/spaces ("V. Gyökeres" == "V Gyokeres")
-            .replace(Regex("[^a-z0-9]"), "")
+        // Use surname (last meaningful word, >1 char) for dedup — handles "B. Embolo" vs "Breel Embolo"
+        val words = noAccents.lowercase()
+            .replace(Regex("[^a-z\\s]"), "")
+            .split(Regex("\\s+"))
+            .filter { it.length > 1 }
+        // If no meaningful word found (single initial like "A"), treat as no-player for dedup
+        return words.lastOrNull() ?: ""
     }
 
     private fun normTimeKey(time: String?): String = TimeParser.normalize(time)
@@ -90,24 +98,26 @@ class EventDeduplicator(private val matchKey: String) {
     /**
      * Stable identity for de-dup.
      *
-     * The provider can return the *same* logical event multiple times with small differences
-     * (homeAway sometimes missing, time formatted as 45 / 45' / 45+2, etc.).
-     * Provider event ids are not stable across polls, so we intentionally ignore them.
+     * Returns Triple(baseKey, noPlayerKey, candidateKey):
+     * - baseKey: type + minuteKey only (no side, no player) — catches side-missing duplicates
+     * - noPlayerKey: type + minuteKey + side — catches player-missing duplicates
+     * - candidateKey: type + minuteKey + side + player — full identity
      *
-     * Strategy:
-     * - Key = (type + minuteKey) and optionally player (when present).
-     *   When a later event becomes "richer" (player/homeAway filled), it replaces the older one.
+     * When merging, we check noPlayerKey and baseKey first so that a richer
+     * event replaces a poorer placeholder.
      */
-    private fun keysFor(e: MatchEvent): Pair<String, String> {
+    private fun keysFor(e: MatchEvent): Triple<String, String, String> {
         val minuteKey = dedupMinuteKey(e)
         val type = normEventType(e.event)
         val side = normSide(e.homeAway)
+
+        val baseKey = "$matchKey|$type|m:$minuteKey"
         val sidePart = if (side == "h" || side == "a") "|s:$side" else ""
-        val noPlayer = "$matchKey|$type|m:$minuteKey$sidePart"
+        val noPlayerKey = "$baseKey$sidePart"
 
         val p = normPlayerKey(e.player)
-        val withPlayer = if (p.isNotEmpty()) "$noPlayer|p:$p" else noPlayer
-        return noPlayer to withPlayer
+        val candidateKey = if (p.isNotEmpty()) "$noPlayerKey|p:$p" else noPlayerKey
+        return Triple(baseKey, noPlayerKey, candidateKey)
     }
 
     private fun isBetter(newE: MatchEvent, oldE: MatchEvent): Boolean {

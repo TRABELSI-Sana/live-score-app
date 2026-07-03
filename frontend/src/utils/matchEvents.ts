@@ -80,11 +80,14 @@ function eventMinuteSidePlayerKey(event: MatchEvent): string {
 }
 
 function normalizePlayerKey(name?: string): string {
-    return (name ?? "")
+    const raw = (name ?? "")
         .normalize("NFD")
         .replace(/\p{M}/gu, "")
         .toLowerCase()
-        .replace(/[^a-z0-9]/g, "");
+        .replace(/[^a-z\s]/g, "");
+    // Use surname (last meaningful word) — handles "B. Embolo" vs "Breel Embolo"
+    const words = raw.split(/\s+/).filter((w) => w.length > 1);
+    return words[words.length - 1] ?? raw.replace(/[^a-z0-9]/g, "");
 }
 
 function dedupBucket(event: MatchEvent): number {
@@ -127,6 +130,30 @@ export function compactGoalEvents(goalEvents: MatchEvent[]): MatchEvent[] {
     }
 
     return [...byNamedPlayerBucket.values(), ...unnamedEvents].sort((a, b) => eventSortKey(a) - eventSortKey(b));
+}
+
+export function compactCardEvents(cardEvents: MatchEvent[]): MatchEvent[] {
+    const byBucket = new Map<string, MatchEvent>();
+
+    for (const event of cardEvents) {
+        const playerKey = normalizePlayerKey(event.player);
+        const sideKey = eventSide(event).slice(0, 1);
+        const bucket = dedupBucket(event);
+
+        if (!playerKey || bucket < 0) {
+            const fallbackKey = `unnamed|${sideKey}|${bucket}|${byBucket.size}`;
+            byBucket.set(fallbackKey, event);
+            continue;
+        }
+
+        const key = `${playerKey}|${sideKey}|${bucket}`;
+        const prev = byBucket.get(key);
+        if (!prev || eventSortKey(event) >= eventSortKey(prev)) {
+            byBucket.set(key, event);
+        }
+    }
+
+    return [...byBucket.values()].sort((a, b) => eventSortKey(a) - eventSortKey(b));
 }
 
 export function removeDisallowedGoals(events: MatchEvent[]): MatchEvent[] {

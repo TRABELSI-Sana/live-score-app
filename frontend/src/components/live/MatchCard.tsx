@@ -2,7 +2,7 @@ import type { MatchEvent, MatchState } from "../../hooks/useLiveBoard";
 import { UPCOMING_STATUSES, normalizeMatchStatus, statusLabel, isLiveStatus } from "../../utils/matchStatus";
 import {
   eventSide, eventSortKey, formatEventIcon, formatEventMinute, formatEventPlayer,
-  hasKnownPlayer, isRedCardEvent, compactGoalEvents, removeDisallowedGoals,
+  hasKnownPlayer, isRedCardEvent, compactGoalEvents, compactCardEvents, removeDisallowedGoals,
 } from "../../utils/matchEvents";
 import { formatLocalTime, resolveDisplayScore } from "../../utils/matchSort";
 
@@ -24,17 +24,22 @@ export default function MatchCard({ match, onShowLineup }: Props) {
   const rawGoalEvents = removeDisallowedGoals(sortedEvents);
   const goalEvents = compactGoalEvents(rawGoalEvents);
   const namedGoalEvents = goalEvents.filter((event) => hasKnownPlayer(event));
-  const cardEvents = sortedEvents.filter((event) => isRedCardEvent(event.event));
+  const cardEvents = compactCardEvents(sortedEvents.filter((event) => isRedCardEvent(event.event)));
   const homeGoals = namedGoalEvents.filter((event) => eventSide(event).startsWith("h"));
   const awayGoals = namedGoalEvents.filter((event) => eventSide(event).startsWith("a"));
   const homeCards = cardEvents.filter((event) => eventSide(event).startsWith("h"));
   const awayCards = cardEvents.filter((event) => eventSide(event).startsWith("a"));
 
+  const homeName = match.home?.name ?? "";
+  const awayName = match.away?.name ?? "";
+  const homeAbbr = homeName.slice(0, 3).toUpperCase();
+  const awayAbbr = awayName.slice(0, 3).toUpperCase();
+
   const allEvents = [
-    ...homeGoals.map((e) => ({ ...e, _type: "goal" as const })),
-    ...awayGoals.map((e) => ({ ...e, _type: "goal" as const })),
-    ...homeCards.map((e) => ({ ...e, _type: "red" as const })),
-    ...awayCards.map((e) => ({ ...e, _type: "red" as const })),
+    ...homeGoals.map((e) => ({ ...e, _type: "goal" as const, _side: "home" as const, _teamAbbr: homeAbbr })),
+    ...awayGoals.map((e) => ({ ...e, _type: "goal" as const, _side: "away" as const, _teamAbbr: awayAbbr })),
+    ...homeCards.map((e) => ({ ...e, _type: "red" as const, _side: "home" as const, _teamAbbr: homeAbbr })),
+    ...awayCards.map((e) => ({ ...e, _type: "red" as const, _side: "away" as const, _teamAbbr: awayAbbr })),
   ];
 
   const scoreClass = isLive ? "match-score--live" : isUpcoming ? "match-score--upcoming" : "";
@@ -85,8 +90,9 @@ export default function MatchCard({ match, onShowLineup }: Props) {
       {allEvents.length > 0 && (
         <div className="match-card-events">
           {allEvents.map((event, idx) => (
-            <span key={idx} className={`match-event match-event--${event._type}`}>
+            <span key={idx} className={`match-event match-event--${event._type} match-event--${event._side}`}>
               {event._type === "goal" ? "⚽" : formatEventIcon(event as MatchEvent)}{" "}
+              <span className="match-event-team">{event._teamAbbr}</span>{" "}
               {formatEventPlayer(event as MatchEvent)} {formatEventMinute((event as MatchEvent).time)}
             </span>
           ))}
