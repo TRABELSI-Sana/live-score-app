@@ -12,6 +12,7 @@ import org.springframework.stereotype.Component
 import java.time.Duration
 import java.time.Instant
 import java.time.LocalDate
+import java.time.ZoneId
 import java.util.concurrent.atomic.AtomicReference
 
 @Component
@@ -61,12 +62,12 @@ class FixturesPoller(
         val ids = api.competitionIdsList()
         if (ids.isEmpty()) return
 
-        val today = LocalDate.now()
-        val tomorrow = today.plusDays(1)
+        val today = LocalDate.now(ZoneId.of("Europe/Paris"))
+        val endDate = today.plusDays(2)
         val plannedStates = mutableListOf<com.selim.livescores.domain.MatchState>()
 
         ids.forEach { compId ->
-            val json = guardedApiCall { api.getFixturesByLeagueOnDateRangeJson(compId, today, tomorrow) } ?: return@forEach
+            val json = guardedApiCall { api.getFixturesByLeagueOnDateRangeJson(compId, today, endDate) } ?: return@forEach
             val resp = try {
                 objectMapper.readValue(json, ApiFootballFixturesResponse::class.java)
             } catch (_: Exception) {
