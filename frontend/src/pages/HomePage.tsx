@@ -6,9 +6,11 @@ import GuidesPreview from "../components/home/GuidesPreview";
 import Sidebar from "../components/sidebar/Sidebar";
 import AdSlot from "../components/ads/AdSlot";
 import Seo from "../components/Seo";
+import { getSiteBase } from "../utils/siteBase";
 
 export default function HomePage() {
   const { searchTerm } = useOutletContext<{ searchTerm: string }>();
+  const siteBase = getSiteBase();
 
   return (
     <div className="site-container">
@@ -20,12 +22,12 @@ export default function HomePage() {
           "@context": "https://schema.org",
           "@type": "WebSite",
           name: "LiveFoot",
-          url: "https://livefoot.online/",
+          url: `${siteBase}/`,
           inLanguage: "fr",
           description: "Scores en direct de football, resultats et evenements cles des matchs.",
           potentialAction: {
             "@type": "SearchAction",
-            target: "https://livefoot.online/?q={search_term_string}",
+            target: `${siteBase}/?q={search_term_string}`,
             "query-input": "required name=search_term_string",
           },
         }}

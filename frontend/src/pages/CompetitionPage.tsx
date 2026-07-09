@@ -2,6 +2,7 @@ import { Link, useParams } from "react-router-dom";
 import { getBySlug } from "../content/competitions";
 import AdSlot from "../components/ads/AdSlot";
 import Seo from "../components/Seo";
+import { getSiteBase } from "../utils/siteBase";
 
 function renderBody(body: string) {
   const blocks = body.split(/\n\n+/).map((b) => b.trim()).filter(Boolean);
@@ -16,6 +17,7 @@ function renderBody(body: string) {
 export default function CompetitionPage() {
   const { slug } = useParams();
   const comp = slug ? getBySlug(slug) : undefined;
+  const siteBase = getSiteBase();
 
   if (!comp) {
     return (
@@ -32,7 +34,7 @@ export default function CompetitionPage() {
     "@type": "SportsOrganization",
     name: comp.name,
     sport: "Soccer",
-    url: `https://livefoot.online/competitions/${comp.slug}`,
+    url: `${siteBase}/competitions/${comp.slug}`,
     description: comp.description || `Suivez ${comp.name} en direct sur LiveFoot`,
   };
 

@@ -1,11 +1,12 @@
 import { launch } from "puppeteer";
 import { createServer } from "http";
-import { readFileSync, writeFileSync, mkdirSync, existsSync } from "fs";
+import { cpSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync, mkdirSync, existsSync } from "fs";
 import { resolve, dirname } from "path";
 import { fileURLToPath } from "url";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const DIST = resolve(__dirname, "../dist");
+const DIST_TN = resolve(__dirname, "../dist-tn");
 
 const articleSlugs = [
   "comment-lire-un-classement", "regles-hors-jeu", "tactique-433", "tactique-352",
@@ -196,7 +197,47 @@ async function prerender() {
 
   await browser.close();
   server.close();
+  createTnDist();
   console.log(`Done! ${done}/${routes.length} routes prerendered.`);
+}
+
+function rewriteHtmlForTn(html) {
+  return html
+    .replace(/(<link rel="canonical" href=")https:\/\/livefoot\.online([^"]*")/g, "$1https://livefoot.tn$2")
+    .replace(/(<meta property="og:url" content=")https:\/\/livefoot\.online([^"]*")/g, "$1https://livefoot.tn$2")
+    .replace(/(<meta property="og:image" content=")https:\/\/livefoot\.online([^"]*")/g, "$1https://livefoot.tn$2")
+    .replace(/(<meta name="twitter:image" content=")https:\/\/livefoot\.online([^"]*")/g, "$1https://livefoot.tn$2")
+    .replace(/<script type="application\/ld\+json">[\s\S]*?<\/script>/g, (script) =>
+      script.replaceAll("https://livefoot.online", "https://livefoot.tn")
+    );
+}
+
+function rewriteHtmlFilesForTn(dir) {
+  for (const entry of readdirSync(dir)) {
+    const path = resolve(dir, entry);
+    const stat = statSync(path);
+    if (stat.isDirectory()) {
+      rewriteHtmlFilesForTn(path);
+    } else if (entry.endsWith(".html")) {
+      writeFileSync(path, rewriteHtmlForTn(readFileSync(path, "utf8")));
+    }
+  }
+}
+
+function createTnDist() {
+  rmSync(DIST_TN, { recursive: true, force: true });
+  cpSync(DIST, DIST_TN, { recursive: true });
+  rewriteHtmlFilesForTn(DIST_TN);
+
+  const sitemapTn = resolve(DIST_TN, "sitemap-tn.xml");
+  if (existsSync(sitemapTn)) {
+    cpSync(sitemapTn, resolve(DIST_TN, "sitemap.xml"));
+  }
+
+  const robotsTn = resolve(DIST_TN, "robots-tn.txt");
+  if (existsSync(robotsTn)) {
+    cpSync(robotsTn, resolve(DIST_TN, "robots.txt"));
+  }
 }
 
 prerender().catch((err) => {

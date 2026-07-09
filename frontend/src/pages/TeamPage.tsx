@@ -2,6 +2,7 @@ import { Link, useParams } from "react-router-dom";
 import { getBySlug } from "../content/teams";
 import AdSlot from "../components/ads/AdSlot";
 import Seo from "../components/Seo";
+import { getSiteBase } from "../utils/siteBase";
 
 function renderBody(body: string) {
   const blocks = body.split(/\n\n+/).map((b) => b.trim()).filter(Boolean);
@@ -16,6 +17,7 @@ function renderBody(body: string) {
 export default function TeamPage() {
   const { slug } = useParams();
   const team = slug ? getBySlug(slug) : undefined;
+  const siteBase = getSiteBase();
 
   if (!team) {
     return (
@@ -32,7 +34,7 @@ export default function TeamPage() {
     "@type": "SportsTeam",
     name: team.name,
     sport: "Soccer",
-    url: `https://livefoot.online/teams/${team.slug}`,
+    url: `${siteBase}/teams/${team.slug}`,
     description: team.description || `Suivez ${team.name} en direct sur LiveFoot`,
   };
 

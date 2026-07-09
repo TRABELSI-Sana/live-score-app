@@ -42,9 +42,11 @@ jobs:
 
       - name: Prepare frontend-image
         run: |
-          rm -rf frontend-image/dist
+          rm -rf frontend-image/dist frontend-image/dist-tn
           mkdir -p frontend-image/dist
           rsync -a --delete frontend/dist/ frontend-image/dist/
+          mkdir -p frontend-image/dist-tn
+          rsync -a --delete frontend/dist-tn/ frontend-image/dist-tn/
 
       - name: Setup SSH
         run: |

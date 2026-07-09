@@ -2,6 +2,7 @@ import { Link, useParams } from "react-router-dom";
 import { getBySlug } from "../content/articles";
 import AdSlot from "../components/ads/AdSlot";
 import Seo from "../components/Seo";
+import { getSiteBase } from "../utils/siteBase";
 
 function renderBody(body: string) {
   const blocks = body.split(/\n\n+/).map((b) => b.trim()).filter(Boolean);
@@ -17,6 +18,7 @@ function renderBody(body: string) {
 export default function ArticlePage() {
   const { slug } = useParams();
   const article = slug ? getBySlug(slug) : undefined;
+  const siteBase = getSiteBase();
 
   if (!article) {
     return (
@@ -37,7 +39,7 @@ export default function ArticlePage() {
     datePublished: article.updatedAt,
     author: { "@type": "Organization", name: "LiveFoot" },
     publisher: { "@type": "Organization", name: "LiveFoot" },
-    mainEntityOfPage: { "@type": "WebPage", "@id": `https://livefoot.online/news/${article.slug}` },
+    mainEntityOfPage: { "@type": "WebPage", "@id": `${siteBase}/news/${article.slug}` },
   };
 
   return (

@@ -2,6 +2,7 @@ import { Link, useParams } from "react-router-dom";
 import { getGuideBySlug } from "../content/guides";
 import AdSlot from "../components/ads/AdSlot";
 import Seo from "../components/Seo";
+import { getSiteBase } from "../utils/siteBase";
 
 function renderBody(body: string) {
   const blocks = body.split(/\n\n+/).map((b) => b.trim()).filter(Boolean);
@@ -16,6 +17,7 @@ function renderBody(body: string) {
 export default function GuidePage() {
   const { slug } = useParams();
   const guide = slug ? getGuideBySlug(slug) : undefined;
+  const siteBase = getSiteBase();
 
   if (!guide) {
     return (
@@ -36,7 +38,7 @@ export default function GuidePage() {
     datePublished: guide.updatedAt,
     author: { "@type": "Organization", name: "LiveFoot" },
     publisher: { "@type": "Organization", name: "LiveFoot" },
-    mainEntityOfPage: { "@type": "WebPage", "@id": `https://livefoot.online/guides/${guide.slug}` },
+    mainEntityOfPage: { "@type": "WebPage", "@id": `${siteBase}/guides/${guide.slug}` },
   };
 
   return (

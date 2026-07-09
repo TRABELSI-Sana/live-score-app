@@ -25,13 +25,15 @@ echo "✅ Using jar: ${JAR_PATH}"
 echo "==> 2) Build frontend"
 pushd "${FRONTEND_DIR}" >/dev/null
 npm ci
-npm run build
+npm run build:seo
 popd >/dev/null
 
-echo "==> 3) Prepare frontend-image/dist (local)"
-rm -rf frontend-image/dist
+echo "==> 3) Prepare frontend-image dist folders (local)"
+rm -rf frontend-image/dist frontend-image/dist-tn
 mkdir -p frontend-image/dist
 rsync -a --delete "${FRONTEND_DIR}/dist/" frontend-image/dist/
+mkdir -p frontend-image/dist-tn
+rsync -a --delete "${FRONTEND_DIR}/dist-tn/" frontend-image/dist-tn/
 
 echo "==> 4) Prepare local deploy folder"
 rm -rf "${LOCAL_DEPLOY_DIR}"
