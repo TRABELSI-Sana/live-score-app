@@ -45,6 +45,11 @@ export default function CompetitionPage() {
         description={comp.description || `Suivez ${comp.name} en direct : classement, resultats, calendrier et statistiques sur LiveFoot.`}
         path={`/competitions/${comp.slug}`}
         jsonLd={jsonLd}
+        breadcrumbs={[
+          { name: "Accueil", path: "/" },
+          { name: "Competitions", path: "/competitions" },
+          { name: comp.name ?? "Competition", path: `/competitions/${comp.slug}` },
+        ]}
       />
 
       <div className="content-page-header">

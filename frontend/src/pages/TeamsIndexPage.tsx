@@ -2,14 +2,24 @@ import { Link } from "react-router-dom";
 import { teams } from "../content/teams";
 import AdSlot from "../components/ads/AdSlot";
 import Seo from "../components/Seo";
+import SeoFaqSection from "../components/SeoFaqSection";
+import { teamsFaqs } from "../content/seoFaqs";
+import { faqSchema, itemListSchema } from "../utils/seoSchemas";
+import { getSiteBase } from "../utils/siteBase";
 
 export default function TeamsIndexPage() {
+  const siteBase = getSiteBase();
+
   return (
     <div className="site-container content-page">
       <Seo
         title="Equipes de football"
         description="Decouvrez les clubs et equipes couverts par LiveFoot : historique, palmares, statistiques et resultats en direct."
         path="/teams"
+        jsonLd={[
+          itemListSchema(siteBase, teams, "/teams"),
+          faqSchema(teamsFaqs),
+        ]}
       />
       <div className="content-page-header">
         <h1 className="content-page-title">Equipes de football</h1>
@@ -32,6 +42,7 @@ export default function TeamsIndexPage() {
               </article>
             ))}
           </div>
+          <SeoFaqSection faqs={teamsFaqs} />
         </div>
 
         <aside className="page-sidebar">

@@ -6,7 +6,7 @@ interface SeoProps {
   description: string;
   path: string;
   type?: "website" | "article";
-  jsonLd?: object;
+  jsonLd?: object | object[];
   breadcrumbs?: { name: string; path: string }[];
 }
 
@@ -51,9 +51,9 @@ export default function Seo({ title, description, path, type = "website", jsonLd
       <meta name="twitter:title" content={fullTitle} />
       <meta name="twitter:description" content={description} />
       <meta name="twitter:image" content={ogImage} />
-      {jsonLd && (
-        <script type="application/ld+json">{JSON.stringify(jsonLd)}</script>
-      )}
+      {jsonLd && (Array.isArray(jsonLd) ? jsonLd : [jsonLd]).map((schema, idx) => (
+        <script key={idx} type="application/ld+json">{JSON.stringify(schema)}</script>
+      ))}
       {breadcrumbLd && (
         <script type="application/ld+json">{JSON.stringify(breadcrumbLd)}</script>
       )}

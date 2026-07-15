@@ -38,16 +38,17 @@ function PitchTeam({ team, side }: { team: TeamLineup; side: "home" | "away" }) 
 
 export default function LineupModal({ match, onClose }: Props) {
   const [lineups, setLineups] = useState<ParsedLineups>({});
-  const [status, setStatus] = useState<"loading" | "idle" | "error">("loading");
+  const [status, setStatus] = useState<"loading" | "idle" | "error">(
+    () => (match.id ? "loading" : "error")
+  );
+  const displayStatus = match.id ? status : "error";
 
   useEffect(() => {
     if (!match.id) {
-      setStatus("error");
       return;
     }
 
     let cancelled = false;
-    setStatus("loading");
 
     fetch(`/api/stream/matches/${match.id}/lineups`)
       .then((r) => (r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`))))
@@ -74,11 +75,11 @@ export default function LineupModal({ match, onClose }: Props) {
         <div className="modal-title">
           Compositions — {match.homeName ?? "Domicile"} vs {match.awayName ?? "Exterieur"}
         </div>
-        {status === "loading" && <div className="modal-status">Chargement...</div>}
-        {status === "error" && (
+        {displayStatus === "loading" && <div className="modal-status">Chargement...</div>}
+        {displayStatus === "error" && (
           <div className="modal-status modal-status--error">Compositions indisponibles.</div>
         )}
-        {status === "idle" && (
+        {displayStatus === "idle" && (
           <div className="lineup-grid">
             {lineups.home && <PitchTeam team={lineups.home} side="home" />}
             {lineups.away && <PitchTeam team={lineups.away} side="away" />}

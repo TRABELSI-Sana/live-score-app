@@ -2,14 +2,24 @@ import { Link } from "react-router-dom";
 import { competitions } from "../content/competitions";
 import AdSlot from "../components/ads/AdSlot";
 import Seo from "../components/Seo";
+import SeoFaqSection from "../components/SeoFaqSection";
+import { competitionsFaqs } from "../content/seoFaqs";
+import { faqSchema, itemListSchema } from "../utils/seoSchemas";
+import { getSiteBase } from "../utils/siteBase";
 
 export default function CompetitionsIndexPage() {
+  const siteBase = getSiteBase();
+
   return (
     <div className="site-container content-page">
       <Seo
         title="Competitions de football"
         description="Toutes les competitions couvertes par LiveFoot : Ligue 1, Premier League, Liga, Serie A, Champions League. Format, enjeux et classements."
         path="/competitions"
+        jsonLd={[
+          itemListSchema(siteBase, competitions, "/competitions"),
+          faqSchema(competitionsFaqs),
+        ]}
       />
       <div className="content-page-header">
         <h1 className="content-page-title">Competitions de football</h1>
@@ -32,6 +42,7 @@ export default function CompetitionsIndexPage() {
               </article>
             ))}
           </div>
+          <SeoFaqSection faqs={competitionsFaqs} />
         </div>
 
         <aside className="page-sidebar">

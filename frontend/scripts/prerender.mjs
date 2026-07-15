@@ -24,7 +24,7 @@ const teamSlugs = [
   "liverpool", "arsenal", "chelsea", "bayern", "dortmund", "juventus", "inter",
 ];
 
-const competitionSlugs = ["ligue-1", "premier-league", "champions-league"];
+const competitionSlugs = ["ligue-1", "premier-league", "champions-league", "la-liga", "serie-a"];
 
 const guideSlugs = [
   "comment-lire-un-score-en-direct", "classement-foot-calcul",

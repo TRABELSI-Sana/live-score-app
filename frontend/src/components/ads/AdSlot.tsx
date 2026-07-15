@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import { getConsent } from "../CookieConsent";
+import { getConsent } from "../../utils/cookieConsent";
 
 declare global {
   interface Window {

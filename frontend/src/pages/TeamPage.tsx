@@ -45,6 +45,11 @@ export default function TeamPage() {
         description={team.description || `Suivez ${team.name} en direct : resultats, statistiques, analyse et historique sur LiveFoot.`}
         path={`/teams/${team.slug}`}
         jsonLd={jsonLd}
+        breadcrumbs={[
+          { name: "Accueil", path: "/" },
+          { name: "Equipes", path: "/teams" },
+          { name: team.name ?? "Equipe", path: `/teams/${team.slug}` },
+        ]}
       />
 
       <div className="content-page-header">

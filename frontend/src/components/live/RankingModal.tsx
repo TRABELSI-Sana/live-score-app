@@ -15,18 +15,19 @@ type Props = {
 
 export default function RankingModal({ competition, onClose }: Props) {
   const [rows, setRows] = useState<TableDisplayRow[]>([]);
-  const [status, setStatus] = useState<"loading" | "idle" | "error">("loading");
+  const [status, setStatus] = useState<"loading" | "idle" | "error">(
+    () => (competition.id ? "loading" : "error")
+  );
   const [groupName, setGroupName] = useState(competition.groupName);
+  const displayStatus = competition.id ? status : "error";
 
   useEffect(() => {
     if (!competition.id) {
-      setStatus("error");
       return;
     }
 
     let cancelled = false;
     let retryTimer: ReturnType<typeof setTimeout> | null = null;
-    setStatus("loading");
 
     const loadTable = (attempt = 0) => {
       fetch(`/api/stream/competitions/${competition.id}/table`)
@@ -67,11 +68,11 @@ export default function RankingModal({ competition, onClose }: Props) {
             ? `Classement — ${competition.name}${groupName ? ` (Groupe ${groupName})` : ""}`
             : "Classement"}
         </div>
-        {status === "loading" && <div className="modal-status">Chargement...</div>}
-        {status === "error" && (
+        {displayStatus === "loading" && <div className="modal-status">Chargement...</div>}
+        {displayStatus === "error" && (
           <div className="modal-status modal-status--error">Classement indisponible.</div>
         )}
-        {status === "idle" && rows.length > 0 && (
+        {displayStatus === "idle" && rows.length > 0 && (
           <table className="ranking-table">
             <thead>
               <tr>
@@ -95,7 +96,7 @@ export default function RankingModal({ competition, onClose }: Props) {
             </tbody>
           </table>
         )}
-        {status === "idle" && rows.length === 0 && (
+        {displayStatus === "idle" && rows.length === 0 && (
           <div className="modal-status">Aucune donnee de classement.</div>
         )}
       </div>
