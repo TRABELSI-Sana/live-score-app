@@ -159,6 +159,9 @@ async function prerender() {
       dedup(/<meta name="twitter:description"[^>]*>/g);
       dedup(/<meta name="twitter:image"[^>]*>/g);
       dedup(/<link rel="canonical"[^>]*>/g);
+      dedup(/<link rel="alternate"[^>]*hreflang="fr"[^>]*>/g);
+      dedup(/<link rel="alternate"[^>]*hreflang="fr-TN"[^>]*>/g);
+      dedup(/<link rel="alternate"[^>]*hreflang="x-default"[^>]*>/g);
 
       // Remove the old static structured-data script (pages inject their own via Helmet)
       html = html.replace(/<script type="application\/ld\+json" id="structured-data">[\s\S]*?<\/script>/, "");
@@ -203,6 +206,7 @@ async function prerender() {
 
 function rewriteHtmlForTn(html) {
   return html
+    .replace(/<html lang="fr"/, '<html lang="fr-TN"')
     .replace(/(<link rel="canonical" href=")https:\/\/livefoot\.online([^"]*")/g, "$1https://livefoot.tn$2")
     .replace(/(<meta property="og:url" content=")https:\/\/livefoot\.online([^"]*")/g, "$1https://livefoot.tn$2")
     .replace(/(<meta property="og:image" content=")https:\/\/livefoot\.online([^"]*")/g, "$1https://livefoot.tn$2")
