@@ -36,7 +36,7 @@ mkdir -p frontend-image/dist-tn
 rsync -a --delete "${FRONTEND_DIR}/dist-tn/" frontend-image/dist-tn/
 
 echo "==> 4) Prepare folders on VPS"
-ssh ${VPS_USER}@${VPS_HOST} "mkdir -p ${REMOTE_DIR}/{backend,frontend-image,nginx,certbot/www,certbot/conf}"
+ssh ${VPS_USER}@${VPS_HOST} "mkdir -p ${REMOTE_DIR}/{backend,frontend-image,nginx,certbot/www,certbot/conf,ops}"
 
 echo "==> 5) Upload backend (jar + Dockerfile)"
 rsync -av "${JAR_PATH}" ${VPS_USER}@${VPS_HOST}:${REMOTE_DIR}/backend/app.jar
@@ -48,8 +48,10 @@ rsync -av --delete frontend-image/ ${VPS_USER}@${VPS_HOST}:${REMOTE_DIR}/fronten
 echo "==> 7) Upload infra files (compose + nginx)"
 rsync -av docker-compose.yml ${VPS_USER}@${VPS_HOST}:${REMOTE_DIR}/
 rsync -av nginx/ ${VPS_USER}@${VPS_HOST}:${REMOTE_DIR}/nginx/
+rsync -av ops/ ${VPS_USER}@${VPS_HOST}:${REMOTE_DIR}/ops/
 
 echo "==> 8) Deploy (build & restart)"
 ssh ${VPS_USER}@${VPS_HOST} "cd ${REMOTE_DIR} && docker compose up -d --build"
+ssh ${VPS_USER}@${VPS_HOST} "sudo install -m 755 ${REMOTE_DIR}/ops/reload-nginx-after-cert-renewal.sh /etc/letsencrypt/renewal-hooks/deploy/reload-livefoot-nginx"
 
 echo "✅ Deploy OK"

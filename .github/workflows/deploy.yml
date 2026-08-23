@@ -63,12 +63,14 @@ jobs:
         run: |
           JAR_PATH=$(ls -1 backend/target/*-SNAPSHOT.jar | head -n 1)
 
-          ssh ${VPS_USER}@${VPS_HOST} "mkdir -p ${REMOTE_DIR}/{backend,frontend-image,nginx,certbot/www,certbot/conf}"
+          ssh ${VPS_USER}@${VPS_HOST} "mkdir -p ${REMOTE_DIR}/{backend,frontend-image,nginx,certbot/www,certbot/conf,ops}"
 
           rsync -az "${JAR_PATH}" ${VPS_USER}@${VPS_HOST}:${REMOTE_DIR}/backend/app.jar
           rsync -az backend/Dockerfile ${VPS_USER}@${VPS_HOST}:${REMOTE_DIR}/backend/
           rsync -az --delete frontend-image/ ${VPS_USER}@${VPS_HOST}:${REMOTE_DIR}/frontend-image/
           rsync -az docker-compose.yml ${VPS_USER}@${VPS_HOST}:${REMOTE_DIR}/
           rsync -az nginx/ ${VPS_USER}@${VPS_HOST}:${REMOTE_DIR}/nginx/
+          rsync -az ops/ ${VPS_USER}@${VPS_HOST}:${REMOTE_DIR}/ops/
 
           ssh ${VPS_USER}@${VPS_HOST} "cd ${REMOTE_DIR} && docker compose up -d --build"
+          ssh ${VPS_USER}@${VPS_HOST} "sudo install -m 755 ${REMOTE_DIR}/ops/reload-nginx-after-cert-renewal.sh /etc/letsencrypt/renewal-hooks/deploy/reload-livefoot-nginx"
