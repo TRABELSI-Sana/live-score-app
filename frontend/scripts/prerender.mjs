@@ -158,6 +158,9 @@ async function prerender() {
       dedup(/<meta name="twitter:title"[^>]*>/g);
       dedup(/<meta name="twitter:description"[^>]*>/g);
       dedup(/<meta name="twitter:image"[^>]*>/g);
+      dedup(/<meta name="robots"[^>]*>/g);
+      dedup(/<meta property="og:image:width"[^>]*>/g);
+      dedup(/<meta property="og:image:height"[^>]*>/g);
       dedup(/<link rel="canonical"[^>]*>/g);
       dedup(/<link rel="alternate"[^>]*hreflang="fr"[^>]*>/g);
       dedup(/<link rel="alternate"[^>]*hreflang="fr-TN"[^>]*>/g);
