@@ -20,9 +20,6 @@ jobs:
     permissions:
       contents: read
       packages: write
-    outputs:
-      backend_image: ${{ steps.images.outputs.prefix }}/backend@${{ steps.backend.outputs.digest }}
-      frontend_image: ${{ steps.images.outputs.prefix }}/frontend@${{ steps.frontend.outputs.digest }}
     steps:
       - uses: actions/checkout@v4
 
@@ -32,6 +29,21 @@ jobs:
           java-version: 21
           cache: maven
           cache-dependency-path: backend/pom.xml
+
+      - name: Read release version from Maven
+        id: release
+        working-directory: backend
+        run: |
+          VERSION=$(./mvnw help:evaluate -Dexpression=project.version -q -DforceStdout -Dstyle.color=never)
+          JAR_NAME=$(./mvnw help:evaluate -Dexpression=project.build.finalName -q -DforceStdout -Dstyle.color=never)
+          if [[ "${VERSION^^}" == *SNAPSHOT* ]]; then
+            echo 'Production requires a release version without SNAPSHOT in backend/pom.xml.' >&2
+            exit 1
+          fi
+          [[ "$VERSION" =~ ^[A-Za-z0-9_][A-Za-z0-9_.-]{0,127}$ ]]
+          [[ "$JAR_NAME" =~ ^[A-Za-z0-9_.-]+$ ]]
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "jar_name=$JAR_NAME" >> "$GITHUB_OUTPUT"
 
       - name: Test and build backend
         working-directory: backend
@@ -52,13 +64,13 @@ jobs:
           npm run build:seo
 
       - name: Prepare Docker build contexts
-        id: images
+        env:
+          JAR_NAME: ${{ steps.release.outputs.jar_name }}
         run: |
-          cp backend/target/live-scores-0.0.1-SNAPSHOT.jar backend/app.jar
+          cp "backend/target/$JAR_NAME.jar" backend/app.jar
           mkdir -p frontend-image/dist frontend-image/dist-tn
           cp -a frontend/dist/. frontend-image/dist/
           cp -a frontend/dist-tn/. frontend-image/dist-tn/
-          echo "prefix=ghcr.io/${GITHUB_REPOSITORY,,}" >> "$GITHUB_OUTPUT"
 
       - uses: docker/setup-buildx-action@v4
 
@@ -76,10 +88,13 @@ jobs:
           context: backend
           platforms: linux/amd64
           push: true
-          tags: ${{ steps.images.outputs.prefix }}/backend:${{ github.sha }}
+          tags: |
+            ghcr.io/trabelsi-sana/live-score-app/backend:latest
+            ghcr.io/trabelsi-sana/live-score-app/backend:${{ steps.release.outputs.version }}
           labels: |
             org.opencontainers.image.source=https://github.com/${{ github.repository }}
             org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.version=${{ steps.release.outputs.version }}
           cache-from: type=gha,scope=backend
           cache-to: type=gha,mode=max,scope=backend
 
@@ -90,10 +105,13 @@ jobs:
           context: frontend-image
           platforms: linux/amd64
           push: true
-          tags: ${{ steps.images.outputs.prefix }}/frontend:${{ github.sha }}
+          tags: |
+            ghcr.io/trabelsi-sana/live-score-app/frontend:latest
+            ghcr.io/trabelsi-sana/live-score-app/frontend:${{ steps.release.outputs.version }}
           labels: |
             org.opencontainers.image.source=https://github.com/${{ github.repository }}
             org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.version=${{ steps.release.outputs.version }}
           cache-from: type=gha,scope=frontend
           cache-to: type=gha,mode=max,scope=frontend
 
@@ -104,8 +122,6 @@ jobs:
     timeout-minutes: 20
     env:
       VPS: ubuntu@51.210.246.121
-      BACKEND_IMAGE: ${{ needs.build_push.outputs.backend_image }}
-      FRONTEND_IMAGE: ${{ needs.build_push.outputs.frontend_image }}
     steps:
       - uses: actions/checkout@v4
 
@@ -134,13 +150,12 @@ jobs:
           (Path(os.environ["RUNNER_TEMP"]) / "ghcr-secret.json").write_text(json.dumps(secret))
           PYTHON
 
-      - name: Render manifests with published image digests
+      - name: Render configuration version
         run: |
           python3 - <<'PYTHON'
-          import hashlib, os
+          import hashlib
           from pathlib import Path
-          values = {name: os.environ[name] for name in ("BACKEND_IMAGE", "FRONTEND_IMAGE")}
-          values["CONFIG_VERSION"] = hashlib.sha256(Path("k8s/configmap.yaml").read_bytes()).hexdigest()
+          values = {"CONFIG_VERSION": hashlib.sha256(Path("k8s/configmap.yaml").read_bytes()).hexdigest()}
           Path("rendered").mkdir()
           for path in Path("k8s").glob("*.yaml"):
               text = path.read_text()
@@ -163,6 +178,7 @@ jobs:
           k apply -f manifests/pvc.yaml
           k apply -f manifests/service.yaml
           k apply -f manifests/deployment.yaml
+          k -n live-score rollout restart deployment/backend deployment/frontend
           for app in redis ollama backend frontend edge; do
             k -n live-score rollout status "deployment/$app" --timeout=300s
           done

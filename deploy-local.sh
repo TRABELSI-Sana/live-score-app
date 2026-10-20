@@ -3,20 +3,21 @@ set -euo pipefail
 
 BACKEND_DIR="backend"
 FRONTEND_DIR="frontend"
-JAR_GLOB="${BACKEND_DIR}/target/*-SNAPSHOT.jar"
 
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "${PROJECT_ROOT}"
 LOCAL_DEPLOY_DIR="${PROJECT_ROOT}/.local-deploy"
 
 echo "==> 1) Build backend"
 pushd "${BACKEND_DIR}" >/dev/null
 chmod +x mvnw
 ./mvnw -DskipTests clean package
+JAR_NAME="$(./mvnw help:evaluate -Dexpression=project.build.finalName -q -DforceStdout -Dstyle.color=never)"
 popd >/dev/null
 
-JAR_PATH="$(ls -1 ${JAR_GLOB} 2>/dev/null | head -n 1 || true)"
+JAR_PATH="${BACKEND_DIR}/target/${JAR_NAME}.jar"
 if [[ -z "${JAR_PATH}" || ! -f "${JAR_PATH}" ]]; then
-  echo "❌ Jar not found. Looked for: ${JAR_GLOB}"
+  echo "❌ Jar not found. Looked for: ${JAR_PATH}"
   ls -la "${BACKEND_DIR}/target" || true
   exit 1
 fi

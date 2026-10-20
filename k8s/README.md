@@ -16,8 +16,14 @@ les images, ne reçoit plus de JAR et n'importe plus d'archives Docker.
 GHCR fait partie de GitHub : il n'y a pas de serveur à installer. Les packages
 sont créés au premier push d'image. Pour ce dépôt, les images seront :
 
-- `ghcr.io/trabelsi-sana/live-score-app/backend:<commit>` ;
-- `ghcr.io/trabelsi-sana/live-score-app/frontend:<commit>`.
+- `ghcr.io/trabelsi-sana/live-score-app/backend:latest` ;
+- `ghcr.io/trabelsi-sana/live-score-app/frontend:latest`.
+
+Les manifests utilisent directement `:latest`. Le workflow publie aussi un tag
+correspondant à `project.version` dans `backend/pom.xml`.
+Le JAR suit également cette version : `live-scores-0.0.1.jar`.
+Pour la release suivante, modifier la version du POM, par exemple `0.0.2`.
+Le workflow de production refuse les versions `SNAPSHOT`.
 
 La publication utilise le `GITHUB_TOKEN` automatiquement fourni par GitHub
 Actions, avec la permission `packages: write`. Il n'est pas nécessaire de
@@ -54,11 +60,13 @@ Le jeton GitHub du job n'est pas utilisé comme identifiant permanent du cluster
 | `configmap.yaml` | namespace, configuration applicative et nginx |
 | `pvc.yaml` | stockage persistant Redis et Ollama |
 
-Le workflow remplace uniquement `${BACKEND_IMAGE}`, `${FRONTEND_IMAGE}` et
-`${CONFIG_VERSION}`. Les images sont étiquetées avec le commit et déployées
-par leur digest exact. La version de configuration redémarre les composants
-concernés si leur ConfigMap change. Ollama utilise une image officielle
-épinglée par digest ; les modèles existants restent dans son PVC.
+Le workflow remplace uniquement `${CONFIG_VERSION}`. Les noms complets des images
+avec `:latest` sont écrits dans `deployment.yaml`, avec `imagePullPolicy: Always`.
+Après application, le workflow redémarre backend et frontend pour récupérer les
+images fraîchement publiées, même si le YAML n'a pas changé.
+La version de configuration redémarre les composants concernés si leur ConfigMap
+change. Ollama utilise une image officielle épinglée par digest ; les modèles
+existants restent dans son PVC.
 
 La clé API-Football reste dans le Secret existant `api-football`, champ
 `APIFOOTBALL_KEY`. Elle n'est ni dans les images ni dans les manifests.
@@ -73,10 +81,10 @@ sudo k3s kubectl -n live-score get pods,services,pvc
 sudo k3s kubectl -n live-score logs deployment/backend --tail=50
 ```
 
-Pour revenir au Deployment précédent d'un composant :
+Pour revenir à une version publiée précédente, indiquer son tag :
 
 ```bash
-sudo k3s kubectl -n live-score rollout undo deployment/backend
+sudo k3s kubectl -n live-score set image deployment/backend backend=ghcr.io/trabelsi-sana/live-score-app/backend:0.0.1
 sudo k3s kubectl -n live-score rollout status deployment/backend
 ```
 
