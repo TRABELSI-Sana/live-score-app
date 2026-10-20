@@ -133,7 +133,7 @@ spec:
     spec:
       containers:
       - name: frontend
-        image: ghcr.io/trabelsi-sana/live-score-app/frontend:0.0.3
+        image: ghcr.io/trabelsi-sana/live-score-app/frontend:0.0.4
         imagePullPolicy: Always
         ports:
         - containerPort: 80
@@ -179,7 +179,7 @@ spec:
     spec:
       containers:
       - name: backend
-        image: ghcr.io/trabelsi-sana/live-score-app/backend:0.0.3
+        image: ghcr.io/trabelsi-sana/live-score-app/backend:0.0.4
         imagePullPolicy: Always
         envFrom:
         - configMapRef:

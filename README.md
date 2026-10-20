@@ -9,7 +9,6 @@ React/TypeScript, Redis, analyses de matchs et chatbot généraliste avec Ollama
 export APIFOOTBALL_KEY='ta-cle-api'
 ./deploy-local.sh
 ```
-<GITHUB_TOKEN>
 Ce script construit le projet et lance Docker Compose à partir de
 `docker-compose-local.yml` et `nginx/default-local.conf`.
 Les fichiers préparés dans `.local-deploy/` sont générés et exclus de Git.
