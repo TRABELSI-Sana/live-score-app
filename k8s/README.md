@@ -99,7 +99,16 @@ Conserver `/etc/letsencrypt` et le répertoire ACME
 `/home/ubuntu/apps/live-scores/certbot/www` sur le VPS.
 Le hook `ops/reload-nginx-after-cert-renewal.sh` recharge nginx après renouvellement.
 
-## Résumés IA sur CPU
+## Briefing et analyse IA
+
+`GET /api/ai/briefing` renvoie immédiatement une sélection structurée des matchs :
+rencontres serrées en fin de match, prochains coups d’envoi et résultats riches en
+buts. Les équipes, scores et compétitions proviennent directement des données du
+board Redis. Cet endpoint ne déclenche ni appel Ollama ni appel API-Football.
+Le frontend actualise cette sélection toutes les 60 secondes et propose un
+éclairage IA à la demande, limité aux rencontres de l’onglet choisi.
+
+### Génération sur CPU
 
 Le backend utilise `qwen2.5:3b`, avec un contexte de 2048 tokens, au plus
 160 tokens générés et un maintien du modèle en mémoire de 30 minutes.

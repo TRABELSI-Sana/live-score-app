@@ -2,6 +2,7 @@ package com.selim.livescores.ai
 
 import com.selim.livescores.domain.MatchEvent
 import com.selim.livescores.domain.MatchState
+import com.selim.livescores.domain.MatchStatus
 import com.selim.livescores.service.MatchService
 import jakarta.annotation.PreDestroy
 import org.springframework.ai.chat.client.ChatClient
@@ -55,7 +56,8 @@ class AiInsightsService(
         val matches = matchService.getBoardMatches()
         val filtered = filterMatches(matches, request.competitionIds)
         val maxMatches = request.maxMatches?.coerceIn(1, 25) ?: 12
-        val selected = filtered.take(maxMatches)
+        val scoped = MatchBriefingBuilder.select(filtered, request.focus ?: "overview")
+        val selected = (if (request.focus in setOf("live", "upcoming", "finished")) scoped else (scoped + filtered).distinct()).take(maxMatches)
         val context = buildContext(selected)
         val competitions = selected.mapNotNull { it.competition?.name?.trim() }.distinct()
         val prompt = request.prompt?.trim()?.take(600)?.takeIf { it.isNotEmpty() }
@@ -69,6 +71,8 @@ class AiInsightsService(
             matchesConsidered = selected.size,
             competitions = competitions
         )
+
+        if (selected.isEmpty()) return response("Aucune rencontre disponible dans cette sélection pour le moment.", "empty")
 
         val future = synchronized(cacheLock) {
             val now = System.nanoTime()
@@ -142,12 +146,20 @@ class AiInsightsService(
         val competition = match.competition?.name ?: "Compétition"
         val home = match.home?.name ?: "Équipe A"
         val away = match.away?.name ?: "Équipe B"
-        val score = match.scores?.score ?: "0-0"
-        val status = match.status ?: "INCONNU"
+        val normalized = MatchStatus.normalize(match.status)
+        val upcoming = normalized in setOf(MatchStatus.NOT_STARTED, "SCHEDULED", "TIMED")
+        val score = if (upcoming) "non commencé" else match.scores?.score ?: "non renseigné"
+        val status = when {
+            MatchStatus.isLive(match.status) -> "EN COURS, score provisoire"
+            MatchStatus.isFinished(match.status) -> "TERMINÉ"
+            upcoming -> "À VENIR"
+            else -> match.status ?: "INCONNU"
+        }
         val time = match.time?.takeIf { it.isNotBlank() } ?: "--"
         val lastEvent = match.lastEvents.firstOrNull()
         val eventSummary = lastEvent?.let { formatEvent(it) } ?: "aucun événement récent"
-        return "$competition | $home vs $away | score $score | statut $status ($time) | $eventSummary"
+        val kickoff = match.scheduled ?: "non renseigné"
+        return "$competition | $home vs $away | score $score | statut $status ($time) | coup d’envoi $kickoff | $eventSummary"
     }
 
     private fun formatEvent(event: MatchEvent): String {
@@ -166,12 +178,14 @@ class AiInsightsService(
     private fun systemPrompt(): String =
         """
         Tu es l'analyste IA de LiveFoot.
-        Fournis un résumé clair des matchs du jour et des points à surveiller.
+        Explique ce qui mérite l’attention dans les rencontres sélectionnées : score serré, fin de match, prochain coup d’envoi.
+        Ne récite pas le programme et ne regroupe jamais les équipes de plusieurs lignes.
+        Sans statistiques de forme ou de classement, ne prétends pas connaître les favoris, enjeux ou chances de victoire.
         Reste factuel et base-toi uniquement sur le contexte fourni.
         Réponds uniquement en français, en 3 points maximum et 60 mots maximum.
         N'invente aucun résultat, horaire, événement ou motif de report.
-        LIVE, 1H, 2H et HT indiquent un match en cours : parle de score provisoire, jamais de victoire acquise.
-        NOT_STARTED, NS et TIMED indiquent un match à venir. Seuls FINISHED, FT, AET et PEN indiquent un match terminé.
+        IN PLAY, ADDED TIME, HALF TIME BREAK, LIVE, 1H, 2H et HT indiquent un match en cours : parle de score provisoire, jamais de victoire acquise.
+        NOT STARTED, NOT_STARTED, NS et TIMED indiquent un match à venir. Seuls FINISHED, FT, AET et PEN indiquent un match terminé.
         Si les données sont insuffisantes, dis-le brièvement.
         """.trimIndent()
 }

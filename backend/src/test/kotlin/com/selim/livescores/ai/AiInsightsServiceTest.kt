@@ -37,6 +37,13 @@ class AiInsightsServiceTest {
     }
 
     @Test
+    fun `empty focused selection does not call the model`() {
+        val ai = create()
+        assertThat(ai.generateInsight(AiInsightRequest(focus = "live")).status).isEqualTo("empty")
+        verify(model, never()).call(any(Prompt::class.java))
+    }
+
+    @Test
     fun `identical requests reuse the successful response`() {
         val ai = create()
         val first = ai.generateInsight(AiInsightRequest())

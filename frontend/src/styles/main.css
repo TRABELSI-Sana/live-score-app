@@ -788,33 +788,6 @@ button {
   line-height: 1.5;
 }
 
-.sidebar-stats {
-  display: grid;
-  gap: var(--space-xs);
-}
-
-.sidebar-stat {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 6px 0;
-  border-bottom: 1px solid var(--color-border-light);
-  font-size: 0.8rem;
-}
-
-.sidebar-stat:last-child {
-  border-bottom: none;
-}
-
-.sidebar-stat-label {
-  color: var(--color-text-secondary);
-}
-
-.sidebar-stat-value {
-  font-weight: 700;
-  color: var(--color-text);
-}
-
 .sidebar-links {
   display: flex;
   flex-direction: column;
@@ -838,38 +811,6 @@ button {
   background: var(--color-bg);
   color: var(--color-text);
   text-decoration: none;
-}
-
-.sidebar-highlight {
-  background: var(--color-bg);
-  border-radius: var(--radius-md);
-  padding: var(--space-sm) var(--space-md);
-  margin-top: var(--space-sm);
-}
-
-.sidebar-highlight-label {
-  font-size: 0.68rem;
-  text-transform: uppercase;
-  color: var(--color-text-muted);
-  letter-spacing: 0.3px;
-}
-
-.sidebar-highlight-value {
-  font-weight: 700;
-  font-size: 0.9rem;
-  color: var(--color-text);
-}
-
-.sidebar-badge {
-  display: inline-flex;
-  padding: 2px 7px;
-  border-radius: var(--radius-full);
-  font-size: 0.6rem;
-  font-weight: 700;
-  background: #fef3c7;
-  color: #92400e;
-  text-transform: uppercase;
-  letter-spacing: 0.3px;
 }
 
 /* === EDITORIAL PREVIEW (Home) === */

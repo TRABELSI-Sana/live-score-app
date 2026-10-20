@@ -5,7 +5,8 @@ import java.time.OffsetDateTime
 data class AiInsightRequest(
     val prompt: String? = null,
     val maxMatches: Int? = null,
-    val competitionIds: List<Long>? = null
+    val competitionIds: List<Long>? = null,
+    val focus: String? = null
 )
 
 data class AiInsightResponse(

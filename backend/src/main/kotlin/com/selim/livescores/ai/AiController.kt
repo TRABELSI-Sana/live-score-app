@@ -1,5 +1,6 @@
 package com.selim.livescores.ai
 
+import com.selim.livescores.service.MatchService
 import org.springframework.http.MediaType
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PostMapping
@@ -13,9 +14,14 @@ import java.util.concurrent.Executors
 @RestController
 @RequestMapping("/api/ai")
 class AiController(
-    private val aiInsightsService: AiInsightsService
+    private val aiInsightsService: AiInsightsService,
+    private val matchService: MatchService
 ) {
     private val aiStreamExecutor = Executors.newFixedThreadPool(4)
+
+    @GetMapping("/briefing")
+    fun briefing(@RequestParam(defaultValue = "overview") focus: String): MatchBriefing =
+        MatchBriefingBuilder.build(matchService.getBoardMatches(), focus.takeIf { it in setOf("live", "upcoming", "finished") } ?: "overview")
 
     @GetMapping("/suggestions")
     fun suggestions(): AiSuggestionsResponse = aiInsightsService.suggestions()
@@ -28,13 +34,15 @@ class AiController(
     fun insightsStream(
         @RequestParam(required = false) prompt: String?,
         @RequestParam(required = false) maxMatches: Int?,
-        @RequestParam(required = false) competitionIds: List<Long>?
+        @RequestParam(required = false) competitionIds: List<Long>?,
+        @RequestParam(required = false) focus: String?
     ): SseEmitter {
         val emitter = SseEmitter(30_000L)
         val request = AiInsightRequest(
             prompt = prompt,
             maxMatches = maxMatches,
-            competitionIds = competitionIds
+            competitionIds = competitionIds,
+            focus = focus
         )
 
         aiStreamExecutor.submit {
