@@ -23,6 +23,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Test manual release commands
+        run: python3 -B ops/test_deploy.py
+
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
@@ -81,7 +84,24 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Check published release images
+        id: registry
+        run: |
+          python3 - <<'PYTHON'
+          import os
+          import deploy
+          release = deploy.version()
+          values = {}
+          for app in ("backend", "frontend"):
+              values[app + "_exists"] = str(deploy.registry_image_matches_source(app, release)).lower()
+              values[app + "_source"] = deploy.fingerprint(app)
+          with open(os.environ["GITHUB_OUTPUT"], "a") as output:
+              for key, value in values.items():
+                  output.write(f"{key}={value}\n")
+          PYTHON
+
       - name: Build and push backend
+        if: steps.registry.outputs.backend_exists != 'true'
         id: backend
         uses: docker/build-push-action@v7
         with:
@@ -95,10 +115,12 @@ jobs:
             org.opencontainers.image.source=https://github.com/${{ github.repository }}
             org.opencontainers.image.revision=${{ github.sha }}
             org.opencontainers.image.version=${{ steps.release.outputs.version }}
+            org.livefoot.source.sha256=${{ steps.registry.outputs.backend_source }}
           cache-from: type=gha,scope=backend
           cache-to: type=gha,mode=max,scope=backend
 
       - name: Build and push frontend
+        if: steps.registry.outputs.frontend_exists != 'true'
         id: frontend
         uses: docker/build-push-action@v7
         with:
@@ -112,8 +134,24 @@ jobs:
             org.opencontainers.image.source=https://github.com/${{ github.repository }}
             org.opencontainers.image.revision=${{ github.sha }}
             org.opencontainers.image.version=${{ steps.release.outputs.version }}
+            org.livefoot.source.sha256=${{ steps.registry.outputs.frontend_source }}
           cache-from: type=gha,scope=frontend
           cache-to: type=gha,mode=max,scope=frontend
+
+      - name: Refresh latest aliases for reused release images
+        env:
+          VERSION: ${{ steps.release.outputs.version }}
+          BACKEND_REUSED: ${{ steps.registry.outputs.backend_exists }}
+          FRONTEND_REUSED: ${{ steps.registry.outputs.frontend_exists }}
+        run: |
+          if [[ "$BACKEND_REUSED" == true ]]; then
+            docker tag "ghcr.io/trabelsi-sana/live-score-app/backend:$VERSION" ghcr.io/trabelsi-sana/live-score-app/backend:latest
+            docker push ghcr.io/trabelsi-sana/live-score-app/backend:latest
+          fi
+          if [[ "$FRONTEND_REUSED" == true ]]; then
+            docker tag "ghcr.io/trabelsi-sana/live-score-app/frontend:$VERSION" ghcr.io/trabelsi-sana/live-score-app/frontend:latest
+            docker push ghcr.io/trabelsi-sana/live-score-app/frontend:latest
+          fi
 
   deploy:
     name: Deploy published images to K3s
@@ -150,18 +188,16 @@ jobs:
           (Path(os.environ["RUNNER_TEMP"]) / "ghcr-secret.json").write_text(json.dumps(secret))
           PYTHON
 
-      - name: Render configuration version
+      - name: Prepare versioned Kubernetes manifests
         run: |
           python3 - <<'PYTHON'
-          import hashlib
+          import shutil
           from pathlib import Path
-          values = {"CONFIG_VERSION": hashlib.sha256(Path("k8s/configmap.yaml").read_bytes()).hexdigest()}
+          import deploy
+          deploy.render_deployment(deploy.version())
           Path("rendered").mkdir()
           for path in Path("k8s").glob("*.yaml"):
-              text = path.read_text()
-              for key, value in values.items():
-                  text = text.replace("${" + key + "}", value)
-              (Path("rendered") / path.name).write_text(text)
+              shutil.copy2(path, Path("rendered") / path.name)
           PYTHON
 
       - name: Apply manifests and wait for deployments
@@ -178,7 +214,6 @@ jobs:
           k apply -f manifests/pvc.yaml
           k apply -f manifests/service.yaml
           k apply -f manifests/deployment.yaml
-          k -n live-score rollout restart deployment/backend deployment/frontend
           for app in redis ollama backend frontend edge; do
             k -n live-score rollout status "deployment/$app" --timeout=300s
           done

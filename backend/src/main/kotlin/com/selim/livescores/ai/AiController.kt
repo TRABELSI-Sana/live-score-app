@@ -19,12 +19,20 @@ class AiController(
 ) {
     private val aiStreamExecutor = Executors.newFixedThreadPool(4)
 
+    @org.springframework.web.bind.annotation.ExceptionHandler(org.springframework.web.bind.MethodArgumentNotValidException::class)
+    @org.springframework.web.bind.annotation.ResponseStatus(org.springframework.http.HttpStatus.BAD_REQUEST)
+    fun invalidAiRequest(): Map<String, String> = mapOf("error" to "La demande est invalide. Vérifiez le message et l’historique.")
+
     @GetMapping("/briefing")
     fun briefing(@RequestParam(defaultValue = "overview") focus: String): MatchBriefing =
         MatchBriefingBuilder.build(matchService.getBoardMatches(), focus.takeIf { it in setOf("live", "upcoming", "finished") } ?: "overview")
 
     @GetMapping("/suggestions")
     fun suggestions(): AiSuggestionsResponse = aiInsightsService.suggestions()
+
+    @PostMapping("/chat")
+    fun chat(@jakarta.validation.Valid @RequestBody request: AiChatRequest): AiInsightResponse =
+        aiInsightsService.chat(request)
 
     @PostMapping("/insights")
     fun insights(@RequestBody request: AiInsightRequest): AiInsightResponse =

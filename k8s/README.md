@@ -2,54 +2,39 @@
 
 Production : **https://livefoot.online** et **https://livefoot.tn**.
 
+Le déploiement manuel suit les commandes du [README principal](../README.md) :
+
 ```text
-Push sur main → tests / build → push des images GHCR → déploiement K3s
+Version POM → clean install → images locales → push GHCR → Deployment versionné → kubectl apply
 ```
 
-Le workflow est entièrement dans `.github/workflows/deploy.yml`.
-Le job `build_push` construit et publie les images ; le job `deploy` applique
-les manifests et attend que les pods soient prêts. Le VPS ne construit plus
-les images, ne reçoit plus de JAR et n'importe plus d'archives Docker.
+Le script `../deploy.py` prépare chaque étape séparément. Il ne lance jamais
+kubectl. Le déploiement automatique au push sur `main` reste actif dans
+`.github/workflows/deploy.yml` : tests, publication GHCR et application sur K3s.
+La CI prépare ses manifests avec la même version du POM et réutilise uniquement
+les images publiées dont l’empreinte correspond au code. Un tag de release déjà
+publié avec un autre code impose un incrément de version.
 
-## Configurer GHCR une seule fois
+Les secrets GitHub existants `VPS_SSH_KEY`, `VPS_HOST_KEY`, `GHCR_READ_TOKEN`
+et, si nécessaire, la variable `GHCR_USERNAME` restent utilisés pour le déploiement
+automatique. Le `GITHUB_TOKEN` publie les images avec `packages: write`.
 
-GHCR fait partie de GitHub : il n'y a pas de serveur à installer. Les packages
-sont créés au premier push d'image. Pour ce dépôt, les images seront :
+## Registre GHCR
 
-- `ghcr.io/trabelsi-sana/live-score-app/backend:latest` ;
-- `ghcr.io/trabelsi-sana/live-score-app/frontend:latest`.
+Les deux images applicatives utilisent des tags explicites issus du POM :
 
-Les manifests utilisent directement `:latest`. Le workflow publie aussi un tag
-correspondant à `project.version` dans `backend/pom.xml`.
-Le JAR suit également cette version : `live-scores-0.0.1.jar`.
-Pour la release suivante, modifier la version du POM, par exemple `0.0.2`.
-Le workflow de production refuse les versions `SNAPSHOT`.
+- `ghcr.io/trabelsi-sana/live-score-app/backend:0.0.2` ;
+- `ghcr.io/trabelsi-sana/live-score-app/frontend:0.0.2`.
 
-La publication utilise le `GITHUB_TOKEN` automatiquement fourni par GitHub
-Actions, avec la permission `packages: write`. Il n'est pas nécessaire de
-créer un jeton personnel pour publier depuis ce workflow.
+`0.0.2` illustre un tag de release. Le script lit la version courante
+et refuse de republier un tag existant. Se connecter depuis le Mac avec
+`docker login ghcr.io -u TRABELSI-Sana`, avec un jeton ayant `write:packages`.
 
-Pour que le VPS puisse télécharger les images privées après la fin du job :
-
-1. Dans les paramètres de ton **compte GitHub**, ouvrir **Developer settings →
-   Personal access tokens → Tokens (classic) → Generate new token (classic)**.
-2. Sélectionner uniquement le scope **read:packages**, choisir une expiration
-   et générer le jeton. Le compte doit avoir accès aux packages du dépôt.
-3. Dans **le dépôt → Settings → Secrets and variables → Actions**, ajouter :
-   - onglet **Secrets** : `GHCR_READ_TOKEN`, contenant le jeton de lecture ;
-   - onglet **Variables** : `GHCR_USERNAME`, contenant le nom du compte
-     propriétaire du jeton si ce compte diffère du propriétaire du dépôt.
-     Par défaut, le workflow utilise le propriétaire du dépôt.
-4. Conserver les secrets SSH utilisés pour le VPS : `VPS_SSH_KEY` et
-   `VPS_HOST_KEY`.
-5. Committer les changements et pousser sur `main`. Ouvrir l'onglet **Actions**.
-   Les deux packages apparaîtront après la première publication.
-
-Le workflow installe les identifiants de lecture dans le Secret Kubernetes
-`ghcr-credentials`. Les pods backend et frontend l'utilisent avec
-`imagePullSecrets`. Renouveler `GHCR_READ_TOKEN` avant son expiration, puis
-relancer le workflow pour mettre le Secret Kubernetes à jour.
-Le jeton GitHub du job n'est pas utilisé comme identifiant permanent du cluster.
+Le cluster existant dispose du Secret `ghcr-credentials` pour télécharger les
+images privées et du Secret `api-football` pour la clé fournisseur. Les conserver.
+Ils ne sont pas stockés dans les manifests ni recréés par le script de release.
+Le jeton de lecture du registre doit conserver l’accès aux packages privés ;
+renouveler ce Secret sur le cluster avant l’expiration de son jeton.
 
 ## Quatre manifests
 
@@ -60,13 +45,14 @@ Le jeton GitHub du job n'est pas utilisé comme identifiant permanent du cluster
 | `configmap.yaml` | namespace, configuration applicative et nginx |
 | `pvc.yaml` | stockage persistant Redis et Ollama |
 
-Le workflow remplace uniquement `${CONFIG_VERSION}`. Les noms complets des images
-avec `:latest` sont écrits dans `deployment.yaml`, avec `imagePullPolicy: Always`.
-Après application, le workflow redémarre backend et frontend pour récupérer les
-images fraîchement publiées, même si le YAML n'a pas changé.
-La version de configuration redémarre les composants concernés si leur ConfigMap
-change. Ollama utilise une image officielle épinglée par digest ; les modèles
-existants restent dans son PVC.
+`./deploy.py manifests` met les noms complets des images versionnées dans
+`deployment.yaml` et actualise l’annotation de configuration à partir de
+`configmap.yaml`. Il ne reste aucune variable à remplacer avant l’application.
+Le passage à une nouvelle version déclenche le rollout avec `kubectl apply`.
+Une modification de ConfigMap déclenche également le redémarrage des composants
+concernés quand les annotations sont mises à jour.
+Ollama utilise une image officielle épinglée par digest ; ses modèles restent dans
+son PVC. Redis et nginx utilisent aussi des images officielles.
 
 La clé API-Football reste dans le Secret existant `api-football`, champ
 `APIFOOTBALL_KEY`. Elle n'est ni dans les images ni dans les manifests.
@@ -106,9 +92,10 @@ rencontres serrées en fin de match, prochains coups d’envoi et résultats ric
 buts. Les équipes, scores et compétitions proviennent directement des données du
 board Redis. Cet endpoint ne déclenche ni appel Ollama ni appel API-Football.
 Le frontend actualise cette sélection toutes les 60 secondes et propose un
-éclairage IA à la demande lorsqu’au moins une rencontre sélectionnée possède un
-score en cours ou terminé. Avant les matchs, seuls le programme et les horaires
-sont affichés. L’analyse est limitée aux rencontres de l’onglet choisi.
+éclairage IA à la demande dans l’onglet Analyse IA, accessible également avant
+les matchs via `POST /api/ai/insights`. L’utilisateur peut choisir le périmètre
+des rencontres et saisir sa question. L’onglet Chat utilise `POST /api/ai/chat`
+pour les conversations généralistes avec historique et contexte LiveFoot.
 
 ### Génération sur CPU
 

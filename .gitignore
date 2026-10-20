@@ -8,3 +8,5 @@ frontend.zip
 /backend/app.jar
 /frontend-image/dist-tn/
 /rendered/
+
+/.release/

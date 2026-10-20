@@ -6,6 +6,14 @@ import com.selim.livescores.domain.MatchStatus
 import com.selim.livescores.service.MatchService
 import jakarta.annotation.PreDestroy
 import org.springframework.ai.chat.client.ChatClient
+import org.springframework.ai.chat.messages.AssistantMessage
+import org.springframework.ai.chat.messages.UserMessage
+import org.springframework.ai.chat.messages.Message
+import org.springframework.ai.ollama.api.OllamaChatOptions
+import java.text.Normalizer
+import java.time.Instant
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
 import java.util.concurrent.ExecutionException
@@ -128,6 +136,78 @@ class AiInsightsService(
             response("Le module IA est momentanément indisponible. Réessayez plus tard.", "error")
         }
     }
+
+    fun chat(request: AiChatRequest): AiInsightResponse {
+        val question = request.message.trim().take(1000)
+        if (question.isEmpty()) return AiInsightResponse("Écrivez un message pour commencer.", "empty", model, 0, emptyList())
+        val matches = runCatching { matchService.getBoardMatches() }.getOrDefault(emptyList())
+        val contextQuery = normalizeText(request.history.takeLast(2).filter { it.role == "user" }.joinToString(" ") { it.content } + " " + question)
+        val relevant = matches.filter { match ->
+            listOfNotNull(match.home?.name, match.away?.name, match.competition?.name).any { name ->
+                normalizeText(name).split(" ").any { it.length >= 4 && contextQuery.contains(it) }
+            }
+        }
+        val footballWords = setOf("match", "matchs", "matches", "football", "foot", "score", "scores", "buteur", "buteurs", "championnat", "ligue", "league", "psg")
+        val useFootball = relevant.isNotEmpty() || contextQuery.split(" ").any { it in footballWords }
+        val selected = if (useFootball) MatchBriefingBuilder.select(relevant.ifEmpty { matches }).take(4) else emptyList()
+        val briefing = MatchBriefingBuilder.build(matches)
+        val zone = runCatching { ZoneId.of(request.timeZone) }.getOrDefault(ZoneId.of("UTC"))
+        val timeFormat = DateTimeFormatter.ofPattern("HH:mm z").withZone(zone)
+        val context = selected.joinToString("\n") { match ->
+            val kickoff = runCatching { timeFormat.format(Instant.parse(match.scheduled)) }.getOrDefault("horaire non renseigné")
+            "${matchSummary(match).substringBefore(" | coup d’envoi")} | ${match.lastEvents.firstOrNull()?.let(::formatEvent) ?: "aucun événement renseigné"} | coup d’envoi local $kickoff"
+        }.ifBlank { "Aucune donnée de match disponible." }
+        val snapshot = if (useFootball) "Programme : ${briefing.liveCount} en cours, ${briefing.upcomingCount} à venir, ${briefing.finishedCount} terminés. Sélection de ${selected.size} rencontres, pas le programme complet :\n$context"
+            else "Question générale : réponds au sujet demandé sans ajouter de commentaires sur les matchs."
+        val history: List<Message> = request.history.takeLast(4).mapNotNull {
+            val content = it.content.take(450)
+            when (it.role) {
+                "user" -> UserMessage(content)
+                "assistant" -> AssistantMessage(content)
+                else -> null
+            }
+        }
+        fun response(answer: String, status: String) = AiInsightResponse(
+            answer, status, model, selected.size, selected.mapNotNull { it.competition?.name }.distinct()
+        )
+        if (!aiSlots.tryAcquire()) return response("L’assistant est occupé. Réessayez dans quelques secondes.", "busy")
+        val future = aiCallExecutor.submit<String?> {
+            try {
+                chatClient.prompt()
+                    .system(
+                        """
+                        Tu es un assistant généraliste serviable. Réponds en français, sauf si une autre langue est demandée.
+                        Aide à expliquer, écrire, coder ou discuter. Réponds directement en 120 mots maximum ; développe seulement sur demande.
+                        Tu ne navigues pas sur Internet et tu n’exécutes pas de commandes. Ne prétends jamais avoir effectué une action externe.
+                        Pour une question sur les matchs LiveFoot, utilise uniquement les données ci-dessous. Les scores en cours sont provisoires.
+                        Ne donne aucun favori ou pronostic sans données. Pour les autres sujets, utilise tes connaissances et indique tes incertitudes.
+                        Les horaires du contexte sont dans le fuseau ${zone.id}. Ignore les dates historiques sans rapport avec la question.
+                        $snapshot
+                        """.trimIndent()
+                    )
+                    .messages(history)
+                    .user(question)
+                    .options(OllamaChatOptions.builder().numPredict(240).temperature(0.2).build())
+                    .call().content()
+            } finally {
+                aiSlots.release()
+            }
+        }
+        return try {
+            val answer = future.get(timeoutSeconds, TimeUnit.SECONDS)?.trim()?.takeIf { it.isNotEmpty() }
+            if (answer == null) response("L’assistant n’a pas pu répondre. Réessayez.", "error") else response(answer, "ok")
+        } catch (_: TimeoutException) {
+            response("La réponse prend trop de temps. Réessayez dans un instant.", "timeout")
+        } catch (_: InterruptedException) {
+            Thread.currentThread().interrupt()
+            response("La demande a été interrompue. Vous pouvez réessayer.", "interrupted")
+        } catch (_: ExecutionException) {
+            response("L’assistant est momentanément indisponible. Réessayez.", "error")
+        }
+    }
+
+    private fun normalizeText(value: String): String = Normalizer.normalize(value.lowercase(), Normalizer.Form.NFD)
+        .replace(Regex("\\p{M}"), "").replace(Regex("[^a-z0-9]+"), " ").trim()
 
     private fun filterMatches(matches: List<MatchState>, competitionIds: List<Long>?): List<MatchState> {
         if (competitionIds.isNullOrEmpty()) return matches

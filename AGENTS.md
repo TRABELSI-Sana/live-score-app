@@ -4,7 +4,7 @@
 
 This repository contains a real-time football scores application. The backend is a Kotlin/Spring Boot service in `backend/`, with source in `backend/src/main/kotlin`, tests in `backend/src/test/kotlin`, and configuration in `backend/src/main/resources`. The frontend is a React 19 + TypeScript + Vite app in `frontend/`, with UI code in `frontend/src`, assets in `frontend/public`, and SEO/content data in `frontend/src/content`. Docker, nginx, and deployment files are at the root, `nginx/`, and `frontend-image/`.
 
-Production deployment uses GitHub Actions to build/push images to GHCR and deploy the four YAML manifests in `k8s/` to K3s; see `k8s/README.md`. Docker Compose is kept only for local development. Generated deployment files in `.local-deploy/` must not be committed. Set `APIFOOTBALL_KEY` in the environment for local development.
+Production supports both manual steps through `deploy.py` followed by explicit `kubectl apply -f k8s/`, and automatic GitHub Actions build/push/deploy on main; see `README.md` and `k8s/README.md`. Docker Compose is kept only for local development. Generated deployment files in `.local-deploy/` must not be committed. Set `APIFOOTBALL_KEY` in the environment for local development.
 
 ## Build, Test, and Development Commands
 
@@ -33,3 +33,16 @@ Recent commits mostly use short Conventional Commit-style prefixes such as `fix:
 ## Security & Configuration Tips
 
 Do not commit real API keys or secrets. `APIFOOTBALL_KEY`, Redis, and Ollama settings use environment variables and Spring properties. Preserve API-Football quota safeguards when changing polling or caches.
+
+## Production Deployment Preference
+
+When explaining or preparing a deployment, always provide separate commands in this order:
+
+1. `./deploy.py version patch` (or an explicit increased release version).
+2. `./deploy.py jar` — Maven `clean install` with tests to create the backend JAR.
+3. `./deploy.py image backend`, then `./deploy.py image frontend` — local images, no push.
+4. `docker login ghcr.io -u TRABELSI-Sana`, then `./deploy.py push`.
+5. `./deploy.py manifests` — write literal versioned image references in `k8s/deployment.yaml`, then review its diff.
+6. Select the OVH kubeconfig, run `kubectl apply -f k8s/`, and check rollouts.
+
+Use the POM release version for the JAR and both application images. Increment it for each release; never overwrite a published tag or deploy `latest`. Keep the manual commands for image construction, registry publication, YAML editing and Kubernetes application separate. Preserve automatic production deployment on Git push as the other supported workflow. For requests asking how to deploy, give the user these commands to run; do not automatically publish or deploy. Redis, nginx and Ollama currently use official images and do not need custom builds. Local generated release receipts in `.release/` must not be committed.

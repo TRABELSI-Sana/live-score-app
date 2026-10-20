@@ -22,3 +22,22 @@ data class AiSuggestionsResponse(
     val suggestions: List<String>,
     val model: String
 )
+
+data class AiChatMessage(
+    @field:jakarta.validation.constraints.Pattern(regexp = "user|assistant")
+    val role: String,
+    @field:jakarta.validation.constraints.NotBlank
+    @field:jakarta.validation.constraints.Size(max = 1200)
+    val content: String
+)
+
+data class AiChatRequest(
+    @field:jakarta.validation.constraints.NotBlank
+    @field:jakarta.validation.constraints.Size(max = 1000)
+    val message: String,
+    @field:jakarta.validation.Valid
+    @field:jakarta.validation.constraints.Size(max = 6)
+    val history: List<AiChatMessage> = emptyList(),
+    @field:jakarta.validation.constraints.Size(max = 80)
+    val timeZone: String = "UTC"
+)

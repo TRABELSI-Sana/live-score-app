@@ -67,7 +67,7 @@
 .briefing-mobile-toggle { display: none; }
 @media (max-width: 1024px) {
   .page-grid > .page-sidebar { display: contents; }
-  .page-grid > .page-sidebar > .briefing { grid-row: 1; grid-column: 1 / -1; }
+  .page-grid > .page-sidebar > .football-assistant { grid-row: 1; grid-column: 1 / -1; }
   .page-grid > .page-main { grid-row: 2; grid-column: 1 / -1; }
   .briefing-header h2 { max-width: none; font-size: 22px; margin: 12px 0 8px; }
   .briefing-mobile-toggle { display: flex; justify-content: space-between; align-items: center; width: 100%; border: 0; background: #eaf5ef; color: #24664c; padding: 12px 20px; font-size: 12px; font-weight: 650; cursor: pointer; }
@@ -82,3 +82,66 @@
 
 .briefing-more { display: flex; justify-content: space-between; align-items: center; width: calc(100% - 32px); margin: 0 16px 14px; padding: 10px; background: #fff; border: 1px dashed #d6e2da; border-radius: 8px; color: #547663; font-size: 11px; cursor: pointer; }
 @media (max-width: 1024px) { .briefing:not(.is-expanded) .briefing-more { display: none; } }
+
+.football-assistant { overflow: hidden; border: 1px solid #dce4e6; border-radius: 20px; background: #fff; box-shadow: 0 8px 32px #172d3610; min-width: 0; }
+.football-assistant [hidden] { display: none !important; }
+.football-assistant .briefing { border: 0; border-radius: 0; box-shadow: none; }
+.assistant-switcher { display: grid; grid-template-columns: 1fr 1.2fr 1fr; gap: 4px; padding: 7px; background: #fff; border-bottom: 1px solid #e5ece7; }
+.assistant-switcher button { display: flex; justify-content: center; align-items: center; gap: 5px; min-height: 38px; border: 0; border-radius: 9px; color: #6b7d73; background: transparent; cursor: pointer; font-size: 12px; font-weight: 650; }
+.assistant-switcher button[aria-pressed="true"] { background: #e7f3ec; color: #1e6248; }
+.assistant-switcher button:hover { background: #f0f6f2; }
+.assistant-switcher button span { color: #68a787; font-size: 13px; }
+.assistant-view-header { padding: 23px 20px; background: #142d31; color: #fff; }
+.assistant-kicker { color: #77b99a; font-size: 9px; letter-spacing: 1.2px; font-weight: 700; }
+.assistant-view-header h2 { margin: 12px 0 10px; font-size: 24px; line-height: 1.2; letter-spacing: -.6px; font-weight: 750; }
+.assistant-view-header p { margin: 0; color: #b6ccc6; font-size: 12px; line-height: 1.7; }
+.insights-body { padding: 17px; }
+.insights-suggestions { display: grid; gap: 7px; margin-bottom: 20px; }
+.insights-suggestions button, .chat-suggestions button { display: flex; justify-content: space-between; gap: 8px; width: 100%; padding: 11px; border: 1px solid #e1eae4; border-radius: 9px; color: #446a53; background: #f8faf8; font-size: 11px; line-height: 1.6; cursor: pointer; text-align: left; }
+.insights-suggestions button:hover, .chat-suggestions button:hover { background: #edf6f0; border-color: #b5cebd; }
+.insights-body form { display: grid; gap: 8px; }
+.insights-body label { font-size: 11px; font-weight: 650; color: #4a6555; }
+.insights-body select, .insights-body textarea { width: 100%; min-width: 0; padding: 10px; border: 1px solid #dbe5de; border-radius: 8px; font: inherit; font-size: 12px; background: #fff; color: #2b4234; }
+.insights-body textarea { resize: vertical; line-height: 1.65; min-height: 90px; }
+.insights-body label:not(:first-child) { margin-top: 7px; }
+.assistant-primary { display: flex; justify-content: space-between; gap: 10px; margin-top: 4px; padding: 12px; background: #1c6147; color: #fff; font-size: 12px; font-weight: 650; border: 0; border-radius: 9px; cursor: pointer; }
+.football-assistant button:disabled { opacity: .5; cursor: default; }
+.football-assistant button:focus-visible, .football-assistant textarea:focus-visible, .football-assistant select:focus-visible { outline: 2px solid #24916c; outline-offset: 3px; }
+.insights-pending { display: flex; align-items: center; gap: 9px; padding: 20px 0; font-size: 12px; color: #607e6c; }
+.insights-answer { margin-top: 18px; padding: 14px; background: #f0f7f2; border: 1px solid #dfebe3; border-radius: 12px; }
+.insights-answer p { font-size: 12px; line-height: 1.8; color: #365d45; white-space: pre-wrap; overflow-wrap: anywhere; }
+.insights-answer-question { font-size: 11px !important; font-weight: 650; }
+.insights-answer--notice { background: #faf8f0; border-color: #e8e2cd; }
+.insights-answer button, .chat-retry { padding: 7px 0; border: 0; background: transparent; color: #377f5b; font-size: 11px; text-decoration: underline; cursor: pointer; }
+.assistant-chat-link { display: block; width: 100%; margin-top: 15px; padding: 0; border: 0; background: transparent; color: #7c8d81; font-size: 10px; line-height: 1.9; text-align: left; cursor: pointer; }
+.assistant-chat-link span { display: block; color: #2f7852; font-weight: 650; }
+.assistant-disclaimer { margin: 16px 0 0; color: #87978c; font-size: 10px; line-height: 1.7; }
+.chat-toolbar { display: flex; justify-content: space-between; gap: 7px; padding: 13px 15px; border-bottom: 1px solid #edf1ee; font-size: 9px; color: #819187; }
+.chat-toolbar button { padding: 0; border: 0; background: transparent; font-size: 9px; color: #468162; cursor: pointer; }
+.chat-thread { display: flex; flex-direction: column; gap: 14px; height: clamp(280px, 43vh, 410px); overflow-y: auto; overscroll-behavior: contain; padding: 18px 14px; scrollbar-width: thin; scrollbar-color: #c4d6ca transparent; }
+.chat-welcome { padding: 12px 0; text-align: center; }
+.chat-welcome-mark { display: grid; place-items: center; position: relative; width: 46px; height: 46px; margin: 0 auto 16px; border: 1px solid #d9eadd; border-radius: 15px; background: #edf7f0; color: #2c7650; font-size: 16px; font-weight: 800; }
+.chat-welcome-mark span { position: absolute; top: -8px; right: -7px; font-size: 22px; color: #72ad8a; }
+.chat-welcome h3 { font-size: 16px; letter-spacing: -.35px; color: #254e36; margin: 0 0 8px; }
+.chat-welcome p { margin: 0 0 18px; font-size: 12px; line-height: 1.7; color: #7b8e80; }
+.chat-suggestions { display: grid; gap: 8px; }
+.chat-message { max-width: 96%; font-size: 12px; line-height: 1.8; overflow-wrap: anywhere; }
+.chat-message-label { display: block; margin-bottom: 5px; font-size: 9px; color: #8c9a90; }
+.chat-message > div { white-space: pre-wrap; padding: 11px 12px; border-radius: 12px 12px 12px 3px; color: #345541; background: #f0f5f1; }
+.chat-message--user { align-self: flex-end; }
+.chat-message--user .chat-message-label { text-align: right; }
+.chat-message--user > div { color: #fff; background: #256547; border-radius: 12px 12px 3px 12px; }
+.chat-message--error > div { background: #faf5e8; color: #7d6938; }
+.chat-typing { display: flex; align-items: center; gap: 4px; padding: 11px 0; }
+.chat-typing > span:not(.sr-only) { width: 5px; height: 5px; border-radius: 50%; background: #70a585; animation: briefing-pulse 1.2s infinite; }
+.chat-typing > span:nth-child(2) { animation-delay: .15s; }
+.chat-typing > span:nth-child(3) { animation-delay: .3s; }
+.chat-composer { display: grid; grid-template-columns: 1fr 34px; align-items: end; gap: 4px 6px; margin: 0 13px; padding: 10px; border: 1px solid #d6e5db; border-radius: 12px; background: #fff; box-shadow: 0 2px 10px #142d3105; }
+.chat-composer textarea { min-width: 0; width: 100%; padding: 0; resize: vertical; border: 0; outline-offset: 6px; color: #2b4936; background: transparent; font: inherit; font-size: 12px; line-height: 1.7; }
+.chat-composer button { display: grid; place-items: center; width: 33px; height: 33px; border: 0; border-radius: 9px; color: #fff; background: #266e4b; cursor: pointer; }
+.chat-composer button svg { width: 18px; height: 18px; }
+.chat-composer > span { font-size: 8px; color: #97a59a; }
+.chat-disclaimer { padding: 0 15px 15px; margin-top: 9px; font-size: 9px; }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; }
+@media (max-width: 1024px) { .assistant-switcher button { min-height: 42px; } .chat-composer textarea, .insights-body textarea { font-size: 16px; } }
+@media (prefers-reduced-motion: reduce) { .chat-typing > span { animation: none; } }
