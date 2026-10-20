@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { Link } from "react-router-dom";
-import { useLiveBoardContext } from "../../hooks/LiveBoardContext";
+import { useLiveBoardContext } from "../../hooks/useLiveBoardContext";
 import { isLiveStatus, normalizeMatchStatus, UPCOMING_STATUSES } from "../../utils/matchStatus";
 import { resolveDisplayScore } from "../../utils/matchSort";
 

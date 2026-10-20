@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState } from "react";
-import { useLiveBoardContext } from "../../hooks/LiveBoardContext";
+import { useLiveBoardContext } from "../../hooks/useLiveBoardContext";
 import { UPCOMING_STATUSES, normalizeMatchStatus, isLiveStatus } from "../../utils/matchStatus";
 import { buildCompetitionGroups } from "../../utils/matchSort";
 import CompetitionGroup from "./CompetitionGroup";

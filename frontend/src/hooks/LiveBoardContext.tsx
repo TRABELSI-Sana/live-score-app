@@ -1,13 +1,6 @@
-import { createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import type { MatchState } from "./useLiveBoard";
-
-type LiveBoardState = {
-  matches: MatchState[];
-  connected: boolean;
-  grouped: Array<{ comp: { id?: string; name: string; country?: string }; list: MatchState[] }>;
-};
-
-const LiveBoardContext = createContext<LiveBoardState | null>(null);
+import { LiveBoardContext } from "./liveBoardState";
 
 export function LiveBoardProvider({ children }: { children: ReactNode }) {
   const [matches, setMatches] = useState<MatchState[]>([]);
@@ -45,7 +38,7 @@ export function LiveBoardProvider({ children }: { children: ReactNode }) {
         try {
           const data = JSON.parse((evt as MessageEvent).data) as MatchState[];
           setMatches(data);
-        } catch {}
+        } catch { /* SSE parse error — ignored, next push will update */ }
       });
 
       es.onerror = () => {
@@ -109,8 +102,3 @@ export function LiveBoardProvider({ children }: { children: ReactNode }) {
   return <LiveBoardContext.Provider value={value}>{children}</LiveBoardContext.Provider>;
 }
 
-export function useLiveBoardContext(): LiveBoardState {
-  const ctx = useContext(LiveBoardContext);
-  if (!ctx) throw new Error("useLiveBoardContext must be used within LiveBoardProvider");
-  return ctx;
-}
