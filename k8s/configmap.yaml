@@ -24,7 +24,7 @@ data:
   APP_AI_MAX_CONCURRENT_REQUESTS: '1'
   APP_POLLING_ENABLED: 'true'
   APIFOOTBALL_QUOTA_PER_DAY: '7500'
-  JAVA_TOOL_OPTIONS: "-XX:MaxRAMPercentage=70"
+  JAVA_TOOL_OPTIONS: "-XX:MaxRAMPercentage=70 -XX:+UseG1GC -XX:+UseStringDeduplication -XX:+ExitOnOutOfMemoryError -Xss256k"
 ---
 apiVersion: v1
 kind: ConfigMap
@@ -44,7 +44,9 @@ data:
       root $livefoot_root;
       index index.html;
       gzip on;
-      gzip_types text/plain text/css application/json application/javascript image/svg+xml;
+      gzip_min_length 256;
+      gzip_comp_level 4;
+      gzip_types text/plain text/css application/json application/javascript image/svg+xml application/xml application/manifest+json;
       gzip_vary on;
 
       location = /healthz {
@@ -105,6 +107,16 @@ data:
       default livefoot.online;
     }
 
+    upstream frontend_upstream {
+      server frontend.live-score.svc.cluster.local:80;
+      keepalive 16;
+    }
+
+    ssl_session_cache shared:SSL:10m;
+    ssl_session_timeout 1d;
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_prefer_server_ciphers on;
+
     server {
       listen 80;
       listen [::]:80;
@@ -125,8 +137,8 @@ data:
     }
 
     server {
-      listen 443 ssl;
-      listen [::]:443 ssl;
+      listen 443 ssl http2;
+      listen [::]:443 ssl http2;
       server_name www.livefoot.online www.livefoot.tn;
       ssl_certificate /etc/letsencrypt/live/livefoot.online/fullchain.pem;
       ssl_certificate_key /etc/letsencrypt/live/livefoot.online/privkey.pem;
@@ -134,8 +146,8 @@ data:
     }
 
     server {
-      listen 443 ssl;
-      listen [::]:443 ssl;
+      listen 443 ssl http2;
+      listen [::]:443 ssl http2;
       server_name livefoot.online livefoot.tn;
       ssl_certificate /etc/letsencrypt/live/livefoot.online/fullchain.pem;
       ssl_certificate_key /etc/letsencrypt/live/livefoot.online/privkey.pem;
@@ -144,8 +156,14 @@ data:
       add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
       add_header Referrer-Policy "strict-origin-when-cross-origin" always;
 
+      gzip on;
+      gzip_min_length 256;
+      gzip_comp_level 4;
+      gzip_types text/plain text/css application/json application/javascript image/svg+xml application/xml;
+      gzip_vary on;
+
       location / {
-        proxy_pass http://frontend.live-score.svc.cluster.local:80;
+        proxy_pass http://frontend_upstream;
         proxy_http_version 1.1;
         proxy_set_header Host $host;
         proxy_set_header X-Forwarded-Proto https;

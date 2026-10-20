@@ -36,6 +36,11 @@ class AiInsightsService(
     @Value("\${app.ai.cache-seconds:60}")
     private val cacheSeconds: Long = 60
 ) {
+    companion object {
+        private val DIACRITICS_REGEX = Regex("\\p{M}")
+        private val NON_ALNUM_REGEX = Regex("[^a-z0-9]+")
+    }
+
     private val aiCallExecutor = Executors.newFixedThreadPool(2)
     private val aiSlots = Semaphore(maxConcurrentRequests.coerceIn(1, 10))
 
@@ -208,7 +213,7 @@ class AiInsightsService(
     }
 
     private fun normalizeText(value: String): String = Normalizer.normalize(value.lowercase(), Normalizer.Form.NFD)
-        .replace(Regex("\\p{M}"), "").replace(Regex("[^a-z0-9]+"), " ").trim()
+        .replace(DIACRITICS_REGEX, "").replace(NON_ALNUM_REGEX, " ").trim()
 
     private fun filterMatches(matches: List<MatchState>, competitionIds: List<Long>?): List<MatchState> {
         if (competitionIds.isNullOrEmpty()) return matches

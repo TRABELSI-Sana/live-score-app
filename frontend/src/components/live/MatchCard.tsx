@@ -1,3 +1,4 @@
+import { memo, useMemo } from "react";
 import type { MatchEvent, MatchState } from "../../hooks/useLiveBoard";
 import { UPCOMING_STATUSES, normalizeMatchStatus, statusLabel, isLiveStatus } from "../../utils/matchStatus";
 import {
@@ -11,7 +12,7 @@ type Props = {
   onShowLineup: (ref: { id?: number; homeName?: string; awayName?: string }) => void;
 };
 
-export default function MatchCard({ match, onShowLineup }: Props) {
+export default memo(function MatchCard({ match, onShowLineup }: Props) {
   const status = normalizeMatchStatus(match.status);
   const isUpcoming = UPCOMING_STATUSES.has(status);
   const isFinished = status === "FINISHED";
@@ -20,27 +21,29 @@ export default function MatchCard({ match, onShowLineup }: Props) {
   const scoreText = isUpcoming ? localScheduled ?? "--:--" : resolveDisplayScore(match);
   const displayStatus = statusLabel(match.status, match.time, localScheduled);
 
-  const sortedEvents = [...(match.lastEvents ?? [])].sort((a, b) => eventSortKey(a) - eventSortKey(b));
-  const rawGoalEvents = removeDisallowedGoals(sortedEvents);
-  const goalEvents = compactGoalEvents(rawGoalEvents);
-  const namedGoalEvents = goalEvents.filter((event) => hasKnownPlayer(event));
-  const cardEvents = compactCardEvents(sortedEvents.filter((event) => isRedCardEvent(event.event)));
-  const homeGoals = namedGoalEvents.filter((event) => eventSide(event).startsWith("h"));
-  const awayGoals = namedGoalEvents.filter((event) => eventSide(event).startsWith("a"));
-  const homeCards = cardEvents.filter((event) => eventSide(event).startsWith("h"));
-  const awayCards = cardEvents.filter((event) => eventSide(event).startsWith("a"));
+  const allEvents = useMemo(() => {
+    const sortedEvents = [...(match.lastEvents ?? [])].sort((a, b) => eventSortKey(a) - eventSortKey(b));
+    const rawGoalEvents = removeDisallowedGoals(sortedEvents);
+    const goalEvents = compactGoalEvents(rawGoalEvents);
+    const namedGoalEvents = goalEvents.filter((event) => hasKnownPlayer(event));
+    const cardEvents = compactCardEvents(sortedEvents.filter((event) => isRedCardEvent(event.event)));
+    const homeGoals = namedGoalEvents.filter((event) => eventSide(event).startsWith("h"));
+    const awayGoals = namedGoalEvents.filter((event) => eventSide(event).startsWith("a"));
+    const homeCards = cardEvents.filter((event) => eventSide(event).startsWith("h"));
+    const awayCards = cardEvents.filter((event) => eventSide(event).startsWith("a"));
 
-  const homeName = match.home?.name ?? "";
-  const awayName = match.away?.name ?? "";
-  const homeAbbr = homeName.slice(0, 3).toUpperCase();
-  const awayAbbr = awayName.slice(0, 3).toUpperCase();
+    const homeName = match.home?.name ?? "";
+    const awayName = match.away?.name ?? "";
+    const homeAbbr = homeName.slice(0, 3).toUpperCase();
+    const awayAbbr = awayName.slice(0, 3).toUpperCase();
 
-  const allEvents = [
-    ...homeGoals.map((e) => ({ ...e, _type: "goal" as const, _side: "home" as const, _teamAbbr: homeAbbr })),
-    ...awayGoals.map((e) => ({ ...e, _type: "goal" as const, _side: "away" as const, _teamAbbr: awayAbbr })),
-    ...homeCards.map((e) => ({ ...e, _type: "red" as const, _side: "home" as const, _teamAbbr: homeAbbr })),
-    ...awayCards.map((e) => ({ ...e, _type: "red" as const, _side: "away" as const, _teamAbbr: awayAbbr })),
-  ];
+    return [
+      ...homeGoals.map((e) => ({ ...e, _type: "goal" as const, _side: "home" as const, _teamAbbr: homeAbbr })),
+      ...awayGoals.map((e) => ({ ...e, _type: "goal" as const, _side: "away" as const, _teamAbbr: awayAbbr })),
+      ...homeCards.map((e) => ({ ...e, _type: "red" as const, _side: "home" as const, _teamAbbr: homeAbbr })),
+      ...awayCards.map((e) => ({ ...e, _type: "red" as const, _side: "away" as const, _teamAbbr: awayAbbr })),
+    ];
+  }, [match.lastEvents, match.home?.name, match.away?.name]);
 
   const scoreClass = isLive ? "match-score--live" : isUpcoming ? "match-score--upcoming" : "";
   const statusClass = isLive ? "match-status--live" : isFinished ? "match-status--finished" : "match-status--upcoming";
@@ -112,4 +115,10 @@ export default function MatchCard({ match, onShowLineup }: Props) {
       </div>
     </article>
   );
-}
+}, (prev, next) =>
+  prev.match.id === next.match.id &&
+  prev.match.scores?.score === next.match.scores?.score &&
+  prev.match.status === next.match.status &&
+  prev.match.time === next.match.time &&
+  prev.match.lastEvents?.length === next.match.lastEvents?.length
+);

@@ -15,10 +15,16 @@ class BoardMatchesStore(
         redis.opsForList().range(KEY, 0, -1) ?: emptyList()
 
     fun replaceAll(matchKeys: List<String>) {
-        redis.delete(KEY)
         val distinctKeys = matchKeys.filter { it.isNotBlank() }.distinct()
-        if (distinctKeys.isNotEmpty()) {
-            redis.opsForList().rightPushAll(KEY, distinctKeys)
+        redis.executePipelined { connection ->
+            connection.keyCommands().del(KEY.toByteArray())
+            if (distinctKeys.isNotEmpty()) {
+                connection.listCommands().rPush(
+                    KEY.toByteArray(),
+                    *distinctKeys.map { it.toByteArray() }.toTypedArray()
+                )
+            }
+            null
         }
     }
 }

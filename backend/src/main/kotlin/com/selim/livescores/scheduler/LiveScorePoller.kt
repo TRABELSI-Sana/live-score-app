@@ -78,6 +78,7 @@ class LiveScorePoller(
     fun pollLiveMatches() {
         val previousLiveKeys = matchService.getLiveMatchKeys()
         val previousBoardKeys = matchService.getBoardMatchKeys()
+        val previousBoardStates = matchService.getBoardMatches()
 
         val json = guardedApiCall { api.getLiveMatchesJson() } ?: return
         val resp = try {
@@ -116,11 +117,11 @@ class LiveScorePoller(
         }
 
         liveMatches.forEach {
-            val updated = matchService.upsertFromProvider(it, previousBoardKeys)
+            val updated = matchService.upsertFromProvider(it, previousBoardStates)
             refreshEventsForMatch(updated)
         }
         finishedMatches.forEach {
-            val updated = matchService.upsertFromProvider(it, previousBoardKeys)
+            val updated = matchService.upsertFromProvider(it, previousBoardStates)
             refreshEventsForMatch(updated)
         }
 

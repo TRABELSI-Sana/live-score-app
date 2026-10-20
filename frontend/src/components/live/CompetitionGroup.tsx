@@ -1,4 +1,4 @@
-import { Fragment } from "react";
+import { Fragment, memo } from "react";
 import type { MatchState } from "../../hooks/useLiveBoard";
 import { formatCompetitionLabel } from "../../utils/matchSort";
 import MatchCard from "./MatchCard";
@@ -10,7 +10,7 @@ type Props = {
   onShowLineup: (ref: { id?: number; homeName?: string; awayName?: string }) => void;
 };
 
-export default function CompetitionGroup({ groups, onShowRanking, onShowLineup }: Props) {
+export default memo(function CompetitionGroup({ groups, onShowRanking, onShowLineup }: Props) {
   return (
     <>
       {groups.map((group, index) => (
@@ -50,4 +50,4 @@ export default function CompetitionGroup({ groups, onShowRanking, onShowLineup }
       ))}
     </>
   );
-}
+});

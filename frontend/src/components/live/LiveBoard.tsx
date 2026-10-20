@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState } from "react";
-import { useLiveBoard } from "../../hooks/useLiveBoard";
+import { useLiveBoardContext } from "../../hooks/LiveBoardContext";
 import { UPCOMING_STATUSES, normalizeMatchStatus, isLiveStatus } from "../../utils/matchStatus";
 import { buildCompetitionGroups } from "../../utils/matchSort";
 import CompetitionGroup from "./CompetitionGroup";
@@ -14,7 +14,7 @@ type Props = {
 };
 
 export default function LiveBoard({ searchTerm = "", maxGroups }: Props) {
-  const { grouped } = useLiveBoard();
+  const { grouped } = useLiveBoardContext();
   const [activeTab, setActiveTab] = useState<Tab>("live");
   const [rankingRef, setRankingRef] = useState<{ id?: string; name?: string } | null>(null);
   const [lineupRef, setLineupRef] = useState<{ id?: number; homeName?: string; awayName?: string } | null>(null);
@@ -30,24 +30,22 @@ export default function LiveBoard({ searchTerm = "", maxGroups }: Props) {
     );
   }, [allMatches, searchTerm]);
 
-  const liveCount = useMemo(() => filteredMatches.filter((m) => isLiveStatus(m.status)).length, [filteredMatches]);
-  const upcomingCount = useMemo(() => filteredMatches.filter((m) => UPCOMING_STATUSES.has(normalizeMatchStatus(m.status))).length, [filteredMatches]);
-  const finishedCount = useMemo(() => filteredMatches.filter((m) => normalizeMatchStatus(m.status) === "FINISHED").length, [filteredMatches]);
+  const { liveCount, upcomingCount, finishedCount } = useMemo(() => {
+    let live = 0, upcoming = 0, finished = 0;
+    for (const m of filteredMatches) {
+      if (isLiveStatus(m.status)) live++;
+      else if (UPCOMING_STATUSES.has(normalizeMatchStatus(m.status))) upcoming++;
+      else if (normalizeMatchStatus(m.status) === "FINISHED") finished++;
+    }
+    return { liveCount: live, upcomingCount: upcoming, finishedCount: finished };
+  }, [filteredMatches]);
 
-  const liveGroups = useMemo(
-    () => buildCompetitionGroups(filteredMatches, (m) => isLiveStatus(m.status)),
-    [filteredMatches]
-  );
-  const upcomingGroups = useMemo(
-    () => buildCompetitionGroups(filteredMatches, (m) => UPCOMING_STATUSES.has(normalizeMatchStatus(m.status))),
-    [filteredMatches]
-  );
-  const finishedGroups = useMemo(
-    () => buildCompetitionGroups(filteredMatches, (m) => normalizeMatchStatus(m.status) === "FINISHED"),
-    [filteredMatches]
-  );
+  const activeGroups = useMemo(() => {
+    if (activeTab === "live") return buildCompetitionGroups(filteredMatches, (m) => isLiveStatus(m.status));
+    if (activeTab === "upcoming") return buildCompetitionGroups(filteredMatches, (m) => UPCOMING_STATUSES.has(normalizeMatchStatus(m.status)));
+    return buildCompetitionGroups(filteredMatches, (m) => normalizeMatchStatus(m.status) === "FINISHED");
+  }, [filteredMatches, activeTab]);
 
-  const activeGroups = activeTab === "live" ? liveGroups : activeTab === "upcoming" ? upcomingGroups : finishedGroups;
   const displayGroups = maxGroups ? activeGroups.slice(0, maxGroups) : activeGroups;
 
   const handleShowRanking = useCallback((ref: { id?: string; name?: string }) => {

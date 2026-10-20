@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, NavLink } from "react-router-dom";
 
 type Props = {
@@ -17,6 +17,14 @@ const NAV_ITEMS = [
 
 export default function Navbar({ searchTerm, onSearch }: Props) {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [localSearch, setLocalSearch] = useState(searchTerm);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+
+  useEffect(() => {
+    clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => onSearch(localSearch), 250);
+    return () => clearTimeout(debounceRef.current);
+  }, [localSearch, onSearch]);
 
   return (
     <nav className="navbar">
@@ -44,8 +52,8 @@ export default function Navbar({ searchTerm, onSearch }: Props) {
           <input
             type="search"
             placeholder="Rechercher..."
-            value={searchTerm}
-            onChange={(e) => onSearch(e.target.value)}
+            value={localSearch}
+            onChange={(e) => setLocalSearch(e.target.value)}
             aria-label="Recherche"
           />
         </label>
@@ -77,8 +85,8 @@ export default function Navbar({ searchTerm, onSearch }: Props) {
           <input
             type="search"
             placeholder="Rechercher..."
-            value={searchTerm}
-            onChange={(e) => onSearch(e.target.value)}
+            value={localSearch}
+            onChange={(e) => setLocalSearch(e.target.value)}
             aria-label="Recherche mobile"
           />
         </label>

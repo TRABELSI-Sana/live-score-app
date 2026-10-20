@@ -3,10 +3,22 @@ services:
     image: redis:7-alpine
     ports:
       - "127.0.0.1:6379:6379"
+    command: redis-server --maxmemory 256mb --maxmemory-policy allkeys-lru
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
 
   backend:
     build: ./backend
     restart: unless-stopped
+    ports:
+      - "127.0.0.1:8099:8099"
     environment:
       - SPRING_DATA_REDIS_HOST=redis
       - SPRING_DATA_REDIS_PORT=6379
@@ -14,8 +26,10 @@ services:
       - APP_AI_TIMEOUT_SECONDS=120
       - APP_AI_MAX_CONCURRENT_REQUESTS=1
       - APIFOOTBALL_KEY=${APIFOOTBALL_KEY:?Set APIFOOTBALL_KEY before starting}
+      - JAVA_TOOL_OPTIONS=-XX:MaxRAMPercentage=70 -XX:+UseG1GC -XX:+ExitOnOutOfMemoryError
     depends_on:
-      - redis
+      redis:
+        condition: service_healthy
 
   web:
     build: ./frontend-image

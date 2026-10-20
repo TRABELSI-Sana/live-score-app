@@ -4,6 +4,12 @@ import com.selim.livescores.domain.MatchEvent
 import java.time.Instant
 
 class EventDeduplicator(private val matchKey: String) {
+    companion object {
+        private val ACCENT_REGEX = Regex("\\p{Mn}+")
+        private val NON_ALPHA_REGEX = Regex("[^a-z\\s]")
+        private val WHITESPACE_REGEX = Regex("\\s+")
+    }
+
     fun merge(current: List<MatchEvent>, incoming: List<MatchEvent>, keepLast: Int): List<MatchEvent> {
         if (incoming.isEmpty()) return current
 
@@ -83,11 +89,10 @@ class EventDeduplicator(private val matchKey: String) {
         if (raw.isEmpty()) return ""
         val noAccents = java.text.Normalizer
             .normalize(raw, java.text.Normalizer.Form.NFD)
-            .replace(Regex("\\p{Mn}+"), "")
-        // Use surname (last meaningful word, >1 char) for dedup — handles "B. Embolo" vs "Breel Embolo"
+            .replace(ACCENT_REGEX, "")
         val words = noAccents.lowercase()
-            .replace(Regex("[^a-z\\s]"), "")
-            .split(Regex("\\s+"))
+            .replace(NON_ALPHA_REGEX, "")
+            .split(WHITESPACE_REGEX)
             .filter { it.length > 1 }
         // If no meaningful word found (single initial like "A"), treat as no-player for dedup
         return words.lastOrNull() ?: ""

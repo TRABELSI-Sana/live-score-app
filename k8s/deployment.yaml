@@ -32,6 +32,14 @@ spec:
           httpGet:
             path: "/healthz"
             port: 80
+          timeoutSeconds: 3
+        livenessProbe:
+          httpGet:
+            path: "/healthz"
+            port: 80
+          periodSeconds: 30
+          timeoutSeconds: 3
+          failureThreshold: 3
         resources:
           requests:
             cpu: 50m
@@ -106,6 +114,13 @@ spec:
         readinessProbe:
           tcpSocket:
             port: 11434
+          timeoutSeconds: 3
+        livenessProbe:
+          tcpSocket:
+            port: 11434
+          periodSeconds: 30
+          timeoutSeconds: 5
+          failureThreshold: 3
         volumeMounts:
         - name: data
           mountPath: "/root/.ollama"
@@ -147,6 +162,14 @@ spec:
           httpGet:
             path: "/healthz"
             port: 80
+          timeoutSeconds: 3
+        livenessProbe:
+          httpGet:
+            path: "/healthz"
+            port: 80
+          periodSeconds: 30
+          timeoutSeconds: 3
+          failureThreshold: 3
         volumeMounts:
         - name: nginx
           mountPath: "/etc/nginx/conf.d"
@@ -166,7 +189,10 @@ metadata:
 spec:
   replicas: 1
   strategy:
-    type: Recreate
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
   selector:
     matchLabels:
       app: backend
@@ -206,9 +232,12 @@ spec:
             path: "/actuator/health"
             port: 8099
         livenessProbe:
-          tcpSocket:
+          httpGet:
+            path: "/actuator/health"
             port: 8099
           periodSeconds: 15
+          timeoutSeconds: 5
+          failureThreshold: 3
       imagePullSecrets:
       - name: ghcr-credentials
 ---
@@ -238,8 +267,14 @@ spec:
         - "--appendonly"
         - 'no'
         - "--save"
-        - '60'
+        - '300'
         - '1'
+        - "--maxmemory"
+        - '400mb'
+        - "--maxmemory-policy"
+        - allkeys-lru
+        - "--tcp-keepalive"
+        - '60'
         ports:
         - containerPort: 6379
         resources:
@@ -253,6 +288,15 @@ spec:
             command:
             - redis-cli
             - ping
+          timeoutSeconds: 3
+        livenessProbe:
+          exec:
+            command:
+            - redis-cli
+            - ping
+          periodSeconds: 30
+          timeoutSeconds: 3
+          failureThreshold: 3
         volumeMounts:
         - name: data
           mountPath: "/data"

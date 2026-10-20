@@ -11,10 +11,16 @@ class LiveMatchesStore(
     private val key = "matches:live"
 
     fun replaceAll(matchKeys: List<String>, ttl: Duration = Duration.ofMinutes(5)) {
-        redis.delete(key)
-        if (matchKeys.isNotEmpty()) {
-            redis.opsForSet().add(key, *matchKeys.toTypedArray())
-            redis.expire(key, ttl)
+        redis.executePipelined { connection ->
+            connection.keyCommands().del(key.toByteArray())
+            if (matchKeys.isNotEmpty()) {
+                connection.setCommands().sAdd(
+                    key.toByteArray(),
+                    *matchKeys.map { it.toByteArray() }.toTypedArray()
+                )
+                connection.keyCommands().expire(key.toByteArray(), ttl.seconds)
+            }
+            null
         }
     }
 

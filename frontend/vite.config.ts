@@ -8,4 +8,14 @@ export default defineConfig({
       "/api": "http://127.0.0.1:8099",
     },
   },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          vendor: ["react", "react-dom", "react-router-dom"],
+          seo: ["react-helmet-async"],
+        },
+      },
+    },
+  },
 });

@@ -16,13 +16,15 @@ object MatchStatus {
     private val API_FOOTBALL_ADDED = setOf("P", "SUSP", "INT")
     private val API_FOOTBALL_FINISHED = setOf("FT", "AET", "PEN", "CANC", "ABD", "AWD", "WO")
 
+    private val WHITESPACE = Regex("\\s+")
+
     fun normalize(status: String?): String {
         val normalized = status
             ?.trim()
             ?.uppercase()
             ?.replace('_', ' ')
             ?.replace('-', ' ')
-            ?.replace(Regex("\\s+"), " ")
+            ?.replace(WHITESPACE, " ")
             ?: return UNKNOWN
 
         return when {

@@ -1,11 +1,11 @@
 import { useMemo } from "react";
 import { Link } from "react-router-dom";
-import { useLiveBoard } from "../../hooks/useLiveBoard";
+import { useLiveBoardContext } from "../../hooks/LiveBoardContext";
 import { isLiveStatus, normalizeMatchStatus, UPCOMING_STATUSES } from "../../utils/matchStatus";
 import { resolveDisplayScore } from "../../utils/matchSort";
 
 export default function HeroSection() {
-  const { grouped } = useLiveBoard();
+  const { grouped } = useLiveBoardContext();
   const allMatches = useMemo(() => grouped.flatMap((g) => g.list ?? []), [grouped]);
   const liveMatches = useMemo(() => allMatches.filter((m) => isLiveStatus(m.status)), [allMatches]);
   const upcomingCount = useMemo(() => allMatches.filter((m) => UPCOMING_STATUSES.has(normalizeMatchStatus(m.status))).length, [allMatches]);

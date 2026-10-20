@@ -13,6 +13,14 @@ class MatchStateStore(private val matchStateRedisTemplate: RedisTemplate<String,
     fun get(matchKey: String): MatchState? =
         matchStateRedisTemplate.opsForValue().get(key(matchKey))
 
+    fun getAll(matchKeys: List<String>): List<MatchState> {
+        if (matchKeys.isEmpty()) return emptyList()
+        val keys = matchKeys.map(::key)
+        return matchStateRedisTemplate.opsForValue().multiGet(keys)
+            ?.filterNotNull()
+            ?: emptyList()
+    }
+
     fun put(state: MatchState, ttl: Duration? = null) {
         val computedTtl = ttl ?: when (state.status) {
             MatchStatus.NOT_STARTED -> Duration.ofHours(24)     // fixtures: garder toute la journée
