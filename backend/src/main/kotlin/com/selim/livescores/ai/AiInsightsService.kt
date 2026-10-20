@@ -3,12 +3,14 @@ package com.selim.livescores.ai
 import com.selim.livescores.domain.MatchEvent
 import com.selim.livescores.domain.MatchState
 import com.selim.livescores.service.MatchService
+import jakarta.annotation.PreDestroy
 import org.springframework.ai.chat.client.ChatClient
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
 import java.util.concurrent.ExecutionException
 import java.util.concurrent.Executors
 import java.util.concurrent.Semaphore
+import java.util.concurrent.Future
 import java.util.concurrent.TimeoutException
 import java.util.concurrent.TimeUnit
 
@@ -16,15 +18,28 @@ import java.util.concurrent.TimeUnit
 class AiInsightsService(
     private val chatClient: ChatClient,
     private val matchService: MatchService,
-    @Value("\${spring.ai.ollama.chat.options.model:mistral}")
+    @Value("\${spring.ai.ollama.chat.options.model:qwen2.5:3b}")
     private val model: String,
-    @Value("\${app.ai.timeout-seconds:8}")
+    @Value("\${app.ai.timeout-seconds:25}")
     private val timeoutSeconds: Long,
     @Value("\${app.ai.max-concurrent-requests:1}")
-    maxConcurrentRequests: Int
+    maxConcurrentRequests: Int,
+    @Value("\${app.ai.cache-seconds:60}")
+    private val cacheSeconds: Long = 60
 ) {
     private val aiCallExecutor = Executors.newFixedThreadPool(2)
     private val aiSlots = Semaphore(maxConcurrentRequests.coerceIn(1, 10))
+
+    private data class InsightKey(val model: String, val prompt: String, val context: String)
+    private data class CachedInsight(val response: AiInsightResponse, val expiresAt: Long)
+    private val cacheLock = Any()
+    private val cache = LinkedHashMap<InsightKey, CachedInsight>()
+    private val inFlight = mutableMapOf<InsightKey, Future<AiInsightResponse>>()
+
+    @PreDestroy
+    fun shutdown() {
+        aiCallExecutor.shutdownNow()
+    }
 
     fun suggestions(): AiSuggestionsResponse = AiSuggestionsResponse(
         suggestions = listOf(
@@ -43,84 +58,70 @@ class AiInsightsService(
         val selected = filtered.take(maxMatches)
         val context = buildContext(selected)
         val competitions = selected.mapNotNull { it.competition?.name?.trim() }.distinct()
-        val prompt = request.prompt?.trim()?.takeIf { it.isNotEmpty() }
+        val prompt = request.prompt?.trim()?.take(600)?.takeIf { it.isNotEmpty() }
             ?: "Fais un résumé des matchs et des tendances du jour."
 
-        if (!aiSlots.tryAcquire()) {
-            return AiInsightResponse(
-                answer = "Le module IA est occupé. Réessayez dans quelques secondes.",
-                status = "busy",
-                model = model,
-                matchesConsidered = selected.size,
-                competitions = competitions
-            )
+        val key = InsightKey(model, prompt, context)
+        fun response(answer: String, status: String) = AiInsightResponse(
+            answer = answer,
+            status = status,
+            model = model,
+            matchesConsidered = selected.size,
+            competitions = competitions
+        )
+
+        val future = synchronized(cacheLock) {
+            val now = System.nanoTime()
+            cache.entries.removeIf { it.value.expiresAt <= now }
+            cache[key]?.let { return it.response }
+            inFlight[key] ?: run {
+                if (!aiSlots.tryAcquire()) {
+                    return response("Le module IA est occupé. Réessayez dans quelques secondes.", "busy")
+                }
+                val task = aiCallExecutor.submit<AiInsightResponse> {
+                    try {
+                        val answer = chatClient.prompt()
+                            .system(systemPrompt())
+                            .user("Contexte LiveFoot:\n$context\n\nDemande: $prompt")
+                            .call()
+                            .content()
+                            ?.trim()
+                            ?.takeIf { it.isNotEmpty() }
+                        if (answer == null) {
+                            response("Réponse IA indisponible pour le moment.", "error")
+                        } else {
+                            val result = response(answer, "ok")
+                            synchronized(cacheLock) {
+                                if (cacheSeconds > 0) {
+                                    cache[key] = CachedInsight(result, System.nanoTime() + TimeUnit.SECONDS.toNanos(cacheSeconds))
+                                    while (cache.size > 64) cache.remove(cache.keys.first())
+                                }
+                            }
+                            result
+                        }
+                    } finally {
+                        synchronized(cacheLock) {
+                            inFlight.remove(key)
+                            aiSlots.release()
+                        }
+                    }
+                }
+                inFlight[key] = task
+                task
+            }
         }
 
-        var future: java.util.concurrent.Future<String?>? = null
-
         return try {
-            future = aiCallExecutor.submit<String?> {
-                chatClient.prompt()
-                    .system(systemPrompt())
-                    .user(
-                        """
-                        Contexte LiveFoot:
-                        $context
-
-                        Demande: $prompt
-                        """.trimIndent()
-                    )
-                    .call()
-                    .content()
-            }
-
-            val response = future.get(timeoutSeconds, TimeUnit.SECONDS)
-
-            AiInsightResponse(
-                answer = response ?: "Réponse IA indisponible pour le moment.",
-                status = "ok",
-                model = model,
-                matchesConsidered = selected.size,
-                competitions = competitions
-            )
+            future.get(timeoutSeconds, TimeUnit.SECONDS)
         } catch (_: TimeoutException) {
-            future?.cancel(false)
-            AiInsightResponse(
-                answer = "Le module IA est lent ou indisponible. Réessayez plus tard.",
-                status = "timeout",
-                model = model,
-                matchesConsidered = selected.size,
-                competitions = competitions
-            )
+            // The shared generation retains its slot until it actually finishes.
+            // A browser timeout must not queue another expensive Ollama request.
+            response("Le module IA est lent ou indisponible. Réessayez plus tard.", "timeout")
         } catch (_: InterruptedException) {
-            future?.cancel(false)
             Thread.currentThread().interrupt()
-            AiInsightResponse(
-                answer = "La génération IA a été interrompue. Réessayez dans un instant.",
-                status = "interrupted",
-                model = model,
-                matchesConsidered = selected.size,
-                competitions = competitions
-            )
+            response("La génération IA a été interrompue. Réessayez dans un instant.", "interrupted")
         } catch (_: ExecutionException) {
-            AiInsightResponse(
-                answer = "Le module IA est momentanément indisponible. Réessayez plus tard.",
-                status = "error",
-                model = model,
-                matchesConsidered = selected.size,
-                competitions = competitions
-            )
-        } catch (_: Exception) {
-            future?.cancel(false)
-            AiInsightResponse(
-                answer = "Le module IA est momentanément indisponible. Réessayez plus tard.",
-                status = "error",
-                model = model,
-                matchesConsidered = selected.size,
-                competitions = competitions
-            )
-        } finally {
-            aiSlots.release()
+            response("Le module IA est momentanément indisponible. Réessayez plus tard.", "error")
         }
     }
 
@@ -167,7 +168,10 @@ class AiInsightsService(
         Tu es l'analyste IA de LiveFoot.
         Fournis un résumé clair des matchs du jour et des points à surveiller.
         Reste factuel et base-toi uniquement sur le contexte fourni.
-        Réponds en français, sous forme de listes courtes.
-        Si les données sont insuffisantes, dis-le et propose 2 questions de suivi.
+        Réponds uniquement en français, en 3 points maximum et 60 mots maximum.
+        N'invente aucun résultat, horaire, événement ou motif de report.
+        LIVE, 1H, 2H et HT indiquent un match en cours : parle de score provisoire, jamais de victoire acquise.
+        NOT_STARTED, NS et TIMED indiquent un match à venir. Seuls FINISHED, FT, AET et PEN indiquent un match terminé.
+        Si les données sont insuffisantes, dis-le brièvement.
         """.trimIndent()
 }

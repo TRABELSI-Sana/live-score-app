@@ -98,3 +98,22 @@ le certificat existant pour les deux domaines et leurs variantes `www`.
 Conserver `/etc/letsencrypt` et le répertoire ACME
 `/home/ubuntu/apps/live-scores/certbot/www` sur le VPS.
 Le hook `ops/reload-nginx-after-cert-renewal.sh` recharge nginx après renouvellement.
+
+## Résumés IA sur CPU
+
+Le backend utilise `qwen2.5:3b`, avec un contexte de 2048 tokens, au plus
+160 tokens générés et un maintien du modèle en mémoire de 30 minutes.
+Le prompt demande trois points courts, en français, fondés sur les scores fournis.
+La limite d'attente est de 25 secondes, inférieure aux 30 secondes du flux SSE.
+
+Avant un premier déploiement sur un nouveau volume Ollama :
+
+```bash
+sudo k3s kubectl -n live-score exec deployment/ollama -- ollama pull qwen2.5:3b
+```
+
+Le backend conserve jusqu'à 64 résumés réussis pendant 60 secondes. Un changement
+au contexte des matchs ou à la question provoque une nouvelle génération.
+Les requêtes identiques simultanées partagent la même génération ; une question
+différente reçoit `busy` lorsque le modèle est occupé. Un timeout client ne libère
+pas prématurément la capacité du modèle et ne déclenche pas une file de calculs.
