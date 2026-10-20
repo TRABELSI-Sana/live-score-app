@@ -1,76 +1,174 @@
-name: Deploy to VPS
+name: Build, Push GHCR, Deploy
 
 on:
   push:
     branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: livefoot-production
+  cancel-in-progress: false
 
 jobs:
-  deploy:
+  build_push:
+    name: Test, build and push images
     runs-on: ubuntu-latest
-
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      backend_image: ${{ steps.images.outputs.prefix }}/backend@${{ steps.backend.outputs.digest }}
+      frontend_image: ${{ steps.images.outputs.prefix }}/frontend@${{ steps.frontend.outputs.digest }}
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Setup Java 21
-        uses: actions/setup-java@v4
+      - uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: 21
           cache: maven
           cache-dependency-path: backend/pom.xml
 
-      - name: Build backend
-        run: |
-          cd backend
-          chmod +x mvnw
-          ./mvnw -DskipTests clean package
+      - name: Test and build backend
+        working-directory: backend
+        run: ./mvnw --batch-mode clean package
 
-      - name: Setup Node 20
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
           cache-dependency-path: frontend/package-lock.json
 
-      - name: Build frontend (with SEO prerendering)
+      - name: Test and build frontend
+        working-directory: frontend
         run: |
-          cd frontend
           npm ci
           npx puppeteer browsers install chrome
+          npm run lint
           npm run build:seo
 
-      - name: Prepare frontend-image
+      - name: Prepare Docker build contexts
+        id: images
         run: |
-          rm -rf frontend-image/dist frontend-image/dist-tn
-          mkdir -p frontend-image/dist
-          rsync -a --delete frontend/dist/ frontend-image/dist/
-          mkdir -p frontend-image/dist-tn
-          rsync -a --delete frontend/dist-tn/ frontend-image/dist-tn/
+          cp backend/target/live-scores-0.0.1-SNAPSHOT.jar backend/app.jar
+          mkdir -p frontend-image/dist frontend-image/dist-tn
+          cp -a frontend/dist/. frontend-image/dist/
+          cp -a frontend/dist-tn/. frontend-image/dist-tn/
+          echo "prefix=ghcr.io/${GITHUB_REPOSITORY,,}" >> "$GITHUB_OUTPUT"
 
-      - name: Setup SSH
-        run: |
-          mkdir -p ~/.ssh
-          echo "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/id_ed25519
-          chmod 600 ~/.ssh/id_ed25519
-          echo "${{ secrets.VPS_HOST_KEY }}" > ~/.ssh/known_hosts
+      - uses: docker/setup-buildx-action@v4
 
-      - name: Deploy to VPS
+      - name: Login to GHCR
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push backend
+        id: backend
+        uses: docker/build-push-action@v7
+        with:
+          context: backend
+          platforms: linux/amd64
+          push: true
+          tags: ${{ steps.images.outputs.prefix }}/backend:${{ github.sha }}
+          labels: |
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+          cache-from: type=gha,scope=backend
+          cache-to: type=gha,mode=max,scope=backend
+
+      - name: Build and push frontend
+        id: frontend
+        uses: docker/build-push-action@v7
+        with:
+          context: frontend-image
+          platforms: linux/amd64
+          push: true
+          tags: ${{ steps.images.outputs.prefix }}/frontend:${{ github.sha }}
+          labels: |
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+          cache-from: type=gha,scope=frontend
+          cache-to: type=gha,mode=max,scope=frontend
+
+  deploy:
+    name: Deploy published images to K3s
+    needs: build_push
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      VPS: ubuntu@51.210.246.121
+      BACKEND_IMAGE: ${{ needs.build_push.outputs.backend_image }}
+      FRONTEND_IMAGE: ${{ needs.build_push.outputs.frontend_image }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure SSH and registry read credentials
         env:
-          VPS_USER: ubuntu
-          VPS_HOST: 51.210.246.121
-          REMOTE_DIR: /home/ubuntu/apps/live-scores
+          VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+          VPS_HOST_KEY: ${{ secrets.VPS_HOST_KEY }}
+          GHCR_USERNAME: ${{ vars.GHCR_USERNAME || github.repository_owner }}
+          GHCR_READ_TOKEN: ${{ secrets.GHCR_READ_TOKEN }}
         run: |
-          JAR_PATH=$(ls -1 backend/target/*-SNAPSHOT.jar | head -n 1)
+          test -n "$VPS_SSH_KEY" && test -n "$VPS_HOST_KEY"
+          test -n "$GHCR_USERNAME" && test -n "$GHCR_READ_TOKEN"
+          umask 077
+          mkdir -p ~/.ssh
+          printf '%s\n' "$VPS_SSH_KEY" > ~/.ssh/id_ed25519
+          printf '%s\n' "$VPS_HOST_KEY" > ~/.ssh/known_hosts
+          python3 - <<'PYTHON'
+          import base64, json, os
+          from pathlib import Path
+          auth = base64.b64encode((os.environ["GHCR_USERNAME"] + ":" + os.environ["GHCR_READ_TOKEN"]).encode()).decode()
+          config = {"auths": {"ghcr.io": {"auth": auth}}}
+          secret = {"apiVersion": "v1", "kind": "Secret",
+                    "metadata": {"name": "ghcr-credentials", "namespace": "live-score"},
+                    "type": "kubernetes.io/dockerconfigjson",
+                    "data": {".dockerconfigjson": base64.b64encode(json.dumps(config).encode()).decode()}}
+          (Path(os.environ["RUNNER_TEMP"]) / "ghcr-secret.json").write_text(json.dumps(secret))
+          PYTHON
 
-          ssh ${VPS_USER}@${VPS_HOST} "mkdir -p ${REMOTE_DIR}/{backend,frontend-image,nginx,certbot/www,certbot/conf,ops}"
+      - name: Render manifests with published image digests
+        run: |
+          python3 - <<'PYTHON'
+          import hashlib, os
+          from pathlib import Path
+          values = {name: os.environ[name] for name in ("BACKEND_IMAGE", "FRONTEND_IMAGE")}
+          values["CONFIG_VERSION"] = hashlib.sha256(Path("k8s/configmap.yaml").read_bytes()).hexdigest()
+          Path("rendered").mkdir()
+          for path in Path("k8s").glob("*.yaml"):
+              text = path.read_text()
+              for key, value in values.items():
+                  text = text.replace("${" + key + "}", value)
+              (Path("rendered") / path.name).write_text(text)
+          PYTHON
 
-          rsync -az "${JAR_PATH}" ${VPS_USER}@${VPS_HOST}:${REMOTE_DIR}/backend/app.jar
-          rsync -az backend/Dockerfile ${VPS_USER}@${VPS_HOST}:${REMOTE_DIR}/backend/
-          rsync -az --delete frontend-image/ ${VPS_USER}@${VPS_HOST}:${REMOTE_DIR}/frontend-image/
-          rsync -az docker-compose.yml ${VPS_USER}@${VPS_HOST}:${REMOTE_DIR}/
-          rsync -az nginx/ ${VPS_USER}@${VPS_HOST}:${REMOTE_DIR}/nginx/
-          rsync -az ops/ ${VPS_USER}@${VPS_HOST}:${REMOTE_DIR}/ops/
-
-          ssh ${VPS_USER}@${VPS_HOST} "cd ${REMOTE_DIR} && docker compose up -d --build"
-          ssh ${VPS_USER}@${VPS_HOST} "sudo install -m 755 ${REMOTE_DIR}/ops/reload-nginx-after-cert-renewal.sh /etc/letsencrypt/renewal-hooks/deploy/reload-livefoot-nginx"
+      - name: Apply manifests and wait for deployments
+        run: |
+          ssh "$VPS" 'mkdir -p /home/ubuntu/apps/live-score-k8s/manifests'
+          scp rendered/*.yaml "$VPS:/home/ubuntu/apps/live-score-k8s/manifests/"
+          scp ops/reload-nginx-after-cert-renewal.sh "$VPS:/home/ubuntu/apps/live-score-k8s/"
+          ssh "$VPS" 'sudo k3s kubectl apply -f /home/ubuntu/apps/live-score-k8s/manifests/configmap.yaml'
+          ssh "$VPS" 'sudo k3s kubectl apply -f -' < "$RUNNER_TEMP/ghcr-secret.json"
+          ssh "$VPS" 'bash -se' <<'REMOTE'
+          cd /home/ubuntu/apps/live-score-k8s
+          k() { sudo k3s kubectl "$@"; }
+          k apply --dry-run=server -f manifests/
+          k apply -f manifests/pvc.yaml
+          k apply -f manifests/service.yaml
+          k apply -f manifests/deployment.yaml
+          for app in redis ollama backend frontend edge; do
+            k -n live-score rollout status "deployment/$app" --timeout=300s
+          done
+          sudo install -m 755 reload-nginx-after-cert-renewal.sh /etc/letsencrypt/renewal-hooks/deploy/reload-livefoot-nginx
+          for domain in livefoot.online livefoot.tn; do
+            curl -fsS --max-time 30 "https://$domain/healthz"
+            curl -fsS --max-time 30 "https://$domain/api/stream/board" -o /dev/null
+          done
+          REMOTE

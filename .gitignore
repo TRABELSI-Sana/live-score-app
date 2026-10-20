@@ -4,3 +4,7 @@ node_modules/
 dist/
 target/
 frontend.zip
+/.local-deploy/
+/backend/app.jar
+/frontend-image/dist-tn/
+/rendered/

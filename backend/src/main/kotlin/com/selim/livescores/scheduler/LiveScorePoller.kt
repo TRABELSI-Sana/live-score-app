@@ -7,6 +7,7 @@ import com.selim.livescores.provider.dto.ApiFootballFixtureEventsResponse
 import com.selim.livescores.provider.dto.ApiFootballFixturesResponse
 import com.selim.livescores.provider.livescore.LiveScoreApiClient
 import com.selim.livescores.service.MatchService
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
 import java.time.Duration
@@ -14,6 +15,7 @@ import java.time.Instant
 import java.util.concurrent.atomic.AtomicReference
 
 @Component
+@ConditionalOnProperty(prefix = "app.polling", name = ["enabled"], havingValue = "true", matchIfMissing = true)
 class LiveScorePoller(
     private val api: LiveScoreApiClient,
     private val objectMapper: ObjectMapper,

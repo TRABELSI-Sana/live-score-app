@@ -31,10 +31,12 @@ npm run build    # production build → dist/
 npm run lint     # ESLint
 ```
 
-### Production deploy (to VPS via rsync + docker compose)
-```bash
-./deploy.sh
-```
+### Production deploy (to K3s on the VPS)
+
+GitHub Actions tests/builds the project, publishes backend/frontend images to
+GHCR, then applies the four YAML manifests in `k8s/` with the published digests.
+Trigger with a push to `main` or manually from the Actions tab.
+See `k8s/README.md` for GHCR setup and production operations.
 
 ## Architecture
 
@@ -64,8 +66,10 @@ API-Football (v3) → LiveScorePoller (60s) → MatchService → Redis (state)
 
 - **Nginx**: reverse proxy — serves SPA static files, proxies `/api/*` to `backend:8099` with SSE-friendly settings (no buffering, 1h timeout).
 - **Redis 7**: stores all match state (no SQL database).
-- **Ollama**: local LLM inference (Mistral), CPU-only on VPS (6 cores, 10GB RAM cap).
-- **Docker Compose**: 4 services (redis, backend, web, ollama).
+- **Ollama**: local LLM inference (Mistral), CPU-only on VPS (6 cores, 8 GiB RAM cap).
+- **Production**: K3s namespace `live-score`, with edge nginx, frontend, backend, Redis and Ollama.
+- **Docker Compose**: local development only, via `docker-compose-local.yml` and `deploy-local.sh`.
+- **Generated local files**: `.local-deploy/` and copied JARs are ignored by Git.
 
 ## Key Conventions
 
@@ -81,7 +85,7 @@ API-Football (v3) → LiveScorePoller (60s) → MatchService → Redis (state)
 
 | Variable | Used by | Default |
 |----------|---------|---------|
-| `APIFOOTBALL_KEY` | backend | hardcoded dev key |
+| `APIFOOTBALL_KEY` | backend | required environment variable / Kubernetes Secret |
 | `SPRING_DATA_REDIS_HOST` | backend | localhost |
 | `SPRING_DATA_REDIS_PORT` | backend | 6379 |
 | `SPRING_AI_OLLAMA_BASE_URL` | backend | http://ollama:11434 |

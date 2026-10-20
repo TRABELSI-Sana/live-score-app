@@ -4,6 +4,8 @@
 
 This repository contains a real-time football scores application. The backend is a Kotlin/Spring Boot service in `backend/`, with source in `backend/src/main/kotlin`, tests in `backend/src/test/kotlin`, and configuration in `backend/src/main/resources`. The frontend is a React 19 + TypeScript + Vite app in `frontend/`, with UI code in `frontend/src`, assets in `frontend/public`, and SEO/content data in `frontend/src/content`. Docker, nginx, and deployment files are at the root, `nginx/`, and `frontend-image/`.
 
+Production deployment uses GitHub Actions to build/push images to GHCR and deploy the four YAML manifests in `k8s/` to K3s; see `k8s/README.md`. Docker Compose is kept only for local development. Generated deployment files in `.local-deploy/` must not be committed. Set `APIFOOTBALL_KEY` in the environment for local development.
+
 ## Build, Test, and Development Commands
 
 - `./deploy-local.sh`: run the full local Docker stack.

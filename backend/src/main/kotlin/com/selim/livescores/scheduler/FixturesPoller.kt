@@ -6,6 +6,7 @@ import com.selim.livescores.provider.dto.ApiFootballFixturesResponse
 import com.selim.livescores.provider.livescore.LiveScoreApiClient
 import com.selim.livescores.service.MatchService
 import org.slf4j.LoggerFactory
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.data.redis.core.StringRedisTemplate
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
@@ -16,6 +17,7 @@ import java.time.ZoneId
 import java.util.concurrent.atomic.AtomicReference
 
 @Component
+@ConditionalOnProperty(prefix = "app.polling", name = ["enabled"], havingValue = "true", matchIfMissing = true)
 class FixturesPoller(
     private val api: LiveScoreApiClient,
     private val objectMapper: ObjectMapper,

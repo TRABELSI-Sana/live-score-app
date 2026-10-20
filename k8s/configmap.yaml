@@ -1,0 +1,152 @@
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: live-score
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: app-config
+  namespace: live-score
+data:
+  SPRING_PROFILES_ACTIVE: prod
+  SPRING_DATA_REDIS_HOST: redis
+  SPRING_DATA_REDIS_PORT: '6379'
+  SPRING_AI_OLLAMA_BASE_URL: http://ollama:11434
+  APP_AI_TIMEOUT_SECONDS: '420'
+  APP_AI_MAX_CONCURRENT_REQUESTS: '1'
+  APP_POLLING_ENABLED: 'true'
+  APIFOOTBALL_QUOTA_PER_DAY: '7500'
+  JAVA_TOOL_OPTIONS: "-XX:MaxRAMPercentage=70"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: frontend-nginx
+  namespace: live-score
+data:
+  default.conf: |
+    map $host $livefoot_root {
+      livefoot.tn /usr/share/nginx/html-tn;
+      default /usr/share/nginx/html-online;
+    }
+
+    server {
+      listen 80;
+      server_name _;
+      root $livefoot_root;
+      index index.html;
+      gzip on;
+      gzip_types text/plain text/css application/json application/javascript image/svg+xml;
+      gzip_vary on;
+
+      location = /healthz {
+        access_log off;
+        return 200 "ok\n";
+      }
+
+      location = /robots.txt {
+        default_type text/plain;
+        if ($host = livefoot.tn) {
+          return 200 "User-agent: *\nAllow: /\nDisallow: /api/\n\nSitemap: https://livefoot.tn/sitemap.xml\n";
+        }
+        return 200 "User-agent: *\nAllow: /\nDisallow: /api/\n\nSitemap: https://livefoot.online/sitemap.xml\n";
+      }
+
+      location = /sitemap.xml {
+        default_type application/xml;
+        if ($host = livefoot.tn) {
+          rewrite ^ /sitemap-tn.xml break;
+        }
+        try_files /sitemap.xml =404;
+      }
+
+      location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg|woff2?|ttf|eot)$ {
+        expires 1y;
+        add_header Cache-Control "public, max-age=31536000, immutable";
+      }
+
+      location / {
+        add_header Cache-Control "no-cache";
+        try_files $uri/index.html $uri $uri/ /index.html;
+      }
+
+      location /api/ {
+        proxy_pass http://backend:8099;
+        proxy_http_version 1.1;
+        proxy_set_header Host $http_host;
+        proxy_set_header X-Forwarded-Proto $http_x_forwarded_proto;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header Connection "";
+        proxy_buffering off;
+        proxy_cache off;
+        proxy_read_timeout 600s;
+        add_header X-Robots-Tag "noindex, nofollow" always;
+      }
+    }
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: edge-nginx
+  namespace: live-score
+data:
+  default.conf: |
+    map $host $canonical_host {
+      livefoot.tn livefoot.tn;
+      www.livefoot.tn livefoot.tn;
+      default livefoot.online;
+    }
+
+    server {
+      listen 80;
+      listen [::]:80;
+      server_name livefoot.online www.livefoot.online livefoot.tn www.livefoot.tn;
+
+      location = /healthz {
+        access_log off;
+        return 200 "ok\n";
+      }
+
+      location /.well-known/acme-challenge/ {
+        root /var/www/certbot;
+      }
+
+      location / {
+        return 301 https://$canonical_host$request_uri;
+      }
+    }
+
+    server {
+      listen 443 ssl;
+      listen [::]:443 ssl;
+      server_name www.livefoot.online www.livefoot.tn;
+      ssl_certificate /etc/letsencrypt/live/livefoot.online/fullchain.pem;
+      ssl_certificate_key /etc/letsencrypt/live/livefoot.online/privkey.pem;
+      return 301 https://$canonical_host$request_uri;
+    }
+
+    server {
+      listen 443 ssl;
+      listen [::]:443 ssl;
+      server_name livefoot.online livefoot.tn;
+      ssl_certificate /etc/letsencrypt/live/livefoot.online/fullchain.pem;
+      ssl_certificate_key /etc/letsencrypt/live/livefoot.online/privkey.pem;
+      add_header X-Content-Type-Options "nosniff" always;
+      add_header X-Frame-Options "SAMEORIGIN" always;
+      add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+      add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+
+      location / {
+        proxy_pass http://frontend.live-score.svc.cluster.local:80;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-Proto https;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header Connection "";
+        proxy_buffering off;
+        proxy_cache off;
+        proxy_read_timeout 600s;
+      }
+    }
