@@ -101,7 +101,16 @@ async function prerender() {
         req.respond({
           status: 200,
           contentType: "application/json",
-          body: JSON.stringify([]),
+          body: JSON.stringify(url.includes("/api/ai/briefing") ? {
+            headline: "Le foot, en un coup d’œil.",
+            description: "Les rencontres à suivre et les temps forts du jour.",
+            liveCount: 0,
+            upcomingCount: 0,
+            finishedCount: 0,
+            competitionCount: 0,
+            highlights: [],
+            generatedAt: "",
+          } : []),
         });
       } else {
         req.continue();

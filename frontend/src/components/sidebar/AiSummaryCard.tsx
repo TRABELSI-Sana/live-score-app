@@ -91,7 +91,7 @@ export default function AiSummaryCard() {
   const tabs: { key: Focus; label: string; count?: number }[] = [
     { key: "overview", label: "À la une" }, { key: "live", label: "En direct", count: data?.briefing.liveCount }, { key: "upcoming", label: "À venir", count: data?.briefing.upcomingCount },
   ];
-  const updated = briefing ? new Date(briefing.generatedAt).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }) : null;
+  const updated = briefing?.highlights.length ? new Date(briefing.generatedAt).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }) : null;
   return <>
     <section className={`briefing${expanded ? " is-expanded" : ""}`} aria-labelledby="briefing-title">
       <header className="briefing-header">
