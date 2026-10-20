@@ -106,7 +106,9 @@ rencontres serrées en fin de match, prochains coups d’envoi et résultats ric
 buts. Les équipes, scores et compétitions proviennent directement des données du
 board Redis. Cet endpoint ne déclenche ni appel Ollama ni appel API-Football.
 Le frontend actualise cette sélection toutes les 60 secondes et propose un
-éclairage IA à la demande, limité aux rencontres de l’onglet choisi.
+éclairage IA à la demande lorsqu’au moins une rencontre sélectionnée possède un
+score en cours ou terminé. Avant les matchs, seuls le programme et les horaires
+sont affichés. L’analyse est limitée aux rencontres de l’onglet choisi.
 
 ### Génération sur CPU
 

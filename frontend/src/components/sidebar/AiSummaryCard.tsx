@@ -51,8 +51,10 @@ export default function AiSummaryCard() {
   const [revision, setRevision] = useState(0);
   const [insight, setInsight] = useState<{ answer: string; status: "idle" | "loading" | "error" } | null>(null);
   const [analysisRequested, setAnalysisRequested] = useState(0);
+  const [analysisFocus, setAnalysisFocus] = useState("live");
   const [selectedMatch, setSelectedMatch] = useState<Highlight | null>(null);
   const briefing = data?.focus === focus ? data.briefing : null;
+  const canAnalyze = briefing?.highlights.some(match => match.phase !== "upcoming" && match.score !== null) ?? false;
 
   useEffect(() => {
     const controller = new AbortController();
@@ -74,7 +76,7 @@ export default function AiSummaryCard() {
   useEffect(() => {
     if (!analysisRequested) return;
     const prompt = "Donne un éclairage en deux phrases courtes sur ce qui est à surveiller dans ces rencontres. Ne récite pas la liste des affiches. Appuie-toi sur les scores, les minutes et les horaires réels ; sans données de forme, ne désigne aucun favori. Si aucun match n’est en cours, présente simplement le prochain rendez-vous sans inventer d’enjeu.";
-    const stream = new EventSource(`/api/ai/insights/stream?${new URLSearchParams({ prompt, maxMatches: "3", focus })}`);
+    const stream = new EventSource(`/api/ai/insights/stream?${new URLSearchParams({ prompt, maxMatches: "3", focus: analysisFocus })}`);
     const onInsight = (event: MessageEvent) => {
       try {
         const result = JSON.parse(event.data) as Insight;
@@ -86,7 +88,7 @@ export default function AiSummaryCard() {
     stream.addEventListener("insight", onInsight as EventListener);
     stream.onerror = () => { setInsight({ answer: "L’analyse n’est pas disponible pour le moment. Les matchs et les scores restent à jour.", status: "error" }); stream.close(); };
     return () => { stream.removeEventListener("insight", onInsight as EventListener); stream.close(); };
-  }, [analysisRequested, focus]);
+  }, [analysisRequested, analysisFocus]);
 
   const tabs: { key: Focus; label: string; count?: number }[] = [
     { key: "overview", label: "À la une" }, { key: "live", label: "En direct", count: data?.briefing.liveCount }, { key: "upcoming", label: "À venir", count: data?.briefing.upcomingCount },
@@ -108,10 +110,10 @@ export default function AiSummaryCard() {
         {briefing && !failed && (briefing.highlights.length ? briefing.highlights.slice(0, showAll ? 3 : 2).map((match, index) => <HighlightCard key={`${match.id}-${match.home}-${match.away}`} match={match} index={index} asOf={briefing.generatedAt} onOpen={() => setSelectedMatch(match)} />) : <div className="briefing-empty"><span aria-hidden="true">◷</span><strong>{focus === "live" ? "On attend le coup d’envoi." : "Rendez-vous au prochain match."}</strong><p>{focus === "live" ? "Le briefing suivra les rencontres dès leur début." : "Les prochaines affiches apparaîtront ici."}</p>{focus === "live" && <button type="button" onClick={() => { setFocus("upcoming"); setAnalysisRequested(0); setInsight(null); }}>Voir les matchs à venir <span aria-hidden="true">→</span></button>}</div>)}
       </div>
       {briefing && !failed && briefing.highlights.length > 2 && <button className="briefing-more" type="button" onClick={() => setShowAll(value => !value)}>{showAll ? "Réduire la sélection" : "Une autre rencontre à suivre"}<span aria-hidden="true">{showAll ? "−" : "+"}</span></button>}
-      {briefing && briefing.highlights.length > 0 && !failed && <div className="briefing-analysis">
+      {briefing && canAnalyze && !failed && <div className="briefing-analysis">
         <div className="briefing-analysis-heading"><Sparkles /><strong>L’éclairage IA</strong><span>À la demande</span></div>
         {insight && <p className="briefing-analysis-text" aria-live="polite">{insight.status === "loading" ? "Lecture des rencontres en cours…" : insight.answer}</p>}
-        <button type="button" className="briefing-analysis-button" disabled={insight?.status === "loading"} onClick={() => { setInsight({ answer: "", status: "loading" }); setAnalysisRequested(value => value + 1); }}>{insight?.status === "loading" ? <><span className="briefing-spinner" />Analyse en cours</> : <>{insight?.status === "error" ? "Réessayer l’analyse" : insight ? "Actualiser l’analyse" : "Qu’est-ce qu’il faut surveiller ?"}<span aria-hidden="true">↗</span></>}</button>
+        <button type="button" className="briefing-analysis-button" disabled={insight?.status === "loading"} onClick={() => { setInsight({ answer: "", status: "loading" }); setAnalysisFocus(focus === "overview" ? (briefing.liveCount > 0 ? "live" : "finished") : focus); setAnalysisRequested(value => value + 1); }}>{insight?.status === "loading" ? <><span className="briefing-spinner" />Analyse en cours</> : <>{insight?.status === "error" ? "Réessayer l’analyse" : insight ? "Actualiser l’analyse" : "Qu’est-ce qu’il faut surveiller ?"}<span aria-hidden="true">↗</span></>}</button>
         {insight?.status === "idle" && <small>Texte généré par IA à partir des données des matchs.</small>}
       </div>}
       <footer className="briefing-footer"><span><i />{updated ? `Actualisé à ${updated}` : "Actualisation automatique"}</span><Link to="/en-direct">Tous les matchs <span aria-hidden="true">→</span></Link></footer>
