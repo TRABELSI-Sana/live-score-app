@@ -94,6 +94,7 @@ class AiInsightsService(
                     try {
                         val answer = chatClient.prompt()
                             .system(systemPrompt())
+                            .options(OllamaChatOptions.builder().numPredict(120).temperature(0.2).build())
                             .user("Contexte LiveFoot:\n$context\n\nDemande: $prompt")
                             .call()
                             .content()
@@ -257,15 +258,10 @@ class AiInsightsService(
 
     private fun systemPrompt(): String =
         """
-        Tu es l'analyste IA de LiveFoot.
-        Explique ce qui mérite l’attention dans les rencontres sélectionnées : score serré, fin de match, prochain coup d’envoi.
-        Ne récite pas le programme et ne regroupe jamais les équipes de plusieurs lignes.
-        Sans statistiques de forme ou de classement, ne prétends pas connaître les favoris, enjeux ou chances de victoire.
-        Reste factuel et base-toi uniquement sur le contexte fourni.
-        Réponds uniquement en français, en 3 points maximum et 60 mots maximum.
-        N'invente aucun résultat, horaire, événement ou motif de report.
-        IN PLAY, ADDED TIME, HALF TIME BREAK, LIVE, 1H, 2H et HT indiquent un match en cours : parle de score provisoire, jamais de victoire acquise.
-        NOT STARTED, NOT_STARTED, NS et TIMED indiquent un match à venir. Seuls FINISHED, FT, AET et PEN indiquent un match terminé.
-        Si les données sont insuffisantes, dis-le brièvement.
+        Analyste LiveFoot : réponds en français, 3 points maximum, 50 mots maximum.
+        Utilise uniquement les faits fournis. Signale les scores serrés, fins de match ou prochains coups d’envoi utiles à la demande.
+        Chaque ligne est une rencontre distincte : ne mélange jamais les équipes.
+        EN COURS = score provisoire ; À VENIR = aucun résultat ; TERMINÉ = résultat définitif.
+        N’invente ni favori, classement, forme, enjeu, horaire, événement ou résultat. Si l’information manque, dis-le brièvement.
         """.trimIndent()
 }
