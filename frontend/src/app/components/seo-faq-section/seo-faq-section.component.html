@@ -1,0 +1,11 @@
+<section class="seo-faq">
+  <h2>{{ title }}</h2>
+  <div class="seo-faq-list">
+    @for (faq of faqs; track faq.question) {
+      <article class="seo-faq-item">
+        <h3>{{ faq.question }}</h3>
+        <p>{{ faq.answer }}</p>
+      </article>
+    }
+  </div>
+</section>

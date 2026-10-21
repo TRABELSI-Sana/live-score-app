@@ -32,7 +32,10 @@ export class SeoService {
     this.doc.documentElement.lang = base.endsWith('.tn') ? 'fr-TN' : 'fr';
     this.titleService.setTitle(fullTitle);
     this.meta.updateTag({ name: 'description', content: data.description });
-    this.meta.updateTag({ name: 'robots', content: data.noIndex ? 'noindex, follow' : 'index, follow' });
+    this.meta.updateTag({
+      name: 'robots',
+      content: data.noIndex ? 'noindex, follow' : 'index, follow',
+    });
     this.meta.updateTag({ property: 'og:title', content: fullTitle });
     this.meta.updateTag({ property: 'og:description', content: data.description });
     this.meta.updateTag({ property: 'og:url', content: url });

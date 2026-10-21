@@ -2,13 +2,13 @@ import type { SeoFaq } from '../models/content.model';
 
 export function faqSchema(faqs: SeoFaq[]) {
   return {
-    "@context": "https://schema.org",
-    "@type": "FAQPage",
+    '@context': 'https://schema.org',
+    '@type': 'FAQPage',
     mainEntity: faqs.map((faq) => ({
-      "@type": "Question",
+      '@type': 'Question',
       name: faq.question,
       acceptedAnswer: {
-        "@type": "Answer",
+        '@type': 'Answer',
         text: faq.answer,
       },
     })),
@@ -18,13 +18,13 @@ export function faqSchema(faqs: SeoFaq[]) {
 export function itemListSchema(
   baseUrl: string,
   items: { name?: string; title?: string; slug: string }[],
-  pathPrefix: string
+  pathPrefix: string,
 ) {
   return {
-    "@context": "https://schema.org",
-    "@type": "ItemList",
+    '@context': 'https://schema.org',
+    '@type': 'ItemList',
     itemListElement: items.map((item, idx) => ({
-      "@type": "ListItem",
+      '@type': 'ListItem',
       position: idx + 1,
       name: item.name ?? item.title,
       url: `${baseUrl}${pathPrefix}/${item.slug}`,
@@ -34,9 +34,9 @@ export function itemListSchema(
 
 export function organizationSchema(baseUrl: string) {
   return {
-    "@context": "https://schema.org",
-    "@type": "Organization",
-    name: "LiveFoot",
+    '@context': 'https://schema.org',
+    '@type': 'Organization',
+    name: 'LiveFoot',
     url: `${baseUrl}/`,
     logo: `${baseUrl}/og-image.png`,
   };

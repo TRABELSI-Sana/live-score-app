@@ -20,7 +20,7 @@ Production supports both manual steps through `deploy.py` followed by explicit `
 
 ## Coding Style & Naming Conventions
 
-Use Kotlin idioms in the backend: services in `service/`, controllers in `web/`, schedulers in `scheduler/`, and provider code in `provider/`. Keep domain names in English and UI copy in French. Frontend components use `name.component.ts`, shared state uses injectable services and signals, and routes load standalone page components. Follow two-space TypeScript and four-space Kotlin indentation. Reuse helpers for match status, sorting, events, and lineups.
+Use Kotlin idioms in the backend: services in `service/`, controllers in `web/`, schedulers in `scheduler/`, and provider code in `provider/`. Keep domain names in English and UI copy in French. Every component has its own directory (e.g. `pages/live-page/live-page.component.*`); parent layout/sidebar directories may contain child component directories. Each frontend component must keep TypeScript, HTML and CSS in separate `name.component.ts`, `name.component.html` and `name.component.css` files via `templateUrl` and `styleUrl`; do not put large inline templates or styles in TypeScript. Frontend components use `name.component.ts`, shared state uses injectable services and signals, and routes load standalone page components. Follow two-space TypeScript and four-space Kotlin indentation. Reuse helpers for match status, sorting, events, and lineups.
 
 ## Testing Guidelines
 

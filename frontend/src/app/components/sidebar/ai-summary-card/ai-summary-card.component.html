@@ -1,0 +1,245 @@
+<div class="football-assistant">
+  <div class="assistant-switcher" role="group" aria-label="Votre espace assistant">
+    @for (tab of viewTabs; track tab.key) {
+      <button [attr.aria-pressed]="view() === tab.key" (click)="openView(tab.key)">
+        {{ tab.label }}
+        @if (tab.key === 'chat') {
+          <span aria-hidden="true">✦</span>
+        }
+      </button>
+    }
+  </div>
+
+  <div [hidden]="view() !== 'briefing'">
+    <section
+      [class]="'briefing' + (expanded() ? ' is-expanded' : '')"
+      aria-labelledby="briefing-title"
+    >
+      <header class="briefing-header">
+        <div class="briefing-eyebrow">
+          <span class="briefing-mark">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.6"
+              aria-hidden="true"
+            >
+              <path d="m12 3 2.6 6.4L21 12l-6.4 2.6L12 21l-2.6-6.4L3 12l6.4-2.6L12 3Z" />
+              <path d="m20 2 .6 1.4L22 4l-1.4.6L20 6l-.6-1.4L18 4l1.4-.6L20 2Z" />
+            </svg>
+          </span>
+          <span>LE BRIEFING</span>
+          <span class="briefing-edition">LIVEFOOT</span>
+        </div>
+        <h2 id="briefing-title">{{ briefing()?.headline ?? "Le foot, en un coup d'œil." }}</h2>
+        <p>
+          {{ briefing()?.description ?? 'Les rencontres à suivre et les temps forts du jour.' }}
+        </p>
+        @if (data()) {
+          <div class="briefing-metrics">
+            <span
+              ><b>{{ data()!.briefing.liveCount }}</b> en direct</span
+            >
+            <span
+              ><b>{{ data()!.briefing.upcomingCount }}</b> à venir</span
+            >
+            <span
+              ><b>{{ data()!.briefing.competitionCount }}</b> compétitions</span
+            >
+          </div>
+        }
+      </header>
+      <button
+        class="briefing-mobile-toggle"
+        type="button"
+        [attr.aria-expanded]="expanded()"
+        (click)="expanded.set(!expanded())"
+      >
+        {{ expanded() ? 'Réduire le briefing' : 'Ouvrir le briefing' }}
+        <span aria-hidden="true">{{ expanded() ? '−' : '+' }}</span>
+      </button>
+      <div class="briefing-tabs" role="group" aria-label="Sélection des matchs du briefing">
+        @for (tab of focusTabs; track tab.key) {
+          <button
+            [attr.aria-pressed]="focus() === tab.key"
+            (click)="changeFocus(tab.key)"
+            [class.is-active]="focus() === tab.key"
+          >
+            {{ tab.label }}
+            @if (tab.count !== undefined) {
+              <span>{{ tab.count }}</span>
+            }
+          </button>
+        }
+      </div>
+      <div class="briefing-content" [attr.aria-busy]="!briefing() && !failed()">
+        @if (!briefing() && !failed()) {
+          <div class="briefing-skeleton" role="status" aria-label="Chargement du briefing">
+            <span></span><span></span><span></span>
+          </div>
+        }
+        @if (failed()) {
+          <div class="briefing-notice" role="status">
+            <strong>Le briefing est momentanément indisponible.</strong>
+            <p>Vous pouvez toujours consulter les scores en direct.</p>
+            <button type="button" (click)="retry()">Réessayer</button>
+          </div>
+        }
+        @if (briefing() && !failed()) {
+          @if (briefing()!.highlights.length) {
+            @for (
+              match of visibleHighlights();
+              track match.id ?? match.home + match.away;
+              let i = $index
+            ) {
+              <article [class]="'briefing-match briefing-match--' + match.phase">
+                <div class="briefing-match-top">
+                  <span class="briefing-match-label">
+                    @if (match.phase === 'live') {
+                      <i class="briefing-live-dot"></i>
+                    }
+                    {{ highlightLabel(match) }}
+                  </span>
+                  <span class="briefing-match-number">0{{ i + 1 }}</span>
+                </div>
+                <p class="briefing-competition">
+                  {{ match.competition
+                  }}{{ match.country && match.country !== 'World' ? ' · ' + match.country : '' }}
+                </p>
+                <div class="briefing-fixture">
+                  <div class="briefing-team">
+                    @if (match.homeLogo && !imgFailed[match.homeLogo]) {
+                      <img
+                        class="briefing-crest"
+                        [src]="match.homeLogo"
+                        alt=""
+                        loading="lazy"
+                        (error)="onCrestError(match.homeLogo!)"
+                      />
+                    } @else {
+                      <span class="briefing-crest briefing-crest--fallback" aria-hidden="true">{{
+                        match.home.slice(0, 2).toUpperCase()
+                      }}</span>
+                    }
+                    <span>{{ match.home }}</span>
+                  </div>
+                  <div class="briefing-score">
+                    <strong>{{ getCenter(match) }}</strong>
+                    <span>{{ getStatus(match) }}</span>
+                  </div>
+                  <div class="briefing-team">
+                    @if (match.awayLogo && !imgFailed[match.awayLogo]) {
+                      <img
+                        class="briefing-crest"
+                        [src]="match.awayLogo"
+                        alt=""
+                        loading="lazy"
+                        (error)="onCrestError(match.awayLogo!)"
+                      />
+                    } @else {
+                      <span class="briefing-crest briefing-crest--fallback" aria-hidden="true">{{
+                        match.away.slice(0, 2).toUpperCase()
+                      }}</span>
+                    }
+                    <span>{{ match.away }}</span>
+                  </div>
+                </div>
+                @if (match.phase !== 'upcoming') {
+                  <p class="briefing-reason">{{ match.reason }}</p>
+                }
+                @if (match.id) {
+                  <button
+                    type="button"
+                    class="briefing-details"
+                    (click)="selectedMatch.set(match)"
+                    [attr.aria-label]="
+                      'Voir les compositions de ' + match.home + ' contre ' + match.away
+                    "
+                  >
+                    Les compositions <span aria-hidden="true">↗</span>
+                  </button>
+                }
+              </article>
+            }
+          } @else {
+            <div class="briefing-empty">
+              <span aria-hidden="true">◷</span>
+              <strong>{{
+                focus() === 'live' ? 'On attend le coup d’envoi.' : 'Rendez-vous au prochain match.'
+              }}</strong>
+              <p>
+                {{
+                  focus() === 'live'
+                    ? 'Le briefing suivra les rencontres dès leur début.'
+                    : 'Les prochaines affiches apparaîtront ici.'
+                }}
+              </p>
+              @if (focus() === 'live') {
+                <button type="button" (click)="changeFocus('upcoming')">
+                  Voir les matchs à venir <span aria-hidden="true">→</span>
+                </button>
+              }
+            </div>
+          }
+        }
+      </div>
+      @if (briefing() && !failed() && briefing()!.highlights.length > 2) {
+        <button class="briefing-more" type="button" (click)="showAll.set(!showAll())">
+          {{ showAll() ? 'Réduire la sélection' : 'Une autre rencontre à suivre' }}
+          <span aria-hidden="true">{{ showAll() ? '−' : '+' }}</span>
+        </button>
+      }
+      <div class="briefing-analysis">
+        <div class="briefing-analysis-heading">
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.6"
+            aria-hidden="true"
+          >
+            <path d="m12 3 2.6 6.4L21 12l-6.4 2.6L12 21l-2.6-6.4L3 12l6.4-2.6L12 3Z" />
+            <path d="m20 2 .6 1.4L22 4l-1.4.6L20 6l-.6-1.4L18 4l1.4-.6L20 2Z" />
+          </svg>
+          <strong>Aller plus loin</strong>
+        </div>
+        <button type="button" class="briefing-analysis-button" (click)="openView('insights')">
+          Analyser les rencontres <span aria-hidden="true">↗</span>
+        </button>
+        <button type="button" class="assistant-chat-link" (click)="openView('chat')">
+          Une autre question ? <span>Discuter avec l'assistant →</span>
+        </button>
+      </div>
+      <footer class="briefing-footer">
+        <span
+          ><i></i>{{ updated() ? 'Actualisé à ' + updated() : 'Actualisation automatique' }}</span
+        >
+        <a routerLink="/en-direct">Tous les matchs <span aria-hidden="true">→</span></a>
+      </footer>
+    </section>
+  </div>
+
+  <div [hidden]="view() !== 'insights'">
+    @if (visited().insights) {
+      <app-ai-insights-panel [initialFocus]="focus()" (chat)="openView('chat')" />
+    }
+  </div>
+
+  <div [hidden]="view() !== 'chat'">
+    @if (visited().chat) {
+      <app-general-chat />
+    }
+  </div>
+</div>
+
+@if (selectedMatch()?.id) {
+  <app-lineup-modal
+    [match]="{
+      id: selectedMatch()!.id!,
+      homeName: selectedMatch()!.home,
+      awayName: selectedMatch()!.away,
+    }"
+    (dismissed)="selectedMatch.set(null)"
+  />
+}

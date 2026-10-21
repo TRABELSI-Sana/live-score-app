@@ -1,0 +1,70 @@
+<section class="assistant-view" aria-labelledby="insights-title">
+  <header class="assistant-view-header">
+    <span class="assistant-kicker">L'ANALYSE DES MATCHS</span>
+    <h2 id="insights-title">Un autre regard sur le jeu.</h2>
+    <p>Posez votre question sur les rencontres du jour.</p>
+  </header>
+  <div class="insights-body">
+    <div class="insights-suggestions">
+      @for (q of suggestions(); track q) {
+        <button type="button" [disabled]="loading()" (click)="analyze(q)">
+          {{ q }}<span aria-hidden="true">↗</span>
+        </button>
+      }
+    </div>
+    <form (submit)="onSubmit($event)">
+      <label for="insights-focus">Les rencontres à analyser</label>
+      <select
+        id="insights-focus"
+        [value]="focus()"
+        [disabled]="loading()"
+        (change)="onFocusChange($event)"
+      >
+        <option value="overview">La sélection du jour</option>
+        <option value="live">En direct</option>
+        <option value="upcoming">À venir</option>
+        <option value="finished">Terminées</option>
+      </select>
+      <label for="insights-question">Votre question</label>
+      <textarea
+        id="insights-question"
+        [value]="prompt()"
+        (input)="prompt.set(asInput($event).value)"
+        maxlength="600"
+        placeholder="Un match à suivre ? Un score à comprendre ?"
+        rows="3"
+        [disabled]="loading()"
+      ></textarea>
+      <button class="assistant-primary" type="submit" [disabled]="loading() || !prompt().trim()">
+        {{ loading() ? 'Analyse en cours…' : 'Analyser les rencontres' }}
+        <span aria-hidden="true">↗</span>
+      </button>
+    </form>
+    @if (loading()) {
+      <div class="insights-pending" role="status">
+        <span class="briefing-spinner"></span>Lecture des données des matchs…
+      </div>
+    }
+    @if (reply()) {
+      <div
+        [class]="'insights-answer' + (reply()!.status === 'ok' ? '' : ' insights-answer--notice')"
+        aria-live="polite"
+      >
+        <span class="assistant-kicker">{{
+          reply()!.status === 'ok' ? 'L’ÉCLAIRAGE IA' : 'À SAVOIR'
+        }}</span>
+        <p class="insights-answer-question">{{ reply()!.question }}</p>
+        <p>{{ reply()!.answer }}</p>
+        @if (reply()!.status !== 'ok' && reply()!.status !== 'empty') {
+          <button type="button" (click)="analyze(reply()!.question)">Réessayer</button>
+        }
+      </div>
+    }
+    <button class="assistant-chat-link" type="button" (click)="chat.emit()">
+      Envie de poursuivre la discussion ? <span>Ouvrir le chat →</span>
+    </button>
+    <p class="assistant-disclaimer">
+      Une lecture des données disponibles, sans pronostic de résultat.
+    </p>
+  </div>
+</section>

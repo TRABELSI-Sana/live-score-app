@@ -1,0 +1,69 @@
+<article [class]="'match-card' + (isLive ? ' match-card--live' : '')">
+  <div class="match-card-main">
+    <div class="match-team">
+      @if (match.home?.logo) {
+        <img
+          class="match-team-logo"
+          [src]="match.home.logo"
+          [alt]="match.home.name ?? ''"
+          loading="lazy"
+          (error)="onImgError($event)"
+        />
+      } @else {
+        <span class="match-team-logo-placeholder"></span>
+      }
+      <span class="match-team-name">{{ match.home?.name ?? 'Equipe' }}</span>
+    </div>
+
+    <div class="match-score-center">
+      <span [class]="'match-score ' + scoreClass">{{ scoreText }}</span>
+      <span [class]="'match-status ' + statusClass">
+        @if (isLive) {
+          <span class="live-dot"></span>
+        }
+        {{ displayStatus }}
+      </span>
+    </div>
+
+    <div class="match-team match-team--away">
+      <span class="match-team-name">{{ match.away?.name ?? 'Equipe' }}</span>
+      @if (match.away?.logo) {
+        <img
+          class="match-team-logo"
+          [src]="match.away.logo"
+          [alt]="match.away.name ?? ''"
+          loading="lazy"
+          (error)="onImgError($event)"
+        />
+      } @else {
+        <span class="match-team-logo-placeholder"></span>
+      }
+    </div>
+  </div>
+
+  @if (allEvents.length > 0) {
+    <div class="match-card-events">
+      @for (event of allEvents; track $index) {
+        <span [class]="'match-event match-event--' + event._type + ' match-event--' + event._side">
+          {{ event._type === 'goal' ? '⚽' : formatIcon(event) }}
+          <span class="match-event-team">{{ event._teamAbbr }}</span>
+          {{ formatPlayer(event) }} {{ formatMinute(event.time) }}
+        </span>
+      }
+    </div>
+  }
+
+  <div class="match-card-footer">
+    <span class="match-card-competition">{{ match.competition?.name ?? '' }}</span>
+    <button
+      type="button"
+      class="match-card-lineup-btn"
+      (click)="
+        showLineup.emit({ id: match.id, homeName: match.home?.name, awayName: match.away?.name })
+      "
+      [disabled]="!match.id"
+    >
+      Compos
+    </button>
+  </div>
+</article>

@@ -13,7 +13,8 @@ export function normalizeMatchStatus(status?: string): string {
 export function statusLabel(status?: string, time?: string, scheduled?: string): string {
   const normalized = normalizeMatchStatus(status);
   if (!status) return scheduled ?? '--:--';
-  if (normalized === 'IN PLAY' || normalized === 'ADDED TIME') return time ? `${time}'` : 'EN COURS';
+  if (normalized === 'IN PLAY' || normalized === 'ADDED TIME')
+    return time ? `${time}'` : 'EN COURS';
   if (normalized === 'HALF TIME BREAK') return 'MT';
   if (normalized === 'FINISHED') return 'TERMINE';
   if (UPCOMING_STATUSES.has(normalized)) return scheduled ?? 'A VENIR';
@@ -22,5 +23,7 @@ export function statusLabel(status?: string, time?: string, scheduled?: string):
 
 export function isLiveStatus(status?: string): boolean {
   const normalized = normalizeMatchStatus(status);
-  return normalized === 'IN PLAY' || normalized === 'ADDED TIME' || normalized === 'HALF TIME BREAK';
+  return (
+    normalized === 'IN PLAY' || normalized === 'ADDED TIME' || normalized === 'HALF TIME BREAK'
+  );
 }

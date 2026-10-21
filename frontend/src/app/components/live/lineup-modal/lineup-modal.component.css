@@ -1,0 +1,73 @@
+@import '../../../../styles/modal-shared.css';
+
+:host {
+  display: contents;
+}
+
+.lineup-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-md);
+}
+
+.lineup-team {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+.lineup-team-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--space-sm) var(--space-md);
+  background: var(--color-bg);
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.lineup-pitch {
+  background: linear-gradient(180deg, #3f9f4d 0%, #2f8540 100%);
+  border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+  padding: var(--space-md) var(--space-sm);
+  min-height: 260px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.lineup-line {
+  display: flex;
+  justify-content: center;
+  gap: var(--space-sm);
+  flex-wrap: wrap;
+}
+
+.lineup-player {
+  background: rgba(255, 255, 255, 0.92);
+  border-radius: var(--radius-sm);
+  padding: 4px 8px;
+  text-align: center;
+  min-width: 64px;
+}
+
+.lineup-player-number {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--color-navy);
+}
+
+.lineup-player-name {
+  font-size: 0.62rem;
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 72px;
+}
+
+@media (max-width: 768px) {
+  .lineup-grid {
+    grid-template-columns: 1fr;
+  }
+}

@@ -1,0 +1,84 @@
+:host {
+  display: contents;
+}
+
+.cookie-consent {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 9999;
+  background: var(--color-surface);
+  border-top: 1px solid var(--color-border);
+  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.1);
+  padding: 20px var(--space-lg);
+}
+
+.cookie-consent-inner {
+  max-width: var(--container-max);
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  gap: var(--space-lg);
+  flex-wrap: wrap;
+}
+
+.cookie-consent-text {
+  flex: 1;
+  min-width: 240px;
+}
+
+.cookie-consent-title {
+  margin: 0 0 4px;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.cookie-consent-text p {
+  margin: 0 0 4px;
+  font-size: 0.8rem;
+  color: var(--color-text-secondary);
+  line-height: 1.4;
+}
+
+.cookie-consent-links a {
+  font-size: 0.75rem;
+  color: var(--color-accent);
+  text-decoration: underline;
+}
+
+.cookie-consent-actions {
+  display: flex;
+  gap: var(--space-sm);
+  flex-shrink: 0;
+}
+
+.cookie-btn {
+  padding: 10px 20px;
+  border-radius: var(--radius-sm);
+  border: none;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.cookie-btn--accept {
+  background: var(--color-accent);
+  color: #fff;
+}
+
+.cookie-btn--accept:hover {
+  background: var(--color-accent-hover);
+}
+
+.cookie-btn--refuse {
+  background: var(--color-bg);
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+}
+
+.cookie-btn--refuse:hover {
+  background: var(--color-border);
+}

@@ -1,0 +1,36 @@
+<div class="site-container content-page">
+  <div class="content-page-header">
+    <h1 class="content-page-title">Equipes de football</h1>
+    <p class="content-page-desc">
+      Decouvrez les clubs et equipes couverts par LiveFoot : historique, palmares et actualites.
+    </p>
+  </div>
+  <div class="page-grid">
+    <div class="page-main">
+      <div class="content-grid">
+        @for (t of teams; track t.slug) {
+          <article class="content-card">
+            <h2 class="content-card-title">{{ t.name }}</h2>
+            <p class="content-card-desc">{{ t.description }}</p>
+            <span class="content-card-meta">Mis a jour : {{ t.updatedAt }}</span>
+            <a [routerLink]="'/teams/' + t.slug" class="content-card-link">Voir l'equipe →</a>
+          </article>
+        }
+      </div>
+      <app-seo-faq-section [faqs]="teamsFaqs" />
+    </div>
+    <aside class="page-sidebar">
+      <app-ad-slot variant="sidebar" slot="8567185183" />
+      <div class="sidebar-card">
+        <h3 class="sidebar-card-title">Explorer</h3>
+        <div class="sidebar-links">
+          <a routerLink="/competitions" class="sidebar-link">Competitions</a>
+          <a routerLink="/news" class="sidebar-link">Articles</a>
+          <a routerLink="/guides" class="sidebar-link">Guides</a>
+          <a routerLink="/en-direct" class="sidebar-link">Scores en direct</a>
+        </div>
+      </div>
+      <app-ad-slot variant="sidebar" slot="8567185183" />
+    </aside>
+  </div>
+</div>

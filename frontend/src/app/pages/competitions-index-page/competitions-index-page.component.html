@@ -1,0 +1,38 @@
+<div class="site-container content-page">
+  <div class="content-page-header">
+    <h1 class="content-page-title">Competitions de football</h1>
+    <p class="content-page-desc">
+      Format, enjeux et classements des principales competitions couvertes par LiveFoot.
+    </p>
+  </div>
+  <div class="page-grid">
+    <div class="page-main">
+      <div class="content-grid">
+        @for (c of competitions; track c.slug) {
+          <article class="content-card">
+            <h2 class="content-card-title">{{ c.name }}</h2>
+            <p class="content-card-desc">{{ c.description }}</p>
+            <span class="content-card-meta">Mis a jour : {{ c.updatedAt }}</span>
+            <a [routerLink]="'/competitions/' + c.slug" class="content-card-link"
+              >Voir la competition →</a
+            >
+          </article>
+        }
+      </div>
+      <app-seo-faq-section [faqs]="competitionsFaqs" />
+    </div>
+    <aside class="page-sidebar">
+      <app-ad-slot variant="sidebar" slot="8567185183" />
+      <div class="sidebar-card">
+        <h3 class="sidebar-card-title">Explorer</h3>
+        <div class="sidebar-links">
+          <a routerLink="/teams" class="sidebar-link">Equipes</a>
+          <a routerLink="/news" class="sidebar-link">Articles</a>
+          <a routerLink="/guides" class="sidebar-link">Guides</a>
+          <a routerLink="/en-direct" class="sidebar-link">Scores en direct</a>
+        </div>
+      </div>
+      <app-ad-slot variant="sidebar" slot="8567185183" />
+    </aside>
+  </div>
+</div>

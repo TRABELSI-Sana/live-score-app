@@ -1,0 +1,64 @@
+:host {
+  display: contents;
+}
+
+.ad-slot {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-border-light);
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  position: relative;
+}
+
+.ad-slot--leaderboard {
+  min-height: 90px;
+  max-width: 728px;
+  margin: var(--space-md) auto;
+  width: 100%;
+}
+
+.ad-slot--rectangle {
+  min-height: 250px;
+  width: 300px;
+  max-width: 100%;
+}
+
+.ad-slot--in-feed {
+  min-height: 100px;
+  width: 100%;
+  margin: var(--space-md) 0;
+}
+
+.ad-slot--sidebar {
+  min-height: 250px;
+  width: 100%;
+}
+
+.ad-slot-label {
+  position: absolute;
+  top: 4px;
+  left: 8px;
+  font-size: 0.6rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--color-text-muted);
+  pointer-events: none;
+}
+
+.ad-slot .adsbygoogle {
+  display: block;
+  width: 100%;
+}
+
+@media (max-width: 768px) {
+  .ad-slot--leaderboard {
+    min-height: 50px;
+  }
+}
+
+.adsbygoogle {
+  display: block;
+}

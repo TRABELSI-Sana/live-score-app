@@ -1,0 +1,9 @@
+@import '../../../../styles/editorial-shared.css';
+
+:host {
+  display: contents;
+}
+
+.preview-section {
+  margin-top: var(--space-xl);
+}

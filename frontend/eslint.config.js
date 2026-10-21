@@ -9,6 +9,9 @@ export default tseslint.config(
     files: ['src/**/*.ts'],
     extends: [eslint.configs.recommended, ...tseslint.configs.recommended, ...angular.configs.tsRecommended],
     processor: angular.processInlineTemplates,
+    rules: {
+      '@angular-eslint/component-max-inline-declarations': ['error', { template: 0, styles: 0 }],
+    },
     languageOptions: { globals: globals.browser },
   },
   {

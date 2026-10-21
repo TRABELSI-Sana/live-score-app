@@ -2,10 +2,11 @@ import type { ContentItem } from '../models/content.model';
 
 export const teams: ContentItem[] = [
   {
-    slug: "psg",
-    name: "Paris Saint-Germain",
-    description: "Suivez le PSG en direct : resultats Ligue 1, historique, style de jeu et analyse tactique du Paris Saint-Germain.",
-    updatedAt: "2026-07-07",
+    slug: 'psg',
+    name: 'Paris Saint-Germain',
+    description:
+      'Suivez le PSG en direct : resultats Ligue 1, historique, style de jeu et analyse tactique du Paris Saint-Germain.',
+    updatedAt: '2026-07-07',
     body: `Le Paris Saint-Germain, fonde en 1970, est le club le plus titre du football francais depuis le debut des annees 2010. Base au Parc des Princes (48 000 places) dans le 16e arrondissement de Paris, le PSG evolue en Ligue 1.
 
 ## Palmares et histoire
@@ -25,10 +26,11 @@ Quand vous regardez un match du PSG en direct, observez la capacite de l'equipe 
 Le PSG construit un projet collectif apres l'ere des superstars individuelles. L'accent est mis sur la formation, le collectif et la competitivite europeenne a long terme.`,
   },
   {
-    slug: "om",
-    name: "Olympique de Marseille",
-    description: "Suivez l'OM en direct : resultats Ligue 1, actualite, style de jeu et histoire de l'Olympique de Marseille.",
-    updatedAt: "2026-07-07",
+    slug: 'om',
+    name: 'Olympique de Marseille',
+    description:
+      "Suivez l'OM en direct : resultats Ligue 1, actualite, style de jeu et histoire de l'Olympique de Marseille.",
+    updatedAt: '2026-07-07',
     body: `L'Olympique de Marseille, fonde en 1899, est le club le plus populaire de France. Installe au Stade Velodrome (67 000 places), l'OM est le seul club francais a avoir remporte la Ligue des champions en 1993.
 
 ## Palmares et histoire
@@ -48,10 +50,11 @@ En direct, surveillez l'impact du public sur le pressing marseillais : les perio
 Le Classique PSG-OM est le match le plus suivi du football francais. Les derbys regionaux contre Nice et les confrontations face a Lyon (Olympico) sont egalement des rencontres a haute intensite emotionnelle.`,
   },
   {
-    slug: "ol",
-    name: "Olympique Lyonnais",
-    description: "Suivez l'OL en direct : resultats Ligue 1, 7 titres consecutifs, academie et analyse de l'Olympique Lyonnais.",
-    updatedAt: "2026-07-07",
+    slug: 'ol',
+    name: 'Olympique Lyonnais',
+    description:
+      "Suivez l'OL en direct : resultats Ligue 1, 7 titres consecutifs, academie et analyse de l'Olympique Lyonnais.",
+    updatedAt: '2026-07-07',
     body: `L'Olympique Lyonnais, fonde en 1950, a marque l'histoire du football francais en remportant 7 titres de champion consecutifs entre 2002 et 2008. Le club evolue au Groupama Stadium (59 000 places) a Decines-Charpieu.
 
 ## Palmares et histoire
@@ -71,10 +74,11 @@ Observez la qualite technique des milieux et la capacite de l'OL a ressortir le 
 L'academie de l'OL est consideree comme la meilleure de France. Elle a produit des dizaines d'internationaux et reste un pilier du modele economique du club.`,
   },
   {
-    slug: "lille",
-    name: "LOSC Lille",
-    description: "Suivez le LOSC en direct : resultats Ligue 1, titre 2021, formation et analyse tactique de Lille.",
-    updatedAt: "2026-07-07",
+    slug: 'lille',
+    name: 'LOSC Lille',
+    description:
+      'Suivez le LOSC en direct : resultats Ligue 1, titre 2021, formation et analyse tactique de Lille.',
+    updatedAt: '2026-07-07',
     body: `Le LOSC Lille, fonde en 1944, est base au Stade Pierre-Mauroy (50 000 places) a Villeneuve-d'Ascq. Champion de France en 2021, le club a confirme son statut parmi l'elite du football francais.
 
 ## Palmares et histoire
@@ -94,10 +98,11 @@ En direct, observez le ratio entre possession et occasions creees : le LOSC acce
 Le LOSC est repute pour sa capacite a recruter intelligemment et a revendre avec plus-value (Pepe, Osimhen, David). Ce modele permet au club de rester competitif malgre un budget inferieur aux cadors.`,
   },
   {
-    slug: "monaco",
-    name: "AS Monaco",
-    description: "Suivez l'AS Monaco en direct : resultats Ligue 1, parcours europeen, jeunes talents et style offensif.",
-    updatedAt: "2026-07-07",
+    slug: 'monaco',
+    name: 'AS Monaco',
+    description:
+      "Suivez l'AS Monaco en direct : resultats Ligue 1, parcours europeen, jeunes talents et style offensif.",
+    updatedAt: '2026-07-07',
     body: `L'AS Monaco, fondee en 1924, evolue au Stade Louis-II (18 500 places) dans la Principaute de Monaco. Le club est un pilier historique du football francais avec de nombreux titres de champion.
 
 ## Palmares et histoire
@@ -117,10 +122,11 @@ Surveillez les statistiques offensives : buts par match, tirs par match et xG so
 Le club poursuit son modele base sur le developpement de jeunes joueurs a fort potentiel, recrutes tot et revendus aux plus grands clubs europeens apres 2-3 saisons de progression.`,
   },
   {
-    slug: "rennes",
-    name: "Stade Rennais",
-    description: "Suivez le Stade Rennais en direct : resultats Ligue 1, Coupe de France 2019, formation bretonne et tactique.",
-    updatedAt: "2026-07-07",
+    slug: 'rennes',
+    name: 'Stade Rennais',
+    description:
+      'Suivez le Stade Rennais en direct : resultats Ligue 1, Coupe de France 2019, formation bretonne et tactique.',
+    updatedAt: '2026-07-07',
     body: `Le Stade Rennais, fonde en 1901, evolue au Roazhon Park (29 000 places). Le club breton s'est impose comme un acteur majeur du haut de tableau de la Ligue 1 depuis la fin des annees 2010.
 
 ## Palmares et histoire
@@ -140,10 +146,11 @@ Observez la maitrise technique au milieu et la qualite des circuits de passes. R
 Le centre de formation rennais est parmi les plus reputes de France. Il a revele des joueurs comme Dembele, Camavinga et de nombreux internationaux francais.`,
   },
   {
-    slug: "nice",
-    name: "OGC Nice",
-    description: "Suivez l'OGC Nice en direct : resultats Ligue 1, Allianz Riviera, parcours recent et analyse tactique.",
-    updatedAt: "2026-07-07",
+    slug: 'nice',
+    name: 'OGC Nice',
+    description:
+      "Suivez l'OGC Nice en direct : resultats Ligue 1, Allianz Riviera, parcours recent et analyse tactique.",
+    updatedAt: '2026-07-07',
     body: `L'OGC Nice, fonde en 1904, evolue a l'Allianz Riviera (36 000 places), stade moderne inaugure en 2013. Le club azureen est un habitue du haut de tableau de la Ligue 1 et a retrouve les competitions europeennes ces dernieres annees.
 
 ## Palmares et histoire
@@ -163,10 +170,11 @@ En direct, surveillez la solidite du bloc defensif nicois : peu d'occasions conc
 Le rachat par INEOS en 2019 a apporte une vision a long terme. Le club vise une installation durable dans le top 5 et des parcours europeens reguliers.`,
   },
   {
-    slug: "lens",
-    name: "RC Lens",
-    description: "Suivez le RC Lens en direct : resultats Ligue 1, ambiance Bollaert, montee en puissance et analyse des Sang et Or.",
-    updatedAt: "2026-07-07",
+    slug: 'lens',
+    name: 'RC Lens',
+    description:
+      'Suivez le RC Lens en direct : resultats Ligue 1, ambiance Bollaert, montee en puissance et analyse des Sang et Or.',
+    updatedAt: '2026-07-07',
     body: `Le RC Lens, fonde en 1906, evolue au Stade Bollaert-Delelis (38 000 places) dans le Pas-de-Calais. Le club, porte par un public exceptionnel, s'est reinstalle dans l'elite apres sa remontee en 2020.
 
 ## Palmares et histoire
@@ -186,10 +194,11 @@ Surveillez les kilometres parcourus et les recuperations hautes : ce sont les in
 Le RC Lens incarne le football populaire : un club ancre dans son territoire, porte par la passion de ses supporters et une identite de combat et de solidarite.`,
   },
   {
-    slug: "real-madrid",
-    name: "Real Madrid",
-    description: "Suivez le Real Madrid en direct : resultats Liga, palmares Champions League record et analyse du plus grand club du monde.",
-    updatedAt: "2026-07-07",
+    slug: 'real-madrid',
+    name: 'Real Madrid',
+    description:
+      'Suivez le Real Madrid en direct : resultats Liga, palmares Champions League record et analyse du plus grand club du monde.',
+    updatedAt: '2026-07-07',
     body: `Le Real Madrid, fonde en 1902, est le club le plus titre de l'histoire de la Ligue des champions avec 15 trophees. Base au Santiago Bernabeu (81 000 places, renove en 2023), le club madrilene evolue en Liga espagnole.
 
 ## Palmares et histoire
@@ -209,10 +218,11 @@ En direct, observez la gestion des temps forts : le Real excelle dans l'art de f
 Le Real Madrid poursuit son renouvellement de generation tout en maintenant l'exigence du plus haut niveau. Le nouveau Bernabeu symbolise cette ambition de rester la reference mondiale.`,
   },
   {
-    slug: "barcelona",
-    name: "FC Barcelona",
-    description: "Suivez le FC Barcelone en direct : resultats Liga, tiki-taka, Masia et analyse du Barca au Camp Nou.",
-    updatedAt: "2026-07-07",
+    slug: 'barcelona',
+    name: 'FC Barcelona',
+    description:
+      'Suivez le FC Barcelone en direct : resultats Liga, tiki-taka, Masia et analyse du Barca au Camp Nou.',
+    updatedAt: '2026-07-07',
     body: `Le FC Barcelona, fonde en 1899, est l'un des clubs les plus emblematiques du football mondial. Le club catalan evolue au nouveau Spotify Camp Nou (105 000 places), le plus grand stade d'Europe en cours de renovation.
 
 ## Palmares et histoire
@@ -232,10 +242,11 @@ Surveillez la possession et le nombre de passes dans le dernier tiers : un Barca
 Le centre de formation du Barca a produit certains des meilleurs joueurs de l'histoire : Messi, Xavi, Iniesta, Busquets, Puyol. Cette tradition se poursuit avec de nouveaux talents qui emergent regulierement.`,
   },
   {
-    slug: "atletico-madrid",
-    name: "Atletico de Madrid",
-    description: "Suivez l'Atletico Madrid en direct : resultats Liga, solidite defensive legendaire et analyse du Cholismo.",
-    updatedAt: "2026-07-07",
+    slug: 'atletico-madrid',
+    name: 'Atletico de Madrid',
+    description:
+      "Suivez l'Atletico Madrid en direct : resultats Liga, solidite defensive legendaire et analyse du Cholismo.",
+    updatedAt: '2026-07-07',
     body: `L'Atletico de Madrid, fonde en 1903, evolue au Civitas Metropolitano (68 000 places). Sous la direction de Diego Simeone depuis 2011, le club est devenu l'un des meilleurs au monde grace a une identite defensive unique.
 
 ## Palmares et histoire
@@ -255,10 +266,11 @@ En direct, comptez les occasions concedees (generalement tres peu) et observez l
 "Partido a partido" (match apres match) resume la mentalite de l'Atletico : pas de raccourci, pas de suffisance, une concentration totale sur le prochain adversaire. Cette regularite permet au club de rivaliser avec des budgets bien superieurs.`,
   },
   {
-    slug: "man-city",
-    name: "Manchester City",
-    description: "Suivez Manchester City en direct : resultats Premier League, ere Guardiola, treble 2023 et domination tactique.",
-    updatedAt: "2026-07-07",
+    slug: 'man-city',
+    name: 'Manchester City',
+    description:
+      'Suivez Manchester City en direct : resultats Premier League, ere Guardiola, treble 2023 et domination tactique.',
+    updatedAt: '2026-07-07',
     body: `Manchester City, fonde en 1880, evolue a l'Etihad Stadium (53 000 places). Depuis le rachat par le City Football Group en 2008 et l'arrivee de Pep Guardiola en 2016, le club domine la Premier League.
 
 ## Palmares et histoire
@@ -278,10 +290,11 @@ En direct, observez la rotation des positions et la surcharge d'un cote avant le
 L'influence tactique de Guardiola sur City a redessine les standards de la Premier League. La capacite a gagner en controlant totalement le jeu — plutot qu'en reactions — est la marque distinctive de cette equipe.`,
   },
   {
-    slug: "man-united",
-    name: "Manchester United",
-    description: "Suivez Manchester United en direct : resultats Premier League, histoire d'Old Trafford et reconstruction des Red Devils.",
-    updatedAt: "2026-07-07",
+    slug: 'man-united',
+    name: 'Manchester United',
+    description:
+      "Suivez Manchester United en direct : resultats Premier League, histoire d'Old Trafford et reconstruction des Red Devils.",
+    updatedAt: '2026-07-07',
     body: `Manchester United, fonde en 1878, est l'un des clubs les plus celebres au monde. Base a Old Trafford (74 000 places), surnomme le "Theatre of Dreams", United est le club le plus titre d'Angleterre.
 
 ## Palmares et histoire
@@ -301,10 +314,11 @@ A Old Trafford, surveillez la pression mise sur l'adversaire dans les 20 premier
 Apres le depart de Ferguson, United cherche a retrouver son niveau d'antan. Le club dispose de l'un des budgets les plus importants du football mondial et travaille a batir un projet coherent a long terme.`,
   },
   {
-    slug: "liverpool",
-    name: "Liverpool",
-    description: "Suivez Liverpool en direct : resultats Premier League, 6 Ligue des champions, Anfield et le gegenpressing des Reds.",
-    updatedAt: "2026-07-07",
+    slug: 'liverpool',
+    name: 'Liverpool',
+    description:
+      'Suivez Liverpool en direct : resultats Premier League, 6 Ligue des champions, Anfield et le gegenpressing des Reds.',
+    updatedAt: '2026-07-07',
     body: `Liverpool, fonde en 1892, evolue a Anfield (61 000 places apres agrandissement). Le club est l'un des plus titres d'Europe avec 6 Ligues des champions et une histoire emotionnelle unique dans le football.
 
 ## Palmares et histoire
@@ -324,10 +338,11 @@ En direct, mesurez le PPDA (passes par action defensive) : un Liverpool performa
 L'atmosphere d'Anfield, notamment lors des soirees de Ligue des champions, est consideree comme l'une des plus intenses au monde. Le Kop est le coeur battant du club.`,
   },
   {
-    slug: "arsenal",
-    name: "Arsenal",
-    description: "Suivez Arsenal en direct : resultats Premier League, Emirates Stadium, ere Arteta et retour au sommet des Gunners.",
-    updatedAt: "2026-07-07",
+    slug: 'arsenal',
+    name: 'Arsenal',
+    description:
+      'Suivez Arsenal en direct : resultats Premier League, Emirates Stadium, ere Arteta et retour au sommet des Gunners.',
+    updatedAt: '2026-07-07',
     body: `Arsenal, fonde en 1886, evolue a l'Emirates Stadium (60 000 places) dans le nord de Londres. Le club est l'un des plus constants de l'histoire anglaise avec une presence ininterrompue dans l'elite depuis 1919.
 
 ## Palmares et histoire
@@ -347,10 +362,11 @@ Observez les rotations au milieu et les mouvements des milieux relayeurs dans le
 Le projet Arteta a transforme Arsenal d'un pretendant au top 4 en un candidat au titre, s'appuyant sur un groupe jeune et en constante progression.`,
   },
   {
-    slug: "chelsea",
-    name: "Chelsea",
-    description: "Suivez Chelsea en direct : resultats Premier League, Stamford Bridge, titres europeens et rebuild des Blues.",
-    updatedAt: "2026-07-07",
+    slug: 'chelsea',
+    name: 'Chelsea',
+    description:
+      'Suivez Chelsea en direct : resultats Premier League, Stamford Bridge, titres europeens et rebuild des Blues.',
+    updatedAt: '2026-07-07',
     body: `Chelsea, fonde en 1905, evolue a Stamford Bridge (40 000 places) dans le quartier de Fulham a Londres. Le club a connu une transformation majeure depuis 2003 et l'arrivee de Roman Abramovich, devenant un poids lourd du football europeen.
 
 ## Palmares et histoire
@@ -370,10 +386,11 @@ A Stamford Bridge, surveillez la compacite du bloc et la qualite des transitions
 Le rachat par le consortium Boehly/Clearlake en 2022 a ouvert une nouvelle ere avec des investissements massifs dans l'effectif. Le club travaille a stabiliser un projet coherent sur le long terme.`,
   },
   {
-    slug: "bayern",
-    name: "Bayern Munich",
-    description: "Suivez le Bayern Munich en direct : resultats Bundesliga, domination allemande et 6 Ligues des champions.",
-    updatedAt: "2026-07-07",
+    slug: 'bayern',
+    name: 'Bayern Munich',
+    description:
+      'Suivez le Bayern Munich en direct : resultats Bundesliga, domination allemande et 6 Ligues des champions.',
+    updatedAt: '2026-07-07',
     body: `Le Bayern Munich, fonde en 1900, evolue a l'Allianz Arena (75 000 places). Le club est la reference absolue du football allemand et l'un des clubs les plus puissants au monde.
 
 ## Palmares et histoire
@@ -393,10 +410,11 @@ En direct, observez la superiorite territoriale : le Bayern impose souvent le je
 Le Bayern est repute pour sa gestion financiere saine (pas de dette, actionnariat 51% des membres) tout en restant ultra-competitif. Le club combine tradition, stabilite et excellence sportive.`,
   },
   {
-    slug: "dortmund",
-    name: "Borussia Dortmund",
-    description: "Suivez le Borussia Dortmund en direct : resultats Bundesliga, Mur Jaune, jeunes talents et spectacle au Signal Iduna Park.",
-    updatedAt: "2026-07-07",
+    slug: 'dortmund',
+    name: 'Borussia Dortmund',
+    description:
+      'Suivez le Borussia Dortmund en direct : resultats Bundesliga, Mur Jaune, jeunes talents et spectacle au Signal Iduna Park.',
+    updatedAt: '2026-07-07',
     body: `Le Borussia Dortmund, fonde en 1909, evolue au Signal Iduna Park (81 000 places), le plus grand stade d'Allemagne. Le "Mur Jaune" (Sudtribune, 25 000 debout) est la plus grande tribune debout d'Europe.
 
 ## Palmares et histoire
@@ -416,10 +434,11 @@ Surveillez le nombre de sprints et de courses intensives : le BVB est l'une des 
 Dortmund incarne le football authentique : un club ne dans un bassin ouvrier, porte par 80 000 supporters passionnes, qui privilegie le spectacle et la formation plutot que les depenses illimitees.`,
   },
   {
-    slug: "juventus",
-    name: "Juventus",
-    description: "Suivez la Juventus en direct : resultats Serie A, record de Scudetti, tradition defensive et histoire de la Vieille Dame.",
-    updatedAt: "2026-07-07",
+    slug: 'juventus',
+    name: 'Juventus',
+    description:
+      'Suivez la Juventus en direct : resultats Serie A, record de Scudetti, tradition defensive et histoire de la Vieille Dame.',
+    updatedAt: '2026-07-07',
     body: `La Juventus, fondee en 1897, evolue a l'Allianz Stadium (41 000 places) a Turin. Surnommee la "Vieille Dame", la Juve est le club le plus titre d'Italie avec 36 Scudetti.
 
 ## Palmares et histoire
@@ -439,10 +458,11 @@ En direct, observez la gestion des avantages : la Juve excelle a "tuer" les matc
 La Juventus attire les meilleurs joueurs italiens de chaque generation et reste le club de reference pour les joueurs qui veulent gagner en Serie A. La culture du travail et l'exigence quotidienne definissent l'institution.`,
   },
   {
-    slug: "inter",
-    name: "Inter Milan",
-    description: "Suivez l'Inter Milan en direct : resultats Serie A, triplete 2010, derby della Madonnina et renouveau nerazzurro.",
-    updatedAt: "2026-07-07",
+    slug: 'inter',
+    name: 'Inter Milan',
+    description:
+      "Suivez l'Inter Milan en direct : resultats Serie A, triplete 2010, derby della Madonnina et renouveau nerazzurro.",
+    updatedAt: '2026-07-07',
     body: `L'Inter Milan, fondee en 1908, evolue a San Siro (75 000 places), stade partage avec le rival AC Milan. Le club nerazzurro est l'un des trois seuls clubs italiens a n'avoir jamais ete relegue.
 
 ## Palmares et histoire

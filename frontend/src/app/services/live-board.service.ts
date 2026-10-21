@@ -19,10 +19,7 @@ export class LiveBoardService implements OnDestroy {
   readonly deduped = computed(() => {
     const seen = new Map<string, MatchState>();
     for (const m of this.matchesSignal()) {
-      const key =
-        m.id != null
-          ? String(m.id)
-          : `${m.home?.name}-${m.away?.name}-${m.scheduled}`;
+      const key = m.id != null ? String(m.id) : `${m.home?.name}-${m.away?.name}-${m.scheduled}`;
       seen.set(key, m);
     }
     return Array.from(seen.values());
@@ -50,9 +47,7 @@ export class LiveBoardService implements OnDestroy {
     }
     return Array.from(map.values()).map(({ comp, list }) => ({
       comp,
-      list: list.sort((a, b) =>
-        (a.scheduled ?? '').localeCompare(b.scheduled ?? '')
-      ),
+      list: list.sort((a, b) => (a.scheduled ?? '').localeCompare(b.scheduled ?? '')),
     }));
   });
 
@@ -113,7 +108,9 @@ export class LiveBoardService implements OnDestroy {
             this.revision++;
             this.matchesSignal.set(data);
           }
-        } catch { /* An unavailable browser API must not block the page. */ }
+        } catch {
+          /* An unavailable browser API must not block the page. */
+        }
       });
     });
 

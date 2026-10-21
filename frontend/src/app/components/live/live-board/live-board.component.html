@@ -1,0 +1,49 @@
+<div>
+  <div class="liveboard-tabs">
+    @for (tab of tabs; track tab.key) {
+      <button
+        type="button"
+        [class]="'liveboard-tab' + (activeTab() === tab.key ? ' active' : '')"
+        (click)="activeTab.set(tab.key)"
+      >
+        @if (tab.key === 'live') {
+          <span class="live-dot"></span>
+        }
+        {{ tab.label }}
+        <span class="liveboard-tab-badge">{{ tab.count() }}</span>
+      </button>
+    }
+  </div>
+
+  @if (displayGroups().length === 0) {
+    <div class="liveboard-empty">
+      <h3>
+        @switch (activeTab()) {
+          @case ('live') {
+            Aucun match en cours
+          }
+          @case ('upcoming') {
+            Aucun match a venir
+          }
+          @case ('finished') {
+            Aucun match termine
+          }
+        }
+      </h3>
+      <p>Les matchs apparaitront ici des qu'ils seront disponibles.</p>
+    </div>
+  } @else {
+    <app-competition-group
+      [groups]="displayGroups()"
+      (showRanking)="rankingRef.set($event)"
+      (showLineup)="lineupRef.set($event)"
+    />
+  }
+
+  @if (rankingRef()) {
+    <app-ranking-modal [competition]="rankingRef()!" (dismissed)="rankingRef.set(null)" />
+  }
+  @if (lineupRef()) {
+    <app-lineup-modal [match]="lineupRef()!" (dismissed)="lineupRef.set(null)" />
+  }
+</div>

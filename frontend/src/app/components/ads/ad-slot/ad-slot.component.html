@@ -1,0 +1,12 @@
+@if (consentService.consent() === 'accepted') {
+  <div [class]="'ad-slot ad-slot--' + variant">
+    <span class="ad-slot-label">Publicite</span>
+    <ins
+      class="adsbygoogle"
+      data-ad-client="ca-pub-6754395387524937"
+      [attr.data-ad-slot]="slot"
+      [attr.data-ad-format]="variant === 'in-feed' ? 'fluid' : 'auto'"
+      data-full-width-responsive="true"
+    ></ins>
+  </div>
+}

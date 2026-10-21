@@ -1,0 +1,92 @@
+<section class="assistant-view" aria-labelledby="chat-title">
+  <header class="assistant-view-header">
+    <span class="assistant-kicker">VOTRE ASSISTANT IA</span>
+    <h2 id="chat-title">On en parle ?</h2>
+    <p>Pour comprendre, écrire, coder ou discuter d'un match.</p>
+  </header>
+  <div class="chat-toolbar">
+    <span>Historique de cet onglet</span>
+    <button
+      type="button"
+      (click)="reset()"
+      [disabled]="!messages().length && !loading()"
+      aria-label="Effacer la conversation et commencer une nouvelle discussion"
+    >
+      Nouvelle discussion <span aria-hidden="true">↗</span>
+    </button>
+  </div>
+  <div
+    class="chat-thread"
+    #thread
+    role="log"
+    aria-label="Historique de la conversation"
+    aria-live="polite"
+    aria-relevant="additions"
+  >
+    @if (!messages().length) {
+      <div class="chat-welcome">
+        <span class="chat-welcome-mark" aria-hidden="true">LF<span>✦</span></span>
+        <h3>Qu'est-ce qu'on explore ?</h3>
+        <p>Une idée à clarifier ou une question précise ? Commencez ici.</p>
+        <div class="chat-suggestions">
+          @for (q of suggestions; track q) {
+            <button type="button" (click)="send(q)">
+              {{ q }}<span aria-hidden="true">↗</span>
+            </button>
+          }
+        </div>
+      </div>
+    }
+    @for (message of messages(); track message.id) {
+      <div
+        [class]="
+          'chat-message chat-message--' +
+          message.role +
+          (message.status === 'error' ? ' chat-message--error' : '')
+        "
+      >
+        <span class="chat-message-label">{{ message.role === 'user' ? 'Vous' : 'Assistant' }}</span>
+        <div>{{ message.content }}</div>
+      </div>
+    }
+    @if (loading()) {
+      <div class="chat-typing" role="status">
+        <span></span><span></span><span></span>
+        <span class="sr-only">L'assistant prépare sa réponse.</span>
+      </div>
+    }
+    @if (lastIsError() && !loading()) {
+      <button type="button" class="chat-retry" (click)="retryLast()">
+        Réessayer cette question ↻
+      </button>
+    }
+  </div>
+  <form class="chat-composer" (submit)="onSubmit($event)">
+    <label class="sr-only" for="chat-message">Votre message à l'assistant</label>
+    <textarea
+      id="chat-message"
+      [value]="draft()"
+      (input)="draft.set(asInput($event).value)"
+      maxlength="1000"
+      placeholder="Posez votre question…"
+      rows="2"
+      [disabled]="loading()"
+      (keydown)="onKeyDown($event)"
+    ></textarea>
+    <button type="submit" [disabled]="!draft().trim() || loading()" aria-label="Envoyer le message">
+      <svg
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="1.8"
+        aria-hidden="true"
+      >
+        <path d="m5 12 7-7 7 7M12 5v15" />
+      </svg>
+    </button>
+    <span>{{ draft().length }}/1000</span>
+  </form>
+  <p class="assistant-disclaimer chat-disclaimer">
+    Historique conservé pendant la session. Les réponses IA peuvent être inexactes.
+  </p>
+</section>

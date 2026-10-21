@@ -30,7 +30,9 @@ export class CookieConsentService {
     try {
       const value = localStorage.getItem(CONSENT_KEY);
       if (value === 'accepted' || value === 'refused') return value;
-    } catch { /* An unavailable browser API must not block the page. */ }
+    } catch {
+      /* An unavailable browser API must not block the page. */
+    }
     return null;
   }
 
@@ -38,7 +40,9 @@ export class CookieConsentService {
     try {
       localStorage.setItem(CONSENT_KEY, value);
       localStorage.setItem(CONSENT_DATE_KEY, new Date().toISOString());
-    } catch { /* An unavailable browser API must not block the page. */ }
+    } catch {
+      /* An unavailable browser API must not block the page. */
+    }
   }
 
   private loadAdSenseScript(): void {

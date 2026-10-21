@@ -1,0 +1,31 @@
+<div class="site-container content-page">
+  @if (!team) {
+    <h1 class="content-page-title">Equipe introuvable</h1>
+    <p>La page demandee n'existe pas ou a ete deplacee.</p>
+    <a routerLink="/teams">Voir toutes les equipes →</a>
+  } @else {
+    <div class="content-page-header">
+      <h1 class="content-page-title">{{ team.name }}</h1>
+      <p class="content-page-desc">{{ team.description }}</p>
+      <span class="content-page-meta">Mis a jour : {{ team.updatedAt }}</span>
+    </div>
+    <div class="page-grid">
+      <div class="page-main">
+        <div class="article-body" [innerHTML]="renderedBody"></div>
+        <app-ad-slot variant="in-feed" slot="8567185183" />
+      </div>
+      <aside class="page-sidebar">
+        <app-ad-slot variant="sidebar" slot="8567185183" />
+        <div class="sidebar-card">
+          <h3 class="sidebar-card-title">Equipes</h3>
+          <div class="sidebar-links">
+            <a routerLink="/teams" class="sidebar-link">Toutes les equipes</a>
+            <a routerLink="/competitions" class="sidebar-link">Competitions</a>
+            <a routerLink="/en-direct" class="sidebar-link">Scores en direct</a>
+          </div>
+        </div>
+        <app-ad-slot variant="sidebar" slot="8567185183" />
+      </aside>
+    </div>
+  }
+</div>

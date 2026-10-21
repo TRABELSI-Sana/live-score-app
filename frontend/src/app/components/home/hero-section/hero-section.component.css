@@ -1,0 +1,130 @@
+:host {
+  display: contents;
+}
+
+.hero {
+  background: var(--color-surface);
+  border-radius: var(--radius-xl);
+  border: 1px solid var(--color-border);
+  padding: var(--space-xl) var(--space-lg);
+  margin-bottom: var(--space-lg);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-xl);
+}
+
+.hero-content {
+  flex: 1;
+}
+
+.hero-title {
+  font-size: clamp(1.4rem, 3vw, 1.8rem);
+  font-weight: 800;
+  margin: 0 0 var(--space-sm);
+  color: var(--color-text);
+}
+
+.hero-subtitle {
+  font-size: 0.95rem;
+  color: var(--color-text-secondary);
+  margin: 0 0 var(--space-md);
+  line-height: 1.5;
+}
+
+.hero-stats {
+  display: flex;
+  gap: var(--space-lg);
+}
+
+.hero-stat {
+  text-align: center;
+}
+
+.hero-stat-value {
+  display: block;
+  font-size: 1.8rem;
+  font-weight: 800;
+  color: var(--color-text);
+}
+
+.hero-stat-value--live {
+  color: var(--color-live);
+}
+
+.hero-stat-label {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.hero-featured {
+  background: var(--color-bg);
+  border-radius: var(--radius-lg);
+  padding: var(--space-md) var(--space-lg);
+  min-width: 260px;
+  text-align: center;
+}
+
+.hero-featured-label {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+  letter-spacing: 0.4px;
+  margin-bottom: var(--space-sm);
+}
+
+.hero-featured-teams {
+  font-size: 0.9rem;
+  font-weight: 600;
+  margin-bottom: var(--space-xs);
+}
+
+.hero-featured-score {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: var(--color-live);
+}
+
+.hero-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: var(--space-md);
+  padding: 10px 20px;
+  background: var(--color-accent);
+  color: #fff;
+  border-radius: var(--radius-full);
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition: background 0.2s;
+}
+
+.hero-cta:hover {
+  background: var(--color-accent-hover);
+  text-decoration: none;
+}
+
+@media (max-width: 1024px) {
+  .hero {
+    flex-direction: column;
+    text-align: center;
+  }
+
+  .hero-stats {
+    justify-content: center;
+  }
+
+  .hero-featured {
+    min-width: auto;
+    width: 100%;
+  }
+}
+
+@media (max-width: 768px) {
+  .hero-stats {
+    flex-wrap: wrap;
+  }
+}

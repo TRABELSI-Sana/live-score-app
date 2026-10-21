@@ -2,13 +2,12 @@ import type { Guide } from '../models/content.model';
 
 export const guides: Guide[] = [
   {
-    slug: "comment-lire-un-score-en-direct",
-    title: "Comment lire un score en direct (et éviter les pièges)",
+    slug: 'comment-lire-un-score-en-direct',
+    title: 'Comment lire un score en direct (et éviter les pièges)',
     description:
-      "Différences entre score, statut, temps de jeu, prolongations, tirs au but et corrections après VAR.",
-    updatedAt: "2026-03-04",
-    body:
-      `Un score “en direct” n’est pas seulement un chiffre. Pour le comprendre correctement, il faut lire trois éléments en même temps : le score, le statut du match, et le temps de jeu.
+      'Différences entre score, statut, temps de jeu, prolongations, tirs au but et corrections après VAR.',
+    updatedAt: '2026-03-04',
+    body: `Un score “en direct” n’est pas seulement un chiffre. Pour le comprendre correctement, il faut lire trois éléments en même temps : le score, le statut du match, et le temps de jeu.
 
 1) Score : c’est le résultat à l’instant T. En football, le score peut être corrigé (but refusé, erreur de feuille de match, mise à jour du fournisseur).
 
@@ -24,13 +23,12 @@ Conseil pratique : pour juger un match, regarde le trio score/statut/minute. Un 
 `,
   },
   {
-    slug: "classement-foot-calcul",
-    title: "Classement : points, différence de buts, confrontations",
+    slug: 'classement-foot-calcul',
+    title: 'Classement : points, différence de buts, confrontations',
     description:
-      "Comment sont départagées les équipes : points, goal-average, confrontations directes selon les compétitions.",
-    updatedAt: "2026-03-04",
-    body:
-      `Le classement d’un championnat ne dépend pas que des points. Les règles de départage peuvent changer selon la ligue.
+      'Comment sont départagées les équipes : points, goal-average, confrontations directes selon les compétitions.',
+    updatedAt: '2026-03-04',
+    body: `Le classement d’un championnat ne dépend pas que des points. Les règles de départage peuvent changer selon la ligue.
 
 Base la plus fréquente :
 - Victoire = 3 points, nul = 1 point, défaite = 0 point.
@@ -50,13 +48,12 @@ Bon réflexe : quand deux équipes sont à égalité, lis les colonnes “Diff�
 `,
   },
   {
-    slug: "statuts-match-not-started-in-play-finished",
-    title: "Tous les statuts de match expliqués (NS, HT, FT, AET, PEN…)",
+    slug: 'statuts-match-not-started-in-play-finished',
+    title: 'Tous les statuts de match expliqués (NS, HT, FT, AET, PEN…)',
     description:
-      "Glossaire des statuts les plus fréquents et comment les interpréter pendant un live.",
-    updatedAt: "2026-03-04",
-    body:
-      `Les flux live utilisent des abréviations. Voici les plus utiles :
+      'Glossaire des statuts les plus fréquents et comment les interpréter pendant un live.',
+    updatedAt: '2026-03-04',
+    body: `Les flux live utilisent des abréviations. Voici les plus utiles :
 
 - NS (Not Started) : match pas commencé.
 - 1H / 2H : première/deuxième mi-temps.
@@ -75,13 +72,11 @@ Pour une expérience fiable : lis toujours le statut + le score. Un match “SUS
 `,
   },
   {
-    slug: "cartons-penalty-hors-jeu-evenements",
-    title: "Cartons, penalty, hors-jeu : comprendre les événements minute par minute",
-    description:
-      "Décrypter les événements (⚽️, 🟨, 🟥) et leur impact réel sur le match.",
-    updatedAt: "2026-03-04",
-    body:
-      `Le minute par minute sert à raconter le match. Les événements les plus utiles :
+    slug: 'cartons-penalty-hors-jeu-evenements',
+    title: 'Cartons, penalty, hors-jeu : comprendre les événements minute par minute',
+    description: 'Décrypter les événements (⚽️, 🟨, 🟥) et leur impact réel sur le match.',
+    updatedAt: '2026-03-04',
+    body: `Le minute par minute sert à raconter le match. Les événements les plus utiles :
 
 ⚽️ But : peut être normal, sur penalty, ou contre son camp. Un but peut aussi être refusé (VAR, hors-jeu, faute).
 
@@ -97,13 +92,12 @@ Pourquoi tu peux voir des doublons : les fournisseurs live publient parfois un b
 `,
   },
   {
-    slug: "sources-donnees-live-limites",
-    title: "Données live : fiabilité, latence, limites (et pourquoi ça bouge)",
+    slug: 'sources-donnees-live-limites',
+    title: 'Données live : fiabilité, latence, limites (et pourquoi ça bouge)',
     description:
-      "Pourquoi les scores peuvent changer, pourquoi il y a de la latence, et comment interpréter une mise à jour.",
-    updatedAt: "2026-03-04",
-    body:
-      `Un site de scores dépend d’une chaîne : stade → opérateur → fournisseur de données → API → ton écran. Chaque maillon ajoute de la latence.
+      'Pourquoi les scores peuvent changer, pourquoi il y a de la latence, et comment interpréter une mise à jour.',
+    updatedAt: '2026-03-04',
+    body: `Un site de scores dépend d’une chaîne : stade → opérateur → fournisseur de données → API → ton écran. Chaque maillon ajoute de la latence.
 
 Latence typique : quelques secondes à 1 minute selon la compétition, le fournisseur, et la charge.
 
@@ -119,13 +113,12 @@ Bon usage : utilise le live pour suivre, pas comme une preuve officielle. Pour d
 `,
   },
   {
-    slug: "guide-ligue1-liguedeschampions-coupes",
-    title: "Championnats vs coupes : ce qui change (prolongations, tab, règles)",
+    slug: 'guide-ligue1-liguedeschampions-coupes',
+    title: 'Championnats vs coupes : ce qui change (prolongations, tab, règles)',
     description:
-      "Différences de format entre ligues et coupes, et comment lire un résultat final dans chaque cas.",
-    updatedAt: "2026-03-04",
-    body:
-      `En championnat, un match nul est possible et le score final suffit presque toujours.
+      'Différences de format entre ligues et coupes, et comment lire un résultat final dans chaque cas.',
+    updatedAt: '2026-03-04',
+    body: `En championnat, un match nul est possible et le score final suffit presque toujours.
 
 En coupe, l’objectif est souvent de départager les équipes :
 - Match aller/retour : le score cumulé (aggregate) compte.
@@ -144,13 +137,11 @@ Conseil : quand tu suis une coupe, regarde toujours si le match est un retour et
 `,
   },
   {
-    slug: "seo-contenu-editorial-pour-un-site-de-scores",
-    title: "Créer du contenu éditorial utile autour des scores (sans copier les autres)",
-    description:
-      "Idées d’articles evergreen et de pages “valeur ajoutée” pour un site de scores.",
-    updatedAt: "2026-03-04",
-    body:
-      `Pour qu’un site de scores soit perçu comme un média (et pas comme un simple miroir d’API), il faut de la valeur ajoutée.
+    slug: 'seo-contenu-editorial-pour-un-site-de-scores',
+    title: 'Créer du contenu éditorial utile autour des scores (sans copier les autres)',
+    description: 'Idées d’articles evergreen et de pages “valeur ajoutée” pour un site de scores.',
+    updatedAt: '2026-03-04',
+    body: `Pour qu’un site de scores soit perçu comme un média (et pas comme un simple miroir d’API), il faut de la valeur ajoutée.
 
 Idées “evergreen” (ne dépendent pas d’un match précis) :
 - Guides : lire un score, comprendre un classement, statuts, règles des coupes.
@@ -170,13 +161,11 @@ Objectif : que chaque page ait une raison d’exister, même si l’utilisateur 
 `,
   },
   {
-    slug: "faq-livefoot",
-    title: "FAQ : questions fréquentes sur les scores en direct",
-    description:
-      "Réponses courtes et claires aux questions qu’on se pose pendant un live.",
-    updatedAt: "2026-03-04",
-    body:
-      `Pourquoi le score a changé ? → But refusé, correction fournisseur, ou mise à jour tardive.
+    slug: 'faq-livefoot',
+    title: 'FAQ : questions fréquentes sur les scores en direct',
+    description: 'Réponses courtes et claires aux questions qu’on se pose pendant un live.',
+    updatedAt: '2026-03-04',
+    body: `Pourquoi le score a changé ? → But refusé, correction fournisseur, ou mise à jour tardive.
 
 Pourquoi je vois 49’ puis 50’ pour le même but ? → Bruit de flux ; l’événement est re-publié.
 

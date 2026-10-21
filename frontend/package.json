@@ -10,7 +10,9 @@
     "lint": "eslint .",
     "watch": "ng build --watch --configuration development",
     "preview": "node scripts/preview.mjs",
-    "test:smoke": "node scripts/verify.mjs"
+    "test:smoke": "node scripts/verify.mjs",
+    "format": "prettier --write \"src/**/*.{ts,html,css}\"",
+    "format:check": "prettier --check \"src/**/*.{ts,html,css}\""
   },
   "dependencies": {
     "@angular/common": "22.2.3",
@@ -27,13 +29,14 @@
     "@angular/build": "22.2.3",
     "@angular/cli": "22.2.3",
     "@angular/compiler-cli": "22.2.3",
-    "typescript": "~6.0.0",
-    "puppeteer": "^25.3.0",
-    "eslint": "^9.39.1",
     "@eslint/js": "^9.39.1",
-    "typescript-eslint": "^8.46.4",
     "angular-eslint": "^22.6.0",
-    "globals": "^16.5.0"
+    "eslint": "^9.39.1",
+    "globals": "^16.5.0",
+    "prettier": "^3.9.10",
+    "puppeteer": "^25.3.0",
+    "typescript": "~6.0.0",
+    "typescript-eslint": "^8.46.4"
   },
   "type": "module",
   "engines": {

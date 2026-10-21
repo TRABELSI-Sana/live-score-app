@@ -1,9 +1,9 @@
 import { Component, inject, OnInit } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
-import { NavbarComponent } from './navbar.component';
-import { FooterComponent } from './footer.component';
-import { AdSlotComponent } from '../ads/ad-slot.component';
-import { CookieConsentComponent } from '../cookie-consent.component';
+import { NavbarComponent } from './navbar/navbar.component';
+import { FooterComponent } from './footer/footer.component';
+import { AdSlotComponent } from '../ads/ad-slot/ad-slot.component';
+import { CookieConsentComponent } from '../cookie-consent/cookie-consent.component';
 import { CookieConsentService } from '../../services/cookie-consent.service';
 
 @Component({
@@ -16,18 +16,8 @@ import { CookieConsentService } from '../../services/cookie-consent.service';
     AdSlotComponent,
     CookieConsentComponent,
   ],
-  template: `
-    <div class="site-wrapper">
-      <app-navbar />
-      <app-ad-slot variant="leaderboard" slot="8567185183" />
-      <main>
-        <router-outlet />
-      </main>
-      <app-ad-slot variant="leaderboard" slot="8567185183" />
-      <app-footer />
-      <app-cookie-consent />
-    </div>
-  `,
+  templateUrl: './layout.component.html',
+  styleUrl: './layout.component.css',
 })
 export class LayoutComponent implements OnInit {
   private cookieService = inject(CookieConsentService);

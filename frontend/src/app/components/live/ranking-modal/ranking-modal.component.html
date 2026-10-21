@@ -1,0 +1,49 @@
+<div class="modal-backdrop" (click)="dismissed.emit()" role="dialog" aria-modal="true">
+  <div class="modal-content modal-content--md" (click)="$event.stopPropagation()">
+    <button type="button" class="modal-close" aria-label="Fermer" (click)="dismissed.emit()">
+      &times;
+    </button>
+    <div class="modal-title">
+      {{
+        competition.name
+          ? 'Classement — ' +
+            competition.name +
+            (groupName() ? ' (Groupe ' + groupName() + ')' : '')
+          : 'Classement'
+      }}
+    </div>
+    @if (displayStatus === 'loading') {
+      <div class="modal-status">Chargement...</div>
+    }
+    @if (displayStatus === 'error') {
+      <div class="modal-status modal-status--error">Classement indisponible.</div>
+    }
+    @if (displayStatus === 'idle' && rows().length > 0) {
+      <table class="ranking-table">
+        <thead>
+          <tr>
+            <th>Rg</th>
+            <th>Equipe</th>
+            <th>Pts</th>
+            <th>J.</th>
+            <th>Diff</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (row of rows(); track $index) {
+            <tr>
+              <td>{{ row.rank }}</td>
+              <td>{{ row.team }}</td>
+              <td>{{ row.points }}</td>
+              <td>{{ row.played }}</td>
+              <td>{{ row.diff }}</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    }
+    @if (displayStatus === 'idle' && rows().length === 0) {
+      <div class="modal-status">Aucune donnee de classement.</div>
+    }
+  </div>
+</div>

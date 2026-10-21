@@ -1,0 +1,132 @@
+@import '../../../../styles/assistant-shared.css';
+
+:host {
+  display: contents;
+}
+
+.insights-body {
+  padding: 17px;
+}
+
+.insights-suggestions {
+  display: grid;
+  gap: 7px;
+  margin-bottom: 20px;
+}
+
+.insights-suggestions button {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  padding: 11px;
+  border: 1px solid #e1eae4;
+  border-radius: 9px;
+  color: #446a53;
+  background: #f8faf8;
+  font-size: 11px;
+  line-height: 1.6;
+  cursor: pointer;
+  text-align: left;
+}
+
+.insights-suggestions button:hover {
+  background: #edf6f0;
+  border-color: #b5cebd;
+}
+
+.insights-body form {
+  display: grid;
+  gap: 8px;
+}
+
+.insights-body label {
+  font-size: 11px;
+  font-weight: 650;
+  color: #4a6555;
+}
+
+.insights-body select {
+  width: 100%;
+  min-width: 0;
+  padding: 10px;
+  border: 1px solid #dbe5de;
+  border-radius: 8px;
+  font: inherit;
+  font-size: 12px;
+  background: #fff;
+  color: #2b4234;
+}
+
+.insights-body textarea {
+  width: 100%;
+  min-width: 0;
+  padding: 10px;
+  border: 1px solid #dbe5de;
+  border-radius: 8px;
+  font: inherit;
+  font-size: 12px;
+  background: #fff;
+  color: #2b4234;
+}
+
+.insights-body textarea {
+  resize: vertical;
+  line-height: 1.65;
+  min-height: 90px;
+}
+
+.insights-body label:not(:first-child) {
+  margin-top: 7px;
+}
+
+.insights-pending {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 20px 0;
+  font-size: 12px;
+  color: #607e6c;
+}
+
+.insights-answer {
+  margin-top: 18px;
+  padding: 14px;
+  background: #f0f7f2;
+  border: 1px solid #dfebe3;
+  border-radius: 12px;
+}
+
+.insights-answer p {
+  font-size: 12px;
+  line-height: 1.8;
+  color: #365d45;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.insights-answer-question {
+  font-size: 11px !important;
+  font-weight: 650;
+}
+
+.insights-answer--notice {
+  background: #faf8f0;
+  border-color: #e8e2cd;
+}
+
+.insights-answer button {
+  padding: 7px 0;
+  border: 0;
+  background: transparent;
+  color: #377f5b;
+  font-size: 11px;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+@media (max-width: 1024px) {
+  .insights-body textarea {
+    font-size: 16px;
+  }
+}

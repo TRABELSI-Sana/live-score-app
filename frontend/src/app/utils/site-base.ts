@@ -1,8 +1,8 @@
-const BASE_ONLINE = "https://livefoot.online";
-const BASE_TN = "https://livefoot.tn";
+const BASE_ONLINE = 'https://livefoot.online';
+const BASE_TN = 'https://livefoot.tn';
 
 export function getSiteBase() {
-  if (typeof window !== "undefined" && window.location.hostname.endsWith(".tn")) {
+  if (typeof window !== 'undefined' && window.location.hostname.endsWith('.tn')) {
     return BASE_TN;
   }
   return BASE_ONLINE;

@@ -2,10 +2,11 @@ import type { ContentItem } from '../models/content.model';
 
 export const articles: ContentItem[] = [
   {
-    slug: "comment-lire-un-classement",
-    title: "Comprendre un classement : points, difference de buts, matchs joues",
-    description: "Comment lire un classement de football : systeme de points, difference de buts, criteres de departage et regles specifiques par competition.",
-    updatedAt: "2026-07-07",
+    slug: 'comment-lire-un-classement',
+    title: 'Comprendre un classement : points, difference de buts, matchs joues',
+    description:
+      'Comment lire un classement de football : systeme de points, difference de buts, criteres de departage et regles specifiques par competition.',
+    updatedAt: '2026-07-07',
     body: `## Comment fonctionne un classement de football
 
 Un classement de championnat repose sur un systeme de points : 3 points pour une victoire, 1 pour un nul, 0 pour une defaite. Ce systeme, adopte par la FIFA en 1994, remplace l'ancien bareme (2 points par victoire) et favorise le jeu offensif.
@@ -30,10 +31,11 @@ En fin de saison, un seul but peut faire basculer une place au classement. Quand
 Sur LiveFoot, consultez les colonnes "Diff" (difference de buts) et "BP" (buts pour) pour anticiper les scenarios de fin de journee. En cas d'egalite parfaite, les regles de la competition tranchent — verifiez toujours le reglement specifique.`,
   },
   {
-    slug: "regles-hors-jeu",
-    title: "Les regles du hors-jeu : explication simple et cas limites",
-    description: "Comprendre la regle du hors-jeu en football : position, moment de la passe, exceptions et impact de la VAR sur les decisions.",
-    updatedAt: "2026-07-07",
+    slug: 'regles-hors-jeu',
+    title: 'Les regles du hors-jeu : explication simple et cas limites',
+    description:
+      'Comprendre la regle du hors-jeu en football : position, moment de la passe, exceptions et impact de la VAR sur les decisions.',
+    updatedAt: '2026-07-07',
     body: `## La regle du hors-jeu expliquee simplement
 
 Un joueur est en position de hors-jeu si, au moment ou le ballon est joue par un coequipier, il se trouve plus pres de la ligne de but adverse que le ballon ET l'avant-dernier defenseur (gardien inclus). Etre en position de hors-jeu n'est pas une infraction en soi — il faut participer activement au jeu.
@@ -62,10 +64,11 @@ Depuis l'introduction de la VAR, les decisions de hors-jeu sont verifiees au mil
 Le cas le plus debattu : un joueur en position de hors-jeu qui ne touche pas le ballon mais qui, par sa presence, influence le gardien. La decision reste subjective et depend de l'interpretation de l'arbitre, meme avec la VAR.`,
   },
   {
-    slug: "tactique-433",
+    slug: 'tactique-433',
     title: "Le 4-3-3 : formation, variantes et equipes qui l'utilisent",
-    description: "Analyse du systeme 4-3-3 en football : roles des joueurs, variantes offensives et defensives, forces et faiblesses tactiques.",
-    updatedAt: "2026-07-07",
+    description:
+      'Analyse du systeme 4-3-3 en football : roles des joueurs, variantes offensives et defensives, forces et faiblesses tactiques.',
+    updatedAt: '2026-07-07',
     body: `## Qu'est-ce que le 4-3-3 ?
 
 Le 4-3-3 est l'une des formations les plus utilisees dans le football moderne. Elle aligne 4 defenseurs, 3 milieux et 3 attaquants. Sa popularite vient de son equilibre entre solidite defensive et potentiel offensif.
@@ -97,10 +100,11 @@ Le 4-3-3 se decline en plusieurs versions :
 Le FC Barcelone de 2008-2012, Liverpool de Klopp et Manchester City de Guardiola ont popularise differentes variantes du 4-3-3. En suivant ces equipes en direct, observez comment le triangle du milieu s'adapte selon les phases de jeu.`,
   },
   {
-    slug: "tactique-352",
+    slug: 'tactique-352',
     title: "Le 3-5-2 : systeme a trois defenseurs, pistons et paires d'attaquants",
-    description: "Analyse du systeme 3-5-2 : role des pistons, charniere a trois, avantages en possession et vulnerabilites sur les cotes.",
-    updatedAt: "2026-07-07",
+    description:
+      'Analyse du systeme 3-5-2 : role des pistons, charniere a trois, avantages en possession et vulnerabilites sur les cotes.',
+    updatedAt: '2026-07-07',
     body: `## Qu'est-ce que le 3-5-2 ?
 
 Le 3-5-2 aligne 3 defenseurs centraux, 5 milieux (dont 2 pistons lateraux) et 2 attaquants. C'est un systeme qui offre une superiorite numerique au milieu et en attaque, au prix d'une exposition sur les cotes.
@@ -134,10 +138,11 @@ Quand une equipe joue en 3-5-2, surveillez la hauteur des pistons. S'ils sont ha
 L'Inter Milan de Conte (2020-2021), l'Atalanta et la selection italienne ont montre l'efficacite du 3-5-2 au plus haut niveau.`,
   },
   {
-    slug: "pressing-football",
-    title: "Le pressing : types, declencheurs et impact sur le score",
-    description: "Comprendre le pressing en football : pressing haut, moyen, bas, gegenpressing, et comment il influence le deroulement d'un match.",
-    updatedAt: "2026-07-07",
+    slug: 'pressing-football',
+    title: 'Le pressing : types, declencheurs et impact sur le score',
+    description:
+      "Comprendre le pressing en football : pressing haut, moyen, bas, gegenpressing, et comment il influence le deroulement d'un match.",
+    updatedAt: '2026-07-07',
     body: `## Qu'est-ce que le pressing ?
 
 Le pressing est l'action collective de recuperer le ballon le plus rapidement possible apres l'avoir perdu, ou d'empecher l'adversaire de construire. C'est devenu l'element tactique le plus important du football moderne.
@@ -177,10 +182,11 @@ Un pressing efficace se mesure au PPDA (passes adverses par action defensive). U
 Le pressing haut est extremement couteux physiquement. Les equipes ne peuvent generalement le maintenir que 60-70 minutes. Les buts concedes en fin de match indiquent souvent un pressing qui s'effondre avec la fatigue.`,
   },
   {
-    slug: "xg-statistiques",
-    title: "Les expected goals (xG) : comprendre la statistique reine du football",
-    description: "Qu'est-ce que le xG en football ? Comment les expected goals mesurent la qualite des occasions et predisent les resultats futurs.",
-    updatedAt: "2026-07-07",
+    slug: 'xg-statistiques',
+    title: 'Les expected goals (xG) : comprendre la statistique reine du football',
+    description:
+      "Qu'est-ce que le xG en football ? Comment les expected goals mesurent la qualite des occasions et predisent les resultats futurs.",
+    updatedAt: '2026-07-07',
     body: `## Qu'est-ce que le xG (expected goals) ?
 
 Le xG mesure la probabilite qu'un tir se transforme en but, en se basant sur des milliers de situations similaires dans l'histoire. Un tir a 0.75 xG signifie que, dans des conditions identiques, ce tir est converti 75% du temps.
@@ -213,10 +219,11 @@ Le xG ne prend pas en compte :
 Sur 1 match, le xG peut tromper. Sur 10 matchs, une equipe qui surperforme son xG (marque plus que prevu) va generalement regresser vers sa moyenne. C'est un excellent outil pour distinguer la chance de la qualite reelle.`,
   },
   {
-    slug: "cartons-discipline",
-    title: "Cartons jaunes et rouges : regles, accumulation et impact tactique",
-    description: "Tout sur les cartons en football : motifs, accumulation, suspensions automatiques et comment la discipline influence les resultats.",
-    updatedAt: "2026-07-07",
+    slug: 'cartons-discipline',
+    title: 'Cartons jaunes et rouges : regles, accumulation et impact tactique',
+    description:
+      'Tout sur les cartons en football : motifs, accumulation, suspensions automatiques et comment la discipline influence les resultats.',
+    updatedAt: '2026-07-07',
     body: `## Les regles des cartons
 
 ### Carton jaune (avertissement)
@@ -250,10 +257,11 @@ Surveillez les cartons en debut de match : ils contraignent le plan tactique pou
 Les equipes les plus disciplinees (moins de cartons) sont generalement mieux classees. La correlation n'est pas parfaite mais elle existe : moins de fautes = plus de possession = plus de controle du match.`,
   },
   {
-    slug: "phases-arretees",
-    title: "Coups de pied arretes : corners, coups francs et penalties",
-    description: "L'importance des phases arretees en football : statistiques, strategies sur corners et coups francs, et taux de conversion des penalties.",
-    updatedAt: "2026-07-07",
+    slug: 'phases-arretees',
+    title: 'Coups de pied arretes : corners, coups francs et penalties',
+    description:
+      "L'importance des phases arretees en football : statistiques, strategies sur corners et coups francs, et taux de conversion des penalties.",
+    updatedAt: '2026-07-07',
     body: `## Pourquoi les phases arretees sont decisives
 
 Environ 30% des buts en football proviennent de situations arretees (corners, coups francs, penalties). Dans les matchs serres et les phases finales de competition, ce pourcentage monte encore. C'est souvent la difference entre gagner et faire nul.
@@ -284,10 +292,11 @@ Environ 30% des buts en football proviennent de situations arretees (corners, co
 Quand vous voyez un coup franc ou un corner sur LiveFoot, sachez que c'est une occasion reelle. Les equipes qui dominent les phases arretees (corners obtenus, coups francs dans les 30 metres) ont un avantage statistique mesurable, surtout contre des equipes qui defendent bas.`,
   },
   {
-    slug: "suivre-match-en-direct",
-    title: "Comment suivre un match en direct sans le regarder",
-    description: "Guide pour comprendre un match de football a travers les scores en direct, les evenements et les statistiques temps reel.",
-    updatedAt: "2026-07-07",
+    slug: 'suivre-match-en-direct',
+    title: 'Comment suivre un match en direct sans le regarder',
+    description:
+      'Guide pour comprendre un match de football a travers les scores en direct, les evenements et les statistiques temps reel.',
+    updatedAt: '2026-07-07',
     body: `## Au-dela du score : comprendre un match a distance
 
 Suivre un match en direct via un site de scores, c'est lire une histoire en accelere. Le score seul ne raconte qu'une partie. Voici comment tirer le maximum d'information sans voir les images.
@@ -319,10 +328,11 @@ Par ordre d'importance :
 Combinez la timeline des evenements avec les indicateurs de statut du match. Un 0-0 a la 80e avec 15 tirs d'un cote est tres different d'un 0-0 sans occasions. Les statistiques contextualisent le score et vous permettent d'anticiper la suite.`,
   },
   {
-    slug: "lire-compositions",
+    slug: 'lire-compositions',
     title: "Compositions d'equipe : ce qu'elles revelent avant le coup d'envoi",
-    description: "Comment analyser une composition d'equipe : systeme tactique, choix de l'entraineur, rotation et indices sur le plan de jeu.",
-    updatedAt: "2026-07-07",
+    description:
+      "Comment analyser une composition d'equipe : systeme tactique, choix de l'entraineur, rotation et indices sur le plan de jeu.",
+    updatedAt: '2026-07-07',
     body: `## Pourquoi les compositions sont une mine d'information
 
 Les compositions sont annoncees environ 1 heure avant le match. En les analysant, vous pouvez anticiper le plan de jeu, les rapports de force et meme le niveau d'engagement d'une equipe (titulaires ou rotation).
@@ -357,10 +367,11 @@ Une composition qui "tourne" en championnat apres un gros match de coupe = l'ent
 Consultez les compositions des que disponibles pour contextualiser le match avant meme le coup d'envoi. C'est l'information la plus sous-estimee du football en direct.`,
   },
   {
-    slug: "transitions",
-    title: "Transitions offensives et defensives : la cle du football moderne",
-    description: "Comment les transitions (attaque rapide apres recuperation) determinent le resultat des matchs et pourquoi elles sont devenues centrales.",
-    updatedAt: "2026-07-07",
+    slug: 'transitions',
+    title: 'Transitions offensives et defensives : la cle du football moderne',
+    description:
+      'Comment les transitions (attaque rapide apres recuperation) determinent le resultat des matchs et pourquoi elles sont devenues centrales.',
+    updatedAt: '2026-07-07',
     body: `## Qu'est-ce qu'une transition ?
 
 Une transition est le moment ou une equipe passe de la phase defensive a la phase offensive (transition offensive) ou inversement (transition defensive). Ces 3 a 5 secondes de bascule sont devenues le moment le plus decisif du football moderne.
@@ -397,10 +408,11 @@ Les buts en transition sont souvent les plus spectaculaires et les plus difficil
 Les equipes les plus dangereuses en transition ne sont pas forcement celles qui ont la possession — c'est meme souvent l'inverse.`,
   },
   {
-    slug: "derby",
-    title: "Les derbys : rivalites, histoire et enjeux au-dela du score",
-    description: "Comprendre les derbys en football : origines des rivalites, impact sur le classement et pourquoi les statistiques habituelles ne s'appliquent pas.",
-    updatedAt: "2026-07-07",
+    slug: 'derby',
+    title: 'Les derbys : rivalites, histoire et enjeux au-dela du score',
+    description:
+      "Comprendre les derbys en football : origines des rivalites, impact sur le classement et pourquoi les statistiques habituelles ne s'appliquent pas.",
+    updatedAt: '2026-07-07',
     body: `## Qu'est-ce qu'un derby ?
 
 Un derby est un match entre deux equipes rivales, generalement de la meme ville ou region. L'intensite emotionnelle depasse le cadre sportif : identite locale, histoire, classes sociales et passion des supporters s'y melent.
@@ -434,10 +446,11 @@ Dans un derby, les formes recentes comptent moins. Une equipe 15e au classement 
 Les derbys produisent statistiquement plus de nuls que les matchs classiques. La peur de perdre prend souvent le dessus sur l'envie de gagner, ce qui donne des matchs fermes et tendus.`,
   },
   {
-    slug: "calendrier-fatigue",
+    slug: 'calendrier-fatigue',
     title: "Calendrier et fatigue : pourquoi l'encainement des matchs change tout",
-    description: "L'impact du calendrier sur les performances en football : rotation, fatigue, matchs tous les 3 jours et gestion de l'effectif.",
-    updatedAt: "2026-07-07",
+    description:
+      "L'impact du calendrier sur les performances en football : rotation, fatigue, matchs tous les 3 jours et gestion de l'effectif.",
+    updatedAt: '2026-07-07',
     body: `## Le probleme du calendrier moderne
 
 Les clubs de haut niveau jouent 50 a 70 matchs par saison. Avec la nouvelle Ligue des champions elargie, les selections nationales et les coupes domestiques, certains joueurs depassent 60 matchs. La fatigue est devenue un facteur tactique a part entiere.
@@ -470,10 +483,11 @@ Signes de fatigue dans un match en direct :
 Avant un match, verifiez le calendrier recent de l'equipe. Une equipe qui a joue mercredi en coupe d'Europe puis samedi en championnat est statistiquement moins performante que son adversaire qui a eu une semaine complete de preparation.`,
   },
   {
-    slug: "mercato",
-    title: "Le mercato : fenetres de transferts, regles et impact sportif",
-    description: "Guide du mercato en football : periodes de transferts, regles FIFA, prets, clauses liberatoires et impact des arrivees sur les resultats.",
-    updatedAt: "2026-07-07",
+    slug: 'mercato',
+    title: 'Le mercato : fenetres de transferts, regles et impact sportif',
+    description:
+      'Guide du mercato en football : periodes de transferts, regles FIFA, prets, clauses liberatoires et impact des arrivees sur les resultats.',
+    updatedAt: '2026-07-07',
     body: `## Les fenetres de transfert
 
 Deux periodes de transferts existent chaque saison :
@@ -508,10 +522,11 @@ Les nouvelles recrues mettent generalement 4 a 8 semaines pour s'integrer. En de
 Un club qui recrute beaucoup en janvier est generalement en difficulte. A l'inverse, un club stable qui ne bouge pas est souvent satisfait de son effectif — signe de confiance.`,
   },
   {
-    slug: "jeunes-talents",
-    title: "Jeunes talents : comment reperer les futurs grands joueurs",
-    description: "Criteres pour identifier les jeunes talents du football : statistiques precoces, academies de reference et parcours types vers le haut niveau.",
-    updatedAt: "2026-07-07",
+    slug: 'jeunes-talents',
+    title: 'Jeunes talents : comment reperer les futurs grands joueurs',
+    description:
+      'Criteres pour identifier les jeunes talents du football : statistiques precoces, academies de reference et parcours types vers le haut niveau.',
+    updatedAt: '2026-07-07',
     body: `## Les indicateurs d'un jeune talent
 
 Reperer un futur grand joueur avant tout le monde, c'est observer des signaux precoces :
@@ -550,10 +565,11 @@ Quand vous suivez des matchs sur LiveFoot, notez les jeunes joueurs (U21) qui :
 Attention aux "one season wonders" : un joueur exceptionnel sur 6 mois ne confirme pas toujours. La regularite sur 2+ saisons est le vrai indicateur de talent durable.`,
   },
   {
-    slug: "gardien-moderne",
-    title: "Le gardien moderne : role, statistiques et evolution du poste",
-    description: "Evolution du poste de gardien de but : jeu au pied, sorties, statistiques cles et pourquoi le gardien est devenu le premier relanceur.",
-    updatedAt: "2026-07-07",
+    slug: 'gardien-moderne',
+    title: 'Le gardien moderne : role, statistiques et evolution du poste',
+    description:
+      'Evolution du poste de gardien de but : jeu au pied, sorties, statistiques cles et pourquoi le gardien est devenu le premier relanceur.',
+    updatedAt: '2026-07-07',
     body: `## Le gardien n'est plus un simple arreteur
 
 Le gardien de but moderne est devenu le premier constructeur du jeu. Sa capacite a relancer proprement sous pressing, a couvrir l'espace derriere une defense haute et a communiquer avec sa charniere est aussi importante que ses arrets.
@@ -587,10 +603,11 @@ Observez les moments ou le gardien est sollicite au pied : si l'adversaire press
 Neuer a revolutionne le poste avec ses sorties et sa relance. Ederson et Alisson ont porte ce role encore plus loin en Premier League. En Ligue 1, les gardiens sont de plus en plus evalues sur leur jeu au pied autant que sur leurs arrets.`,
   },
   {
-    slug: "defense-zone",
-    title: "La defense de zone : principes, avantages et limites",
-    description: "Comment fonctionne la defense de zone en football : positionnement, couverture d'espace, coordination collective et differences avec le marquage individuel.",
-    updatedAt: "2026-07-07",
+    slug: 'defense-zone',
+    title: 'La defense de zone : principes, avantages et limites',
+    description:
+      "Comment fonctionne la defense de zone en football : positionnement, couverture d'espace, coordination collective et differences avec le marquage individuel.",
+    updatedAt: '2026-07-07',
     body: `## Principe de la defense de zone
 
 En defense de zone, chaque joueur est responsable d'un espace plutot que d'un adversaire specifique. L'objectif est de maintenir une structure compacte qui couvre les zones dangereuses, quel que soit le placement des attaquants adverses.
@@ -626,10 +643,11 @@ Une equipe qui defend en zone concede des occasions quand l'adversaire trouve de
 La plupart des equipes modernes utilisent un systeme hybride : zone dans le bloc + marquage individuel dans la surface sur corners et coups francs.`,
   },
   {
-    slug: "defense-individuelle",
-    title: "Le marquage individuel : principes, avantages et risques",
-    description: "Comprendre le marquage individuel en football : suivi du joueur, prise a un contre un, avantages en pressing et risques d'exposition.",
-    updatedAt: "2026-07-07",
+    slug: 'defense-individuelle',
+    title: 'Le marquage individuel : principes, avantages et risques',
+    description:
+      "Comprendre le marquage individuel en football : suivi du joueur, prise a un contre un, avantages en pressing et risques d'exposition.",
+    updatedAt: '2026-07-07',
     body: `## Principe du marquage individuel
 
 En marquage individuel, chaque defenseur est assigne a un attaquant specifique et le suit partout sur le terrain. C'est un systeme base sur la responsabilite personnelle plutot que sur la couverture d'espace.
@@ -667,10 +685,11 @@ Peu d'equipes utilisent un marquage individuel strict sur tout le terrain. En re
 Si vous voyez un joueur adverse qui "disparait" du match (0 ballon touche, aucune implication), c'est souvent le signe qu'il est marqué individuellement avec succes. A l'inverse, un marquage battu en debut d'action mene souvent aux plus belles occasions du match.`,
   },
   {
-    slug: "contre-attaque",
-    title: "La contre-attaque : quand et comment elle fonctionne",
-    description: "Analyse de la contre-attaque en football : conditions ideales, profils de joueurs, difference avec la transition rapide et equipes specialistes.",
-    updatedAt: "2026-07-07",
+    slug: 'contre-attaque',
+    title: 'La contre-attaque : quand et comment elle fonctionne',
+    description:
+      'Analyse de la contre-attaque en football : conditions ideales, profils de joueurs, difference avec la transition rapide et equipes specialistes.',
+    updatedAt: '2026-07-07',
     body: `## Qu'est-ce qu'une contre-attaque ?
 
 La contre-attaque est une action offensive rapide lancee immediatement apres la recuperation du ballon, profitant du desequilibre de l'adversaire. L'objectif : atteindre le but adverse en moins de 10 secondes, avant que la defense ne se replace.
@@ -709,10 +728,11 @@ Indices dans les statistiques :
 Leicester (2016), l'Atletico de Simeone et le Real Madrid en Ligue des champions sont des references. En Ligue 1, le LOSC et Monaco utilisent regulierement la contre-attaque comme arme principale a l'exterieur.`,
   },
   {
-    slug: "possession",
-    title: "La possession : controle, domination ou illusion ?",
-    description: "Analyse de la possession en football : quand elle est utile, quand elle est sterile, et comment distinguer possession dominante et possession passive.",
-    updatedAt: "2026-07-07",
+    slug: 'possession',
+    title: 'La possession : controle, domination ou illusion ?',
+    description:
+      'Analyse de la possession en football : quand elle est utile, quand elle est sterile, et comment distinguer possession dominante et possession passive.',
+    updatedAt: '2026-07-07',
     body: `## La possession ne garantit pas la victoire
 
 Avoir le ballon 70% du temps ne signifie pas dominer le match. La Premier League a demontre que des equipes a 35% de possession peuvent gagner regulierement. La question n'est pas "combien" mais "que fait-on avec".
@@ -748,10 +768,11 @@ Si une equipe a 70% de possession mais 0 tir cadre a la 60e minute, c'est de la 
 Les meilleures equipes du monde (Manchester City, Barcelone) combinent les deux : elles dominent la possession MAIS savent aussi frapper en transition quand l'adversaire perd le ballon. C'est cette polyvalence qui les rend si difficiles a battre.`,
   },
   {
-    slug: "var-protocole",
-    title: "La VAR : protocole, decisions et impact sur le football",
-    description: "Comment fonctionne la VAR en football : protocole d'intervention, types de decisions verifiees, temps d'arret et controverses.",
-    updatedAt: "2026-07-07",
+    slug: 'var-protocole',
+    title: 'La VAR : protocole, decisions et impact sur le football',
+    description:
+      "Comment fonctionne la VAR en football : protocole d'intervention, types de decisions verifiees, temps d'arret et controverses.",
+    updatedAt: '2026-07-07',
     body: `## Qu'est-ce que la VAR ?
 
 La VAR (Video Assistant Referee) est un systeme d'assistance video pour les arbitres, introduit officiellement par la FIFA en 2018. Un arbitre assistant video, installe dans une salle dediee, revisionne les images pour corriger les "erreurs claires et evidentes".
@@ -790,10 +811,11 @@ En suivant un match sur LiveFoot, un delai de 60 a 120 secondes peut separer un 
 La subjectivite reste presente : la notion de "main volontaire", le placement exact de la ligne de hors-jeu et le critere d'"erreur evidente" divisent toujours. La VAR reduit les erreurs grossieres mais n'elimine pas le debat.`,
   },
   {
-    slug: "formats-competitions",
-    title: "Formats des competitions : championnat, coupe et phases finales",
-    description: "Guide des formats de competitions de football : championnat a points, elimination directe, phases de groupes, nouvelle Ligue des champions et calendrier.",
-    updatedAt: "2026-07-07",
+    slug: 'formats-competitions',
+    title: 'Formats des competitions : championnat, coupe et phases finales',
+    description:
+      'Guide des formats de competitions de football : championnat a points, elimination directe, phases de groupes, nouvelle Ligue des champions et calendrier.',
+    updatedAt: '2026-07-07',
     body: `## Les grands formats du football
 
 ### Championnat (ligue)
@@ -828,10 +850,11 @@ Le format influence la facon de suivre les matchs :
 Quand vous suivez un match en direct, identifiez d'abord le format et l'enjeu. Un 0-0 en 8e de finale retour (avec victoire 2-0 a l'aller) n'a pas le meme sens qu'un 0-0 en championnat entre deux equipes qui luttent pour le maintien.`,
   },
   {
-    slug: "paris-responsables",
-    title: "Paris sportifs : comprendre les cotes et jouer responsable",
-    description: "Comment fonctionnent les cotes des paris sportifs en football, ce qu'elles revelent sur les probabilites et les principes du jeu responsable.",
-    updatedAt: "2026-07-07",
+    slug: 'paris-responsables',
+    title: 'Paris sportifs : comprendre les cotes et jouer responsable',
+    description:
+      "Comment fonctionnent les cotes des paris sportifs en football, ce qu'elles revelent sur les probabilites et les principes du jeu responsable.",
+    updatedAt: '2026-07-07',
     body: `## Comment fonctionnent les cotes
 
 Une cote represente la probabilite estimee d'un evenement, exprimee en multiplicateur de mise :
@@ -867,10 +890,11 @@ Les paris sportifs sont encadres par l'ANJ (Autorite Nationale des Jeux). Seuls 
 Les cotes ne predisent pas le resultat — elles refletent les probabilites estimees par le marche. Utilisez-les comme indicateur d'equilibre d'un match, pas comme garantie de resultat.`,
   },
   {
-    slug: "culture-supporter",
-    title: "Culture supporter : tifos, chants et ambiance de stade",
-    description: "La culture supporter en football : tifos, ultras, chants, ambiance de stade et leur influence reelle sur les performances de l'equipe.",
-    updatedAt: "2026-07-07",
+    slug: 'culture-supporter',
+    title: 'Culture supporter : tifos, chants et ambiance de stade',
+    description:
+      "La culture supporter en football : tifos, ultras, chants, ambiance de stade et leur influence reelle sur les performances de l'equipe.",
+    updatedAt: '2026-07-07',
     body: `## L'avantage du terrain : mythe ou realite ?
 
 Les statistiques confirment un avantage mesurable pour l'equipe a domicile :
@@ -912,10 +936,11 @@ Les matchs ou le stade "porte" l'equipe sont reconnaissables dans les statistiqu
 Velodrome (OM), Bollaert (Lens), Beaujoire (Nantes), Geoffroy-Guichard (Saint-Etienne) sont connus pour leur ambiance exceptionnelle qui influence directement les resultats.`,
   },
   {
-    slug: "analyse-apres-match",
+    slug: 'analyse-apres-match',
     title: "L'analyse apres-match : comment debriefer un resultat",
-    description: "Guide pour analyser un match de football apres le coup de sifflet final : statistiques cles, contexte tactique et ce que le score ne dit pas.",
-    updatedAt: "2026-07-07",
+    description:
+      'Guide pour analyser un match de football apres le coup de sifflet final : statistiques cles, contexte tactique et ce que le score ne dit pas.',
+    updatedAt: '2026-07-07',
     body: `## Pourquoi analyser apres le match
 
 Le score final est un resume extreme. Un 2-1 peut cacher une domination totale du perdant ou une victoire logique du vainqueur. L'analyse post-match permet de comprendre ce qui s'est reellement passe.

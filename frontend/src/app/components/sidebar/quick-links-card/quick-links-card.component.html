@@ -1,0 +1,13 @@
+<div class="sidebar-card">
+  <h3 class="sidebar-card-title">Acces rapide</h3>
+  <div class="sidebar-links">
+    @for (link of links; track link.to) {
+      <a [routerLink]="link.to" class="sidebar-link">{{ link.label }}</a>
+    }
+  </div>
+  <div class="sidebar-links sidebar-links--legal">
+    @for (link of legalLinks; track link.href) {
+      <a [href]="link.href" class="sidebar-link">{{ link.label }}</a>
+    }
+  </div>
+</div>
