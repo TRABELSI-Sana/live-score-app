@@ -10,3 +10,6 @@ frontend.zip
 /rendered/
 
 /.release/
+
+/frontend/.angular/
+/frontend/.vite/

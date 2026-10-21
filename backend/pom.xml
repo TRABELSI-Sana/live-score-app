@@ -10,7 +10,7 @@
     </parent>
     <groupId>com.selim</groupId>
     <artifactId>live-scores</artifactId>
-    <version>0.0.7</version>
+    <version>0.0.8</version>
     <name>live-scores</name>
     <description>live-scores</description>
     <url/>

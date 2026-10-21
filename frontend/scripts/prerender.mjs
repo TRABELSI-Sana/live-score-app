@@ -1,262 +1,88 @@
-import { launch } from "puppeteer";
-import { createServer } from "http";
-import { cpSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync, mkdirSync, existsSync } from "fs";
-import { resolve, dirname } from "path";
-import { fileURLToPath } from "url";
+import { launch } from 'puppeteer';
+import { cpSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { dirname, extname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { articles } from '../src/app/content/articles.ts';
+import { guides } from '../src/app/content/guides.ts';
+import { teams } from '../src/app/content/teams.ts';
+import { competitions } from '../src/app/content/competitions.ts';
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
-const DIST = resolve(__dirname, "../dist");
-const DIST_TN = resolve(__dirname, "../dist-tn");
-
-const articleSlugs = [
-  "comment-lire-un-classement", "regles-hors-jeu", "tactique-433", "tactique-352",
-  "pressing-football", "xg-statistiques", "cartons-discipline", "phases-arretees",
-  "suivre-match-en-direct", "lire-compositions", "transitions", "derby",
-  "calendrier-fatigue", "mercato", "jeunes-talents", "gardien-moderne",
-  "defense-zone", "defense-individuelle", "contre-attaque", "possession",
-  "var-protocole", "formats-competitions", "paris-responsables", "culture-supporter",
-  "analyse-apres-match",
-];
-
-const teamSlugs = [
-  "psg", "om", "ol", "lille", "monaco", "rennes", "nice", "lens",
-  "real-madrid", "barcelona", "atletico-madrid", "man-city", "man-united",
-  "liverpool", "arsenal", "chelsea", "bayern", "dortmund", "juventus", "inter",
-];
-
-const competitionSlugs = ["ligue-1", "premier-league", "champions-league", "la-liga", "serie-a"];
-
-const guideSlugs = [
-  "comment-lire-un-score-en-direct", "classement-foot-calcul",
-  "statuts-match-not-started-in-play-finished", "cartons-penalty-hors-jeu-evenements",
-  "sources-donnees-live-limites", "guide-ligue1-liguedeschampions-coupes",
-  "seo-contenu-editorial-pour-un-site-de-scores", "faq-livefoot",
-];
-
+const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+const dist = resolve(root, 'dist/browser');
+const distTn = resolve(root, 'dist-tn/browser');
+const shell = readFileSync(resolve(dist, 'index.html'), 'utf8');
 const routes = [
-  "/",
-  "/en-direct",
-  "/guides",
-  "/news",
-  "/teams",
-  "/competitions",
-  ...guideSlugs.map((s) => `/guides/${s}`),
-  ...articleSlugs.map((s) => `/news/${s}`),
-  ...teamSlugs.map((s) => `/teams/${s}`),
-  ...competitionSlugs.map((s) => `/competitions/${s}`),
+  '/', '/en-direct', '/guides', '/news', '/teams', '/competitions',
+  ...guides.map(({ slug }) => `/guides/${slug}`),
+  ...articles.map(({ slug }) => `/news/${slug}`),
+  ...teams.map(({ slug }) => `/teams/${slug}`),
+  ...competitions.map(({ slug }) => `/competitions/${slug}`),
 ];
+const mime = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.svg': 'image/svg+xml', '.png': 'image/png', '.ico': 'image/x-icon', '.xml': 'application/xml', '.txt': 'text/plain' };
+const briefing = {
+  headline: 'Le foot, en un coup d’œil.', description: 'Les rencontres à suivre et les temps forts du jour.',
+  liveCount: 0, upcomingCount: 0, finishedCount: 0, competitionCount: 0, highlights: [], generatedAt: '',
+};
 
-function serveDist() {
-  const mimeTypes = {
-    ".html": "text/html",
-    ".js": "application/javascript",
-    ".css": "text/css",
-    ".json": "application/json",
-    ".svg": "image/svg+xml",
-    ".png": "image/png",
-    ".ico": "image/x-icon",
-  };
-
-  const server = createServer((req, res) => {
-    let filePath = resolve(DIST, req.url === "/" ? "index.html" : req.url.slice(1));
-    if (!existsSync(filePath) || !filePath.includes(".")) {
-      filePath = resolve(DIST, "index.html");
-    }
-    const ext = "." + filePath.split(".").pop();
-    const mime = mimeTypes[ext] || "application/octet-stream";
-    try {
-      const content = readFileSync(filePath);
-      res.writeHead(200, { "Content-Type": mime });
-      res.end(content);
-    } catch {
-      const fallback = readFileSync(resolve(DIST, "index.html"));
-      res.writeHead(200, { "Content-Type": "text/html" });
-      res.end(fallback);
-    }
-  });
-
-  return new Promise((resolve) => {
-    server.listen(0, "127.0.0.1", () => {
-      resolve({ server, port: server.address().port });
-    });
-  });
-}
-
-async function prerender() {
-  console.log(`Prerendering ${routes.length} routes...`);
-
-  const { server, port } = await serveDist();
-  const browser = await launch({ headless: true, args: ["--no-sandbox"] });
-
-  let done = 0;
-  const concurrency = 4;
+async function prerender(browser, base, output) {
+  console.log(`Prerendering ${routes.length} routes for ${base}...`);
   const queue = [...routes];
-
-  async function processRoute(route) {
-    const page = await browser.newPage();
-    await page.setRequestInterception(true);
-    page.on("request", (req) => {
-      const url = req.url();
-      if (url.includes("/api/")) {
-        req.respond({
-          status: 200,
-          contentType: "application/json",
-          body: JSON.stringify(url.includes("/api/ai/briefing") ? {
-            headline: "Le foot, en un coup d’œil.",
-            description: "Les rencontres à suivre et les temps forts du jour.",
-            liveCount: 0,
-            upcomingCount: 0,
-            finishedCount: 0,
-            competitionCount: 0,
-            highlights: [],
-            generatedAt: "",
-          } : []),
-        });
-      } else {
-        req.continue();
-      }
-    });
-
-    try {
-      await page.goto(`http://127.0.0.1:${port}${route}`, {
-        waitUntil: "domcontentloaded",
-        timeout: 10000,
-      });
-      await page.waitForSelector("#root", { timeout: 5000 });
-      await new Promise((r) => setTimeout(r, 800));
-
-      // Wait for Helmet to update the head
-      await page.waitForFunction(() => {
-        const titles = document.querySelectorAll("title[data-rh]");
-        return titles.length > 0;
-      }, { timeout: 3000 }).catch(() => {});
-
-      const helmetTitle = await page.evaluate(() => {
-        const el = document.querySelector("title[data-rh]");
-        return el ? el.textContent : document.title;
-      });
-      let html = await page.content();
-
-      // Replace all title tags with the Helmet-computed one
-      html = html.replace(/<title[^>]*>[^<]*<\/title>/g, "");
-      html = html.replace("</head>", `<title>${helmetTitle}</title></head>`);
-
-      // Fix local URLs to production
-      const localOrigin = `http://127.0.0.1:${port}`;
-      html = html.replaceAll(localOrigin, "https://livefoot.online");
-
-      // Remove duplicate tags — keep last occurrence (Helmet-injected)
-      function dedup(pattern) {
-        const matches = html.match(pattern);
-        if (matches && matches.length > 1) {
-          for (let i = 0; i < matches.length - 1; i++) {
-            html = html.replace(matches[i], "");
-          }
+  let done = 0;
+  async function worker() {
+    for (let route = queue.shift(); route; route = queue.shift()) {
+      const page = await browser.newPage();
+      const errors = [];
+      page.on('pageerror', error => errors.push(error.message));
+      await page.setRequestInterception(true);
+      page.on('request', request => {
+        const url = new URL(request.url());
+        if (url.origin !== base) return void request.abort();
+        if (url.pathname.startsWith('/api/')) {
+          if (url.pathname === '/api/stream/lives') return void request.respond({ contentType: 'text/event-stream', body: ': prerender\n\n' });
+          return void request.respond({ contentType: 'application/json', body: JSON.stringify(url.pathname === '/api/ai/briefing' ? briefing : []) });
         }
+        if (request.isNavigationRequest()) return void request.respond({ contentType: 'text/html', body: shell });
+        const file = resolve(dist, `.${decodeURIComponent(url.pathname)}`);
+        if (!file.startsWith(dist + '/') || !existsSync(file)) return void request.abort();
+        return void request.respond({ contentType: mime[extname(file)] ?? 'application/octet-stream', body: readFileSync(file) });
+      });
+      try {
+        await page.goto(base + route, { waitUntil: 'domcontentloaded', timeout: 20000 });
+        await page.waitForFunction(expected =>
+          document.querySelector('app-root h1') && document.querySelector('link[rel="canonical"]')?.getAttribute('href') === expected,
+        { timeout: 15000 }, base + route);
+        const metadata = await page.evaluate(() => ({
+          canonicals: document.querySelectorAll('link[rel="canonical"]').length,
+          h1: document.querySelector('h1')?.textContent,
+          description: document.querySelector('meta[name="description"]')?.getAttribute('content'),
+          schemas: [...document.querySelectorAll('script[type="application/ld+json"]')].map(el => JSON.parse(el.textContent)),
+        }));
+        if (errors.length || metadata.canonicals !== 1 || !metadata.description || /introuvable/i.test(metadata.h1)) {
+          throw new Error(JSON.stringify({ errors, metadata }));
+        }
+        const destination = resolve(output, route.slice(1), 'index.html');
+        mkdirSync(dirname(destination), { recursive: true });
+        writeFileSync(destination, await page.content());
+        if (++done % 10 === 0) console.log(`  ${done}/${routes.length}`);
+      } catch (error) {
+        throw new Error(`${base}${route}: ${error.message}`, { cause: error });
+      } finally {
+        await page.close();
       }
-
-      dedup(/<title>[^<]*<\/title>/g);
-      dedup(/<meta name="description"[^>]*>/g);
-      dedup(/<meta property="og:title"[^>]*>/g);
-      dedup(/<meta property="og:description"[^>]*>/g);
-      dedup(/<meta property="og:url"[^>]*>/g);
-      dedup(/<meta property="og:type"[^>]*>/g);
-      dedup(/<meta property="og:image"[^>]*>/g);
-      dedup(/<meta property="og:locale"[^>]*>/g);
-      dedup(/<meta name="twitter:card"[^>]*>/g);
-      dedup(/<meta name="twitter:title"[^>]*>/g);
-      dedup(/<meta name="twitter:description"[^>]*>/g);
-      dedup(/<meta name="twitter:image"[^>]*>/g);
-      dedup(/<meta name="robots"[^>]*>/g);
-      dedup(/<meta property="og:image:width"[^>]*>/g);
-      dedup(/<meta property="og:image:height"[^>]*>/g);
-      dedup(/<link rel="canonical"[^>]*>/g);
-      dedup(/<link rel="alternate"[^>]*hreflang="fr"[^>]*>/g);
-      dedup(/<link rel="alternate"[^>]*hreflang="fr-TN"[^>]*>/g);
-      dedup(/<link rel="alternate"[^>]*hreflang="x-default"[^>]*>/g);
-
-      // Remove the old static structured-data script (pages inject their own via Helmet)
-      html = html.replace(/<script type="application\/ld\+json" id="structured-data">[\s\S]*?<\/script>/, "");
-
-      // Remove the dynamic URL-rewriting script (prerendered URLs are correct)
-      html = html.replace(/<script>\s*\(function\s*\(\)\s*\{[\s\S]*?var\s+canonical[\s\S]*?<\/script>/, "");
-
-      const outPath = route === "/"
-        ? resolve(DIST, "index.html")
-        : resolve(DIST, route.slice(1), "index.html");
-
-      const outDir = dirname(outPath);
-      if (!existsSync(outDir)) mkdirSync(outDir, { recursive: true });
-      writeFileSync(outPath, html);
-      done++;
-      if (done % 10 === 0) console.log(`  ${done}/${routes.length} done`);
-    } catch (err) {
-      console.warn(`  WARN: Failed to prerender ${route}: ${err.message}`);
-    } finally {
-      await page.close();
     }
   }
+  await Promise.all(Array.from({ length: 4 }, worker));
+  console.log(`Done: ${done}/${routes.length} routes for ${base}`);
+}
 
-  const workers = [];
-  for (let i = 0; i < concurrency; i++) {
-    workers.push(
-      (async () => {
-        while (queue.length > 0) {
-          const route = queue.shift();
-          if (route) await processRoute(route);
-        }
-      })()
-    );
-  }
-  await Promise.all(workers);
-
+const browser = await launch({ headless: true, args: ['--no-sandbox'] });
+try {
+  rmSync(resolve(root, 'dist-tn'), { force: true, recursive: true });
+  cpSync(dist, distTn, { recursive: true });
+  await prerender(browser, 'https://livefoot.online', dist);
+  await prerender(browser, 'https://livefoot.tn', distTn);
+  cpSync(resolve(distTn, 'sitemap-tn.xml'), resolve(distTn, 'sitemap.xml'));
+  writeFileSync(resolve(distTn, 'robots.txt'), 'User-agent: *\nAllow: /\n\nSitemap: https://livefoot.tn/sitemap.xml\n');
+} finally {
   await browser.close();
-  server.close();
-  createTnDist();
-  console.log(`Done! ${done}/${routes.length} routes prerendered.`);
 }
-
-function rewriteHtmlForTn(html) {
-  return html
-    .replace(/<html lang="fr"/, '<html lang="fr-TN"')
-    .replace(/(<link rel="canonical" href=")https:\/\/livefoot\.online([^"]*")/g, "$1https://livefoot.tn$2")
-    .replace(/(<meta property="og:url" content=")https:\/\/livefoot\.online([^"]*")/g, "$1https://livefoot.tn$2")
-    .replace(/(<meta property="og:image" content=")https:\/\/livefoot\.online([^"]*")/g, "$1https://livefoot.tn$2")
-    .replace(/(<meta name="twitter:image" content=")https:\/\/livefoot\.online([^"]*")/g, "$1https://livefoot.tn$2")
-    .replace(/<script type="application\/ld\+json">[\s\S]*?<\/script>/g, (script) =>
-      script.replaceAll("https://livefoot.online", "https://livefoot.tn")
-    );
-}
-
-function rewriteHtmlFilesForTn(dir) {
-  for (const entry of readdirSync(dir)) {
-    const path = resolve(dir, entry);
-    const stat = statSync(path);
-    if (stat.isDirectory()) {
-      rewriteHtmlFilesForTn(path);
-    } else if (entry.endsWith(".html")) {
-      writeFileSync(path, rewriteHtmlForTn(readFileSync(path, "utf8")));
-    }
-  }
-}
-
-function createTnDist() {
-  rmSync(DIST_TN, { recursive: true, force: true });
-  cpSync(DIST, DIST_TN, { recursive: true });
-  rewriteHtmlFilesForTn(DIST_TN);
-
-  const sitemapTn = resolve(DIST_TN, "sitemap-tn.xml");
-  if (existsSync(sitemapTn)) {
-    cpSync(sitemapTn, resolve(DIST_TN, "sitemap.xml"));
-  }
-
-  const robotsTn = resolve(DIST_TN, "robots-tn.txt");
-  if (existsSync(robotsTn)) {
-    cpSync(robotsTn, resolve(DIST_TN, "robots.txt"));
-  }
-}
-
-prerender().catch((err) => {
-  console.error("Prerender failed:", err);
-  process.exit(1);
-});

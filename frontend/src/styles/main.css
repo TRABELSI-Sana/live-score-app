@@ -1390,3 +1390,11 @@ button {
     overflow-x: auto;
   }
 }
+
+/* Structural component hosts preserve the existing grid and flex layout. */
+app-root, app-layout, app-navbar, app-footer, app-ad-slot,
+app-ai-summary-card, app-quick-links-card, app-competition-group,
+app-match-card, app-live-board, app-hero-section,
+app-editorial-preview, app-guides-preview, app-seo-faq-section {
+  display: contents;
+}

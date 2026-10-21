@@ -1,7 +1,7 @@
 # LiveFoot
 
 Scores de football en temps réel : backend Kotlin/Spring Boot, frontend
-React/TypeScript, Redis, analyses de matchs et chatbot généraliste avec Ollama.
+Angular 22/TypeScript, Redis, analyses de matchs et chatbot généraliste avec Ollama.
 
 ## Développement local
 
