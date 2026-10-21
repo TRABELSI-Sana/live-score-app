@@ -16,7 +16,7 @@ spec:
       labels:
         app: edge
       annotations:
-        livefoot.io/config-version: "0a055274c2a2490705da288edb51bb817004eadbe3cca0f43ced502177522695"
+        livefoot.io/config-version: "4bc69f5b21e390b05ec1ada71ef868e711db0bb0fa4e6f12f4f845c4460492ba"
     spec:
       hostNetwork: true
       dnsPolicy: ClusterFirstWithHostNet
@@ -144,11 +144,11 @@ spec:
       labels:
         app: frontend
       annotations:
-        livefoot.io/config-version: "0a055274c2a2490705da288edb51bb817004eadbe3cca0f43ced502177522695"
+        livefoot.io/config-version: "4bc69f5b21e390b05ec1ada71ef868e711db0bb0fa4e6f12f4f845c4460492ba"
     spec:
       containers:
       - name: frontend
-        image: ghcr.io/trabelsi-sana/live-score-app/frontend:0.0.6
+        image: ghcr.io/trabelsi-sana/live-score-app/frontend:0.0.7
         imagePullPolicy: Always
         ports:
         - containerPort: 80
@@ -201,11 +201,11 @@ spec:
       labels:
         app: backend
       annotations:
-        livefoot.io/config-version: "0a055274c2a2490705da288edb51bb817004eadbe3cca0f43ced502177522695"
+        livefoot.io/config-version: "4bc69f5b21e390b05ec1ada71ef868e711db0bb0fa4e6f12f4f845c4460492ba"
     spec:
       containers:
       - name: backend
-        image: ghcr.io/trabelsi-sana/live-score-app/backend:0.0.6
+        image: ghcr.io/trabelsi-sana/live-score-app/backend:0.0.7
         imagePullPolicy: Always
         envFrom:
         - configMapRef:

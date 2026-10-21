@@ -217,6 +217,7 @@ jobs:
           for app in redis ollama backend frontend edge; do
             k -n live-score rollout status "deployment/$app" --timeout=300s
           done
+          k apply -f manifests/cronjob.yaml
           sudo install -m 755 reload-nginx-after-cert-renewal.sh /etc/letsencrypt/renewal-hooks/deploy/reload-livefoot-nginx
           for domain in livefoot.online livefoot.tn; do
             curl -fsS --max-time 30 "https://$domain/healthz"

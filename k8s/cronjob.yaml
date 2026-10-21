@@ -1,0 +1,54 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: match-cache-cleanup
+  namespace: live-score
+spec:
+  schedule: "0 3 * * *"
+  timeZone: Etc/UTC
+  concurrencyPolicy: Forbid
+  startingDeadlineSeconds: 600
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 0
+      activeDeadlineSeconds: 300
+      ttlSecondsAfterFinished: 604800
+      template:
+        metadata:
+          labels:
+            app: match-cache-cleanup
+        spec:
+          restartPolicy: Never
+          automountServiceAccountToken: false
+          containers:
+          - name: cleanup
+            image: redis:7-alpine
+            imagePullPolicy: IfNotPresent
+            env:
+            - name: REDISCLI_HOST
+              value: redis
+            - name: REDISCLI_PORT
+              value: "6379"
+            command: ["/bin/sh", "-ec"]
+            args:
+            - |
+              keys=$(mktemp)
+              trap 'rm -f "$keys"' EXIT
+              redis-cli -e --scan --pattern 'match:state:*' > "$keys"
+              deleted=0
+              while IFS= read -r key; do
+                count=$(redis-cli -e UNLINK "$key")
+                deleted=$((deleted + count))
+              done < "$keys"
+              count=$(redis-cli -e UNLINK livescores:board-keys matches:live)
+              deleted=$((deleted + count))
+              echo "Match cache cleanup completed: $deleted keys deleted; API quota and other caches preserved."
+            resources:
+              requests:
+                cpu: 50m
+                memory: 32Mi
+              limits:
+                cpu: 200m
+                memory: 64Mi

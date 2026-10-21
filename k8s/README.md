@@ -36,7 +36,7 @@ Ils ne sont pas stockés dans les manifests ni recréés par le script de releas
 Le jeton de lecture du registre doit conserver l’accès aux packages privés ;
 renouveler ce Secret sur le cluster avant l’expiration de son jeton.
 
-## Quatre manifests
+## Cinq manifests
 
 | Fichier | Contenu |
 | --- | --- |
@@ -44,6 +44,7 @@ renouveler ce Secret sur le cluster avant l’expiration de son jeton.
 | `service.yaml` | adresses réseau internes des composants |
 | `configmap.yaml` | namespace, configuration applicative et nginx |
 | `pvc.yaml` | stockage persistant Redis et Ollama |
+| `cronjob.yaml` | nettoyage quotidien des données de matchs |
 
 `./deploy.py manifests` met les noms complets des images versionnées dans
 `deployment.yaml` et actualise l’annotation de configuration à partir de
@@ -115,3 +116,34 @@ au contexte des matchs ou à la question provoque une nouvelle génération.
 Les requêtes identiques simultanées partagent la même génération ; une question
 différente reçoit `busy` lorsque le modèle est occupé. Un timeout client ne libère
 pas prématurément la capacité du modèle et ne déclenche pas une file de calculs.
+
+## Nettoyage quotidien en CronJob
+
+`cronjob.yaml` déplace le nettoyage de 03 h du backend vers le CronJob
+`match-cache-cleanup`. L'horaire explicite est **03 h UTC** (05 h à Paris en été,
+04 h en hiver). Le polling des matchs reste exécuté dans le backend.
+
+Le quota API-Football n'a pas besoin de reset : il utilise une clé par jour UTC.
+L'ancien `FLUSHDB` est remplacé par la suppression ciblée de `match:state:*`,
+`livescores:board-keys` et `matches:live`. Les compteurs `apifootball:quota:*`
+et les autres caches sont conservés. Les pollers repeuplent ensuite les matchs ;
+le tableau peut être temporairement vide, comme après l'ancien reset.
+
+Le CronJob utilise directement l'image officielle Redis et `redis-cli` : aucun
+JAR dédié, aucune nouvelle image à construire, aucun appel API fournisseur.
+Il interdit les exécutions simultanées, ne réessaie pas automatiquement et conserve
+les Jobs/logs pendant sept jours au maximum (trois succès et trois échecs).
+
+Pour une future mise en service, incrémenter d'abord la version et publier le
+backend qui retire l'ancien `@Scheduled`. Attendre son rollout avant d'appliquer
+`cronjob.yaml`, afin d'éviter l'ancien reset et le nouveau nettoyage en parallèle.
+Le workflow automatique respecte cet ordre. Pour un déploiement manuel lors de
+cette migration, appliquer les autres manifests, attendre le rollout du backend,
+puis appliquer le CronJob séparément.
+
+Après déploiement, consulter **OpenLens → Workloads → CronJobs**. Les exécutions
+apparaissent dans **Jobs**, avec leurs pods et leurs logs. Un CronJob ne crée pas
+un Job immédiatement : le premier démarrera au prochain horaire prévu.
+
+La modification locale des fichiers seule ne crée aucun Job sur le cluster :
+le CronJob doit être appliqué après le rollout du backend.

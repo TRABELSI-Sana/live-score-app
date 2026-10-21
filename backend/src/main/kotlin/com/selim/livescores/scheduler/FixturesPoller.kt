@@ -5,9 +5,7 @@ import com.selim.livescores.domain.MatchStatus
 import com.selim.livescores.provider.dto.ApiFootballFixturesResponse
 import com.selim.livescores.provider.livescore.LiveScoreApiClient
 import com.selim.livescores.service.MatchService
-import org.slf4j.LoggerFactory
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
-import org.springframework.data.redis.core.StringRedisTemplate
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
 import java.time.Duration
@@ -21,10 +19,8 @@ import java.util.concurrent.atomic.AtomicReference
 class FixturesPoller(
     private val api: LiveScoreApiClient,
     private val objectMapper: ObjectMapper,
-    private val matchService: MatchService,
-    private val redisTemplate: StringRedisTemplate
+    private val matchService: MatchService
 ) {
-    private val logger = LoggerFactory.getLogger(FixturesPoller::class.java)
     private val apiDisabledUntil = AtomicReference<Instant?>(null)
 
     private fun isApiDisabled(now: Instant = Instant.now()): Boolean {
@@ -102,12 +98,4 @@ class FixturesPoller(
         matchService.publishLiveBoard()
     }
 
-    @Scheduled(cron = "0 0 3 * * *")
-    fun reset() {
-        redisTemplate.execute { connection ->
-            connection.serverCommands().flushDb()
-            null
-        }
-        logger.info("Redis flushed at 03:00 (daily reset)")
-    }
 }
