@@ -36,13 +36,13 @@ spec:
             - |
               keys=$(mktemp)
               trap 'rm -f "$keys"' EXIT
-              redis-cli -e --scan --pattern 'match:state:*' > "$keys"
+              redis-cli -h "$REDISCLI_HOST" -p "$REDISCLI_PORT" -e --scan --pattern 'match:state:*' > "$keys"
               deleted=0
               while IFS= read -r key; do
-                count=$(redis-cli -e UNLINK "$key")
+                count=$(redis-cli -h "$REDISCLI_HOST" -p "$REDISCLI_PORT" -e UNLINK "$key")
                 deleted=$((deleted + count))
               done < "$keys"
-              count=$(redis-cli -e UNLINK livescores:board-keys matches:live)
+              count=$(redis-cli -h "$REDISCLI_HOST" -p "$REDISCLI_PORT" -e UNLINK livescores:board-keys matches:live)
               deleted=$((deleted + count))
               echo "Match cache cleanup completed: $deleted keys deleted; API quota and other caches preserved."
             resources:
