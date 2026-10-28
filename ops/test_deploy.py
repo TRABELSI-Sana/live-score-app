@@ -29,7 +29,7 @@ class ReleaseTest(unittest.TestCase):
     <version>0.0.1</version>
 </project>''')
         deployment = self.root / "k8s/deployment.yaml"
-        deployment.write_text(re.sub(r"/(backend|frontend):\d+\.\d+\.\d+", r"/\1:0.0.1", deployment.read_text()))
+        deployment.write_text(re.sub(r"/((?:live-score-)?(?:backend|frontend)):\d+\.\d+\.\d+", r"/\1:0.0.1", deployment.read_text()))
         self.commands = []
         self.sources = {"backend": "backend-source", "frontend": "frontend-source"}
         self.published = set()
@@ -60,7 +60,7 @@ class ReleaseTest(unittest.TestCase):
                 path.mkdir(parents=True)
                 (path / "index.html").write_text("Built frontend")
         if args[:2] == ("docker", "push"):
-            if self.front_push_fails and "/frontend:" in args[-1]:
+            if self.front_push_fails and args[-1] == release.image("frontend", "0.0.2"):
                 raise subprocess.CalledProcessError(1, args)
             self.published.add(args[-1])
 
@@ -125,8 +125,8 @@ class ReleaseTest(unittest.TestCase):
         self.front_push_fails = False
         release.push(["backend", "frontend"], "0.0.2")
         pushes = [cmd for cmd in self.commands if cmd[:2] == ("docker", "push")]
-        self.assertEqual(sum("/backend:" in cmd[-1] for cmd in pushes), 1)
-        self.assertEqual(sum("/frontend:" in cmd[-1] for cmd in pushes), 2)
+        self.assertEqual(sum(cmd[-1] == release.image("backend", "0.0.2") for cmd in pushes), 1)
+        self.assertEqual(sum(cmd[-1] == release.image("frontend", "0.0.2") for cmd in pushes), 2)
         self.assertTrue(release.receipt("frontend", "0.0.2", "frontend")["pushed"])
 
     def test_manifest_requires_push_and_writes_reviewable_literal_images(self):
@@ -154,7 +154,7 @@ class ReleaseTest(unittest.TestCase):
         self.assertFalse(release.registry_image_matches_source("frontend", "0.0.2"))
 
     def test_registry_auth_and_network_errors_fail_closed(self):
-        for message in ("unauthorized", "lookup ghcr.io: no such host", "connection refused"):
+        for message in ("unauthorized", "lookup registry-1.docker.io: no such host", "connection refused"):
             with patch.object(release.subprocess, "run", return_value=subprocess.CompletedProcess([], 1, "", message)):
                 with self.assertRaises(ValueError):
                     self.remote("image:0.0.2")
