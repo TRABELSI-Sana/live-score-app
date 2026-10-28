@@ -12,7 +12,8 @@ import sys
 import xml.etree.ElementTree as ET
 
 ROOT = Path(__file__).resolve().parent
-REGISTRY = "ghcr.io/trabelsi-sana/live-score-app"
+REGISTRY = "docker.io/trabelsislim"
+LEGACY_REGISTRY = "ghcr.io/trabelsi-sana/live-score-app"
 STATE = ROOT / ".release"
 DEPLOYMENT = ROOT / "k8s/deployment.yaml"
 
@@ -41,11 +42,11 @@ def version():
 
 def deployed_versions():
     text = DEPLOYMENT.read_text()
-    return re.findall(re.escape(REGISTRY) + r"/(?:backend|frontend):(\d+\.\d+\.\d+)\b", text)
+    return re.findall(r"(?:" + re.escape(REGISTRY) + r"/live-score-|" + re.escape(LEGACY_REGISTRY) + r"/)(?:backend|frontend):(\d+\.\d+\.\d+)\b", text)
 
 
 def image(app, release):
-    return f"{REGISTRY}/{app}:{release}"
+    return f"{REGISTRY}/live-score-{app}:{release}"
 
 
 def fingerprint(app):
@@ -147,7 +148,7 @@ def remote_exists(ref):
     message = (result.stderr + result.stdout).lower()
     if "manifest unknown" in message or "no such manifest" in message:
         return False
-    raise ValueError("Impossible de vérifier GHCR. Vérifier docker login ghcr.io et la connexion réseau ; aucune publication effectuée.")
+    raise ValueError("Impossible de vérifier Docker Hub. Vérifier docker login et la connexion réseau ; aucune publication effectuée.")
 
 
 def registry_image_matches_source(app, release):
@@ -171,7 +172,7 @@ def push(apps, release):
             raise ValueError(f"L’image locale {app} a changé. La reconstruire.")
         exists = remote_exists(ref)
         if exists and not built.get("pushed"):
-            raise ValueError(f"{ref} existe déjà dans GHCR. Incrémenter la version ; les tags publiés ne sont pas écrasés.")
+            raise ValueError(f"{ref} existe déjà dans Docker Hub. Incrémenter la version ; les tags publiés ne sont pas écrasés.")
         if exists:
             print(f"Déjà publiée par cette préparation : {ref}")
         else:
@@ -197,11 +198,12 @@ def render_deployment(release):
     text = DEPLOYMENT.read_text()
     for app in ("backend", "frontend"):
         text, count = re.subn(
-            r'(image:\s*["\']?)' + re.escape(REGISTRY + "/" + app) + r'(?::[^\s"\']+|@[^\s"\']+)',
+            r'(image:\s*["\']?)' + (r"(?:" + re.escape(REGISTRY + "/live-score-" + app) + "|" + re.escape(LEGACY_REGISTRY + "/" + app) + ")") + r'(?::[^\s"\']+|@[^\s"\']+)',
             lambda match: match[1] + image(app, release), text
         )
         if count != 1:
             raise ValueError(f"La référence de l’image {app} est introuvable ou dupliquée dans {DEPLOYMENT}.")
+    text = text.replace("      imagePullSecrets:\n      - name: ghcr-credentials\n", "")
     config = hashlib.sha256((ROOT / "k8s/configmap.yaml").read_bytes()).hexdigest()
     text = re.sub(r'(livefoot.io/config-version:\s*)"[^"]*"', lambda match: match[1] + '"' + config + '"', text)
     if "${" in text:

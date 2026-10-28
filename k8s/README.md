@@ -1,40 +1,38 @@
-# Déploiement Kubernetes avec GHCR
+# Déploiement Kubernetes avec Docker Hub
 
 Production : **https://livefoot.online** et **https://livefoot.tn**.
 
 Le déploiement manuel suit les commandes du [README principal](../README.md) :
 
 ```text
-Version POM → clean install → images locales → push GHCR → Deployment versionné → kubectl apply
+Version POM → clean install → images locales → push Docker Hub → Deployment versionné → kubectl apply
 ```
 
 Le script `../deploy.py` prépare chaque étape séparément. Il ne lance jamais
 kubectl. Le déploiement automatique au push sur `main` reste actif dans
-`.github/workflows/deploy.yml` : tests, publication GHCR et application sur K3s.
+`.github/workflows/deploy.yml` : tests, publication Docker Hub et application sur K3s.
 La CI prépare ses manifests avec la même version du POM et réutilise uniquement
 les images publiées dont l’empreinte correspond au code. Un tag de release déjà
 publié avec un autre code impose un incrément de version.
 
-Les secrets GitHub existants `VPS_SSH_KEY`, `VPS_HOST_KEY`, `GHCR_READ_TOKEN`
-et, si nécessaire, la variable `GHCR_USERNAME` restent utilisés pour le déploiement
-automatique. Le `GITHUB_TOKEN` publie les images avec `packages: write`.
+Les secrets GitHub `VPS_SSH_KEY` et `VPS_HOST_KEY` restent utilisés. Ajouter
+`DOCKERHUB_USERNAME` (`trabelsislim`) et `DOCKERHUB_TOKEN` (jeton avec accès
+en écriture) pour la publication automatique.
 
-## Registre GHCR
+## Registre Docker Hub
 
 Les deux images applicatives utilisent des tags explicites issus du POM :
 
-- `ghcr.io/trabelsi-sana/live-score-app/backend:0.0.2` ;
-- `ghcr.io/trabelsi-sana/live-score-app/frontend:0.0.2`.
+- `docker.io/trabelsislim/live-score-backend:0.0.2` ;
+- `docker.io/trabelsislim/live-score-frontend:0.0.2`.
 
 `0.0.2` illustre un tag de release. Le script lit la version courante
 et refuse de republier un tag existant. Se connecter depuis le Mac avec
-`docker login ghcr.io -u TRABELSI-Sana`, avec un jeton ayant `write:packages`.
+`docker login -u trabelsislim`, avec un jeton Docker Hub ayant accès en écriture.
 
-Le cluster existant dispose du Secret `ghcr-credentials` pour télécharger les
-images privées et du Secret `api-football` pour la clé fournisseur. Les conserver.
-Ils ne sont pas stockés dans les manifests ni recréés par le script de release.
-Le jeton de lecture du registre doit conserver l’accès aux packages privés ;
-renouveler ce Secret sur le cluster avant l’expiration de son jeton.
+Les images Docker Hub sont publiques : aucun Secret de registre n’est nécessaire.
+La génération des manifests retire la référence à `ghcr-credentials`. Conserver
+le Secret `api-football` pour la clé fournisseur.
 
 ## Cinq manifests
 
@@ -71,7 +69,7 @@ sudo k3s kubectl -n live-score logs deployment/backend --tail=50
 Pour revenir à une version publiée précédente, indiquer son tag :
 
 ```bash
-sudo k3s kubectl -n live-score set image deployment/backend backend=ghcr.io/trabelsi-sana/live-score-app/backend:0.0.1
+sudo k3s kubectl -n live-score set image deployment/backend backend=docker.io/trabelsislim/live-score-backend:0.0.1
 sudo k3s kubectl -n live-score rollout status deployment/backend
 ```
 

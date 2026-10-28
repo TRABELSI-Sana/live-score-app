@@ -24,16 +24,15 @@ Pour travailler séparément sur le backend et le frontend, consulter
 Deux modes de déploiement sont disponibles :
 
 - **Automatique** : un push sur `main` lance les tests, construit et publie les
-  images dans GHCR, puis applique les manifests sur K3s.
+  images dans Docker Hub, puis applique les manifests sur K3s.
 - **Manuel** : les commandes ci-dessous permettent de construire, publier,
   modifier le YAML et lancer `kubectl apply` séparément depuis le Mac.
 
-Le registre utilisé est **GitHub Container Registry (GHCR)**. Les deux modes
+Le registre utilisé est **Docker Hub**. Les deux modes
 utilisent la version du POM. Incrémenter cette version pour chaque nouvelle
 release. La CI réutilise une image existante seulement si son empreinte de sources
 correspond au code ; elle refuse de remplacer un tag publié avec un autre code.
-Le tag `latest` reste un alias du dernier build, et les Deployments utilisent
-les tags versionnés explicites.
+Les images publiées et les Deployments utilisent uniquement des tags versionnés explicites.
 
 Le script [deploy.py](deploy.py) prépare chaque étape séparément. La version du
 POM définit le nom du JAR et les tags backend/frontend. Les images de production
@@ -77,19 +76,20 @@ officielle, modifier son tag directement dans le YAML.
 
 ### 3. Publier les images dans le registre
 
-Se connecter avec un jeton GitHub ayant `write:packages`, à saisir à l’invite
-Password. Le compte doit avoir accès aux packages du dépôt.
+Se connecter avec un jeton Docker Hub ayant accès en écriture, à saisir à l’invite
+Password. Créer les dépôts publics `trabelsislim/live-score-backend` et
+`trabelsislim/live-score-frontend` avant la publication.
 
 ```bash
-docker login ghcr.io -u TRABELSI-Sana
+docker login -u trabelsislim
 ./deploy.py push
 ```
 
 Équivaut à deux commandes `docker push`, avec la version du POM :
 
 ```bash
-docker push ghcr.io/trabelsi-sana/live-score-app/backend:0.0.2
-docker push ghcr.io/trabelsi-sana/live-score-app/frontend:0.0.2
+docker push docker.io/trabelsislim/live-score-backend:0.0.2
+docker push docker.io/trabelsislim/live-score-frontend:0.0.2
 ```
 
 Le script refuse d’écraser une version déjà publiée. Après un échec partiel, on
@@ -107,9 +107,9 @@ Cette commande inscrit les noms complets des images publiées directement dans
 [k8s/deployment.yaml](k8s/deployment.yaml) :
 
 ```yaml
-image: ghcr.io/trabelsi-sana/live-score-app/backend:0.0.2
+image: docker.io/trabelsislim/live-score-backend:0.0.2
 # Dans le conteneur frontend :
-image: ghcr.io/trabelsi-sana/live-score-app/frontend:0.0.2
+image: docker.io/trabelsislim/live-score-frontend:0.0.2
 ```
 
 Elle met aussi à jour la version des ConfigMaps dans les annotations pour que
