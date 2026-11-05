@@ -32,6 +32,16 @@ jobs:
           cache: maven
           cache-dependency-path: backend/pom.xml
 
+      - name: Login to Docker Hub (for manifest check)
+        uses: docker/login-action@v4
+        with:
+          registry: docker.io
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Auto-bump version if image tag conflicts
+        run: python3 -B deploy.py ci-auto-bump
+
       - name: Read release version from Maven
         id: release
         working-directory: backend

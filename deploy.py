@@ -211,6 +211,39 @@ def render_deployment(release):
     DEPLOYMENT.write_text(text)
 
 
+def ci_auto_bump():
+    """Auto-increment patch version until no published image conflicts with the current source."""
+    ver = version()
+    major, minor, patch = semver(ver)
+    for _ in range(50):
+        conflict = False
+        for app in ("backend", "frontend"):
+            ref = image(app, f"{major}.{minor}.{patch}")
+            if not remote_exists(ref):
+                continue
+            run("docker", "pull", "--platform", "linux/amd64", ref)
+            actual = output("docker", "image", "inspect", "--format", '{{index .Config.Labels "org.livefoot.source.sha256"}}', ref)
+            if actual != fingerprint(app):
+                conflict = True
+                break
+        if not conflict:
+            break
+        patch += 1
+    new_ver = f"{major}.{minor}.{patch}"
+    if new_ver != ver:
+        pom = ROOT / "backend/pom.xml"
+        text, count = re.subn(
+            r"(<artifactId>live-scores</artifactId>\s*<version>)[^<]+(</version>)",
+            lambda match: match[1] + new_ver + match[2], pom.read_text(), count=1
+        )
+        if count != 1:
+            raise ValueError("Version du projet introuvable dans le POM.")
+        pom.write_text(text)
+        print(f"Auto-bump : {ver} → {new_ver}")
+    else:
+        print(f"Version {ver} OK, pas de conflit.")
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     commands = parser.add_subparsers(dest="command", required=True)
@@ -219,9 +252,13 @@ def main():
     commands.add_parser("image", help="Construire une image localement").add_argument("app", choices=["backend", "frontend"])
     commands.add_parser("push", help="Publier les images déjà construites").add_argument("app", nargs="?", choices=["backend", "frontend"])
     commands.add_parser("manifests", help="Inscrire les images publiées dans le YAML")
+    commands.add_parser("ci-auto-bump", help="Auto-incrémenter le patch si conflit avec les images publiées")
     args = parser.parse_args()
     if args.command == "version":
         bump(args.target)
+        return
+    if args.command == "ci-auto-bump":
+        ci_auto_bump()
         return
     release = version()
     if args.command == "jar":
