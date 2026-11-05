@@ -4,6 +4,11 @@
     <p>Cette page n'existe pas ou a ete deplacee.</p>
     <a routerLink="/news">Voir toutes les analyses →</a>
   } @else {
+    <app-breadcrumb [items]="[
+      { label: 'Accueil', path: '/' },
+      { label: 'Actualites', path: '/news' },
+      { label: article.title ?? 'Article', path: '/news/' + article.slug }
+    ]" />
     <div class="content-page-header">
       <h1 class="content-page-title">{{ article.title }}</h1>
       <p class="content-page-desc">{{ article.description }}</p>
@@ -12,6 +17,7 @@
     <div class="page-grid">
       <div class="page-main">
         <div class="article-body" [innerHTML]="renderedBody"></div>
+        <app-related-content title="A lire aussi" [links]="relatedLinks" />
         <app-ad-slot variant="in-feed" slot="8567185183" />
       </div>
       <aside class="page-sidebar">

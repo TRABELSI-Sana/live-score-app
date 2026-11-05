@@ -17,9 +17,9 @@ export class GuidesIndexPageComponent implements OnInit {
 
   ngOnInit(): void {
     this.seo.update({
-      title: 'Guides football',
+      title: 'Guides football — Regles, tactiques et analyses',
       description:
-        'Guides editoriaux pour comprendre les regles du football, les tactiques, les formats de competitions et les statistiques avancees.',
+        'Guides football complets : regles du jeu, tactiques (4-3-3, 3-5-2, pressing), formats de competitions, classements, VAR et statistiques avancees (xG).',
       path: '/guides',
     });
   }

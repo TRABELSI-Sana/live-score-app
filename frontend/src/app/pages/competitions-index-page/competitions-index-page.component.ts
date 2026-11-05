@@ -23,9 +23,9 @@ export class CompetitionsIndexPageComponent implements OnInit {
   ngOnInit(): void {
     const siteBase = getSiteBase();
     this.seo.update({
-      title: 'Competitions de football',
+      title: 'Competitions de football — Championnats, coupes et resultats',
       description:
-        'Toutes les competitions couvertes par LiveFoot : Ligue 1, Premier League, Liga, Serie A, Champions League. Format, enjeux et classements.',
+        'Ligue 1, Premier League, Liga, Serie A, Bundesliga, Ligue des champions : format, classements, resultats en direct et enjeux sur LiveFoot.',
       path: '/competitions',
       jsonLd: [
         itemListSchema(siteBase, competitions, '/competitions'),

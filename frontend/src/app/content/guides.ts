@@ -137,30 +137,6 @@ Conseil : quand tu suis une coupe, regarde toujours si le match est un retour et
 `,
   },
   {
-    slug: 'seo-contenu-editorial-pour-un-site-de-scores',
-    title: 'Créer du contenu éditorial utile autour des scores (sans copier les autres)',
-    description: 'Idées d’articles evergreen et de pages “valeur ajoutée” pour un site de scores.',
-    updatedAt: '2026-03-04',
-    body: `Pour qu’un site de scores soit perçu comme un média (et pas comme un simple miroir d’API), il faut de la valeur ajoutée.
-
-Idées “evergreen” (ne dépendent pas d’un match précis) :
-- Guides : lire un score, comprendre un classement, statuts, règles des coupes.
-- Dossiers : histoire d’une compétition, formats, records, lexique.
-- Explications : comment fonctionne la VAR, pourquoi un but est refusé, rôle des xG (si tu en as).
-
-Idées “match day” (plus éditorial) :
-- Présentation des affiches du jour (2–3 paragraphes par compétition).
-- Focus sur les enjeux : maintien, Europe, derby.
-- 3 points à suivre : joueurs clés, dynamique, blessures.
-
-Ce qu’il faut éviter :
-- Copier-coller des résumés d’autres sites.
-- Publier uniquement du texte généré automatiquement sans relecture.
-
-Objectif : que chaque page ait une raison d’exister, même si l’utilisateur ne regarde pas un seul score.
-`,
-  },
-  {
     slug: 'faq-livefoot',
     title: 'FAQ : questions fréquentes sur les scores en direct',
     description: 'Réponses courtes et claires aux questions qu’on se pose pendant un live.',

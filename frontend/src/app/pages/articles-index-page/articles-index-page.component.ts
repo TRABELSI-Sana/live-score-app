@@ -17,9 +17,9 @@ export class ArticlesIndexPageComponent implements OnInit {
 
   ngOnInit(): void {
     this.seo.update({
-      title: 'Actualites et analyses football',
+      title: 'Actualites football — Analyses, tactiques et decryptages',
       description:
-        'Articles editoriaux pour comprendre les scores, les statistiques et les tendances du football. Analyses tactiques et decryptages.',
+        'Articles football originaux : analyses tactiques, formations, pressing, xG, derbys, mercato, VAR et decryptages pour comprendre le jeu au-dela du score.',
       path: '/news',
     });
   }

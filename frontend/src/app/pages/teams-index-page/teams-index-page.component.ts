@@ -23,9 +23,9 @@ export class TeamsIndexPageComponent implements OnInit {
   ngOnInit(): void {
     const siteBase = getSiteBase();
     this.seo.update({
-      title: 'Equipes de football',
+      title: 'Equipes de football — Clubs, historique et resultats en direct',
       description:
-        'Decouvrez les clubs et equipes couverts par LiveFoot : historique, palmares, statistiques et resultats en direct.',
+        'PSG, OM, Real Madrid, Barcelona, Liverpool, Manchester City et plus : historique, palmares, style de jeu et scores en direct sur LiveFoot.',
       path: '/teams',
       jsonLd: [itemListSchema(siteBase, teams, '/teams'), faqSchema(teamsFaqs)],
     });

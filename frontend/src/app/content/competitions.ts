@@ -54,6 +54,29 @@ La Liga est reputee pour la qualite technique de son football : jeu de passes, m
 Critere de departage specifique : en Liga, les confrontations directes priment sur la difference de buts generale. Cela signifie qu’un match entre deux equipes a egalite de points peut etre determinant pour le classement final, ce qui ajoute du piment a chaque confrontation directe entre concurrents.`,
   },
   {
+    slug: `bundesliga`,
+    name: `Bundesliga`,
+    description: `Suivez la Bundesliga en direct : resultats, classement, scores du championnat d'Allemagne avec Bayern Munich, Dortmund et plus.`,
+    updatedAt: `2026-11-05`,
+    body: `La Bundesliga est le championnat de premiere division en Allemagne. Elle reunit 18 equipes sur 34 journees en format aller-retour, avec un systeme de promotion-relegation connecte a la 2. Bundesliga.
+
+## Histoire et identite
+
+Fondee en 1963, la Bundesliga est reputee pour son modele economique unique : la regle du 50+1 impose que les membres du club detiennent la majorite des voix, ce qui preserve l'ancrage populaire et limite les rachats par des investisseurs prives. Cette specificite se traduit par les affluences les plus elevees d'Europe.
+
+## Le Bayern Munich et ses rivaux
+
+Le Bayern Munich domine le palmares avec plus de 30 titres. Le Borussia Dortmund est le rival historique le plus constant, mais des clubs comme Leverkusen (champion en 2024 apres une saison invaincu), Leipzig, Francfort ou Fribourg animent regulierement la course au titre et aux places europeennes.
+
+## Style de jeu
+
+La Bundesliga est associee a un jeu physique, vertical et intense. Le pressing haut et les transitions rapides sont des marqueurs tactiques du championnat. Les matchs produisent generalement un nombre eleve de buts par rapport aux autres grands championnats europeens.
+
+## Critere de departage
+
+En Bundesliga, la difference de buts generale prime sur les confrontations directes. Cela signifie que chaque but compte, meme dans une victoire large — un element a surveiller en fin de saison quand plusieurs equipes sont a egalite de points.`,
+  },
+  {
     slug: `serie-a`,
     name: `Serie A`,
     description: `Suivez la Serie A italienne en direct : resultats, classement, scores de la Juventus, Inter, Milan et Naples en temps reel.`,

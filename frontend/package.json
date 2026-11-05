@@ -6,7 +6,7 @@
     "ng": "ng",
     "dev": "ng serve --proxy-config proxy.conf.json",
     "build": "ng build",
-    "build:seo": "ng build && node scripts/prerender.mjs",
+    "build:seo": "ng build && node scripts/generate-sitemap.mjs && node scripts/prerender.mjs",
     "lint": "eslint .",
     "watch": "ng build --watch --configuration development",
     "preview": "node scripts/preview.mjs",

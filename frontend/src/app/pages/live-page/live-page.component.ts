@@ -21,9 +21,9 @@ export class LivePageComponent implements OnInit {
   ngOnInit(): void {
     const siteBase = getSiteBase();
     this.seo.update({
-      title: 'Matchs en direct',
+      title: 'Football en direct — Scores, resultats et classements',
       description:
-        "Tous les matchs de football en direct aujourd'hui. Scores, buts, cartons et evenements mis a jour toutes les 60 secondes.",
+        "Tous les scores de football en direct aujourd'hui : Ligue 1, Premier League, Liga, Serie A, Bundesliga, Champions League. Resultats, buts et classements en temps reel.",
       path: '/en-direct',
       jsonLd: [
         {

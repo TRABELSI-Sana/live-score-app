@@ -7,6 +7,7 @@ import { GuidesPreviewComponent } from '../../components/home/guides-preview/gui
 import { SidebarComponent } from '../../components/sidebar/sidebar.component';
 import { AdSlotComponent } from '../../components/ads/ad-slot/ad-slot.component';
 import { SeoFaqSectionComponent } from '../../components/seo-faq-section/seo-faq-section.component';
+import { SeoContentSectionComponent } from '../../components/home/seo-content-section/seo-content-section.component';
 import { homeFaqs } from '../../content/seo-faqs';
 import { faqSchema, organizationSchema } from '../../utils/seo-schemas';
 import { getSiteBase } from '../../utils/site-base';
@@ -22,6 +23,7 @@ import { getSiteBase } from '../../utils/site-base';
     SidebarComponent,
     AdSlotComponent,
     SeoFaqSectionComponent,
+    SeoContentSectionComponent,
   ],
   templateUrl: './home-page.component.html',
   styleUrl: './home-page.component.css',
@@ -33,9 +35,9 @@ export class HomePageComponent implements OnInit {
   ngOnInit(): void {
     const siteBase = getSiteBase();
     this.seo.update({
-      title: 'Scores en direct de football',
+      title: 'Scores de football en direct — Ligue 1, Premier League, Liga, Serie A',
       description:
-        'Suivez tous les scores de football en direct : Ligue 1, Premier League, Liga, Serie A, Champions League. Resultats, buts et evenements en temps reel.',
+        'Suivez tous les scores de football en direct : Ligue 1, Premier League, Liga, Serie A, Bundesliga, Champions League. Resultats, classements, buts et evenements en temps reel sur LiveFoot.',
       path: '/',
       jsonLd: [
         organizationSchema(siteBase),

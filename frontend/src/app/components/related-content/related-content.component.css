@@ -1,0 +1,45 @@
+.related-section {
+  margin-top: 2rem;
+  padding: 1.25rem;
+  border-radius: 0.75rem;
+  background: var(--color-surface, #1e293b);
+}
+
+.related-title {
+  font-size: 1rem;
+  margin-bottom: 0.75rem;
+}
+
+.related-links {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.related-link {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.5rem;
+  background: var(--color-bg, #0f172a);
+  color: var(--color-text, #e2e8f0);
+  text-decoration: none;
+  font-size: 0.9rem;
+  transition: background 0.2s;
+}
+
+.related-link:hover {
+  background: var(--color-surface-hover, #334155);
+}
+
+.related-tag {
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  padding: 0.15rem 0.4rem;
+  border-radius: 0.25rem;
+  background: var(--color-surface-hover, #334155);
+  color: var(--color-text-secondary, #94a3b8);
+  white-space: nowrap;
+}

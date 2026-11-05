@@ -4,14 +4,20 @@
     <p>La page demandee n'existe pas ou a ete deplacee.</p>
     <a routerLink="/teams">Voir toutes les equipes →</a>
   } @else {
+    <app-breadcrumb [items]="[
+      { label: 'Accueil', path: '/' },
+      { label: 'Equipes', path: '/teams' },
+      { label: team.name ?? 'Equipe', path: '/teams/' + team.slug }
+    ]" />
     <div class="content-page-header">
-      <h1 class="content-page-title">{{ team.name }}</h1>
+      <h1 class="content-page-title">{{ team.name }} — Scores en direct, resultats et actualites</h1>
       <p class="content-page-desc">{{ team.description }}</p>
       <span class="content-page-meta">Mis a jour : {{ team.updatedAt }}</span>
     </div>
     <div class="page-grid">
       <div class="page-main">
         <div class="article-body" [innerHTML]="renderedBody"></div>
+        <app-related-content title="A decouvrir aussi" [links]="relatedLinks" />
         <app-ad-slot variant="in-feed" slot="8567185183" />
       </div>
       <aside class="page-sidebar">

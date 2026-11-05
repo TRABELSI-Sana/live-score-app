@@ -1,0 +1,13 @@
+@if (links.length) {
+  <section class="related-section">
+    <h3 class="related-title">{{ title }}</h3>
+    <div class="related-links">
+      @for (link of links; track link.path) {
+        <a [routerLink]="link.path" class="related-link">
+          <span class="related-tag">{{ link.type === 'article' ? 'Article' : link.type === 'guide' ? 'Guide' : link.type === 'team' ? 'Equipe' : 'Competition' }}</span>
+          {{ link.label }}
+        </a>
+      }
+    </div>
+  </section>
+}

@@ -2,6 +2,9 @@ import { Component, inject, OnChanges, Input } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { SeoService } from '../../services/seo.service';
 import { AdSlotComponent } from '../../components/ads/ad-slot/ad-slot.component';
+import { BreadcrumbComponent } from '../../components/breadcrumb/breadcrumb.component';
+import { RelatedContentComponent } from '../../components/related-content/related-content.component';
+import { getRelatedForArticle, type RelatedLink } from '../../utils/related-content';
 import { getBySlug } from '../../content/articles';
 import { getSiteBase } from '../../utils/site-base';
 import type { ContentItem } from '../../models/content.model';
@@ -10,7 +13,7 @@ import { renderContent } from '../../utils/render-content';
 @Component({
   selector: 'app-article-page',
   standalone: true,
-  imports: [RouterLink, AdSlotComponent],
+  imports: [RouterLink, AdSlotComponent, BreadcrumbComponent, RelatedContentComponent],
   templateUrl: './article-page.component.html',
   styleUrl: './article-page.component.css',
 })
@@ -18,6 +21,7 @@ export class ArticlePageComponent implements OnChanges {
   @Input() slug!: string;
   article: ContentItem | undefined;
   renderedBody = '';
+  relatedLinks: RelatedLink[] = [];
   private seo = inject(SeoService);
 
   ngOnChanges(): void {
@@ -33,6 +37,7 @@ export class ArticlePageComponent implements OnChanges {
       return;
     }
     this.renderedBody = renderContent(this.article.body);
+    this.relatedLinks = getRelatedForArticle(this.slug);
     const siteBase = getSiteBase();
     this.seo.update({
       title: this.article.title || 'Article',

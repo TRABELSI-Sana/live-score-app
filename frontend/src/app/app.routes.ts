@@ -70,7 +70,10 @@ export const routes: Routes = [
       },
       {
         path: '**',
-        redirectTo: '',
+        loadComponent: () =>
+          import('./pages/not-found-page/not-found-page.component').then(
+            (m) => m.NotFoundPageComponent,
+          ),
       },
     ],
   },
