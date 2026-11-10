@@ -40,6 +40,17 @@ class LiveScoreApiClient(
         return client.get().uri("/fixtures?live=all").retrieve().body(String::class.java) ?: throw IllegalStateException("Empty response from API-Football")
     }
 
+    // Date-only queries also cover national competitions whose season spans several years.
+    fun getFixturesOnDateJson(date: LocalDate): String {
+        if (!tryConsumeQuota()) throw QuotaExceededException()
+        return client.get().uri { builder ->
+            builder.path("/fixtures")
+                .queryParam("date", date)
+                .queryParam("timezone", "Europe/Paris")
+                .build()
+        }.retrieve().body(String::class.java) ?: throw IllegalStateException("Empty response from API-Football")
+    }
+
     fun getFixturesByLeagueOnDateJson(competitionId: Int, date: LocalDate): String {
         if (!tryConsumeQuota()) throw QuotaExceededException()
         val season = seasonFromDate(date)

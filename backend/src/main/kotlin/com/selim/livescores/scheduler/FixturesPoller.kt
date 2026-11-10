@@ -57,15 +57,13 @@ class FixturesPoller(
     @Scheduled(cron = "0 5 6 * * *")
     @Scheduled(fixedDelayString = "\${apifootball.fixtures-refresh-ms:900000}")
     fun pollFixturesToday() {
-        val ids = api.competitionIdsList()
-        if (ids.isEmpty()) return
+        val allowedCompetitions = api.competitionIdsList().toSet()
 
         val today = LocalDate.now(ZoneId.of("Europe/Paris"))
-        val endDate = today.plusDays(2)
         val plannedStates = mutableListOf<com.selim.livescores.domain.MatchState>()
 
-        ids.forEach { compId ->
-            val json = guardedApiCall { api.getFixturesByLeagueOnDateRangeJson(compId, today, endDate) } ?: return@forEach
+        (0L..2L).forEach { offset ->
+            val json = guardedApiCall { api.getFixturesOnDateJson(today.plusDays(offset)) } ?: return@forEach
             val resp = try {
                 objectMapper.readValue(json, ApiFootballFixturesResponse::class.java)
             } catch (_: Exception) {
@@ -73,7 +71,9 @@ class FixturesPoller(
             }
             if (resp.hasTokenError()) return@forEach
 
-            resp.response.forEach { wrapper ->
+            resp.response.filter {
+                allowedCompetitions.isEmpty() || it.league?.id?.toInt() in allowedCompetitions
+            }.forEach { wrapper ->
                 val mapped = wrapper.toMatchState(defaultStatus = MatchStatus.NOT_STARTED)
                 val normalizedStatus = MatchStatus.normalize(mapped.status)
                 val score = if (normalizedStatus == MatchStatus.NOT_STARTED) "" else mapped.scores?.score.orEmpty()
